@@ -1,0 +1,11 @@
+{
+	"name": "krulabs",
+	"type": "module",
+	"version": "0.0.1",
+	"bin": {
+		"krulabs": "./src/main.ts"
+	},
+	"devDependencies": {
+		"@types/bun": "^1.1.0"
+	}
+}
