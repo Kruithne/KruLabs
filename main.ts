@@ -12,7 +12,9 @@ const CONFIG_FILE_PATH = './config.json';
 
 const configuration = {
 	web_server: {
-		port: 0
+		port: 0,
+		admin_control_panel_key: '',
+		controller_pin: ''
 	}
 };
 
@@ -63,8 +65,13 @@ function http_response(status: number): Response {
 }
 
 function init_local_server(): void {
-	const acp_key = crypto.randomUUID();
-	const controller_pin = generate_controller_pin();
+	let acp_key = configuration.web_server.admin_control_panel_key;
+	if (acp_key.length === 0)
+		acp_key = crypto.randomUUID();
+
+	let controller_pin = configuration.web_server.controller_pin;
+	if (controller_pin.length === 0)
+		controller_pin = generate_controller_pin();
 
 	const server = Bun.serve({
 		development: false,
