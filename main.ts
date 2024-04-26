@@ -77,8 +77,8 @@ function init_local_server(): void {
 	});
 
 	log_ok('local server initiated');
-	log_info(`{admin control panel} available at {http://localhost:${server.port}/admin/${acp_key}`);
-	log_info(`{production controller} available at {http://localhost:${server.port}/controller/${controller_pin}`);
+	log_info(`{admin control panel} available at {http://localhost:${server.port}/admin/${acp_key}}`);
+	log_info(`{production controller} available at {http://localhost:${server.port}/controller/${controller_pin}}`);
 	log_info(`{production observer} available at {http://localhost:${server.port}/observer}`);
 
 	print_ipv4_addresses();
