@@ -55,6 +55,7 @@ function print_ipv4_addresses(): void {
 function init_local_server(): void {
 	const server = Bun.serve({
 		development: false,
+		port: configuration.web_server.port,
 		fetch(req) {
 			const url = new URL(req.url);
 			return new Response('Hello world', { status: 200 });
