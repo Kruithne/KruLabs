@@ -64,6 +64,15 @@ function http_response(status: number): Response {
 	return new Response(node_http.STATUS_CODES[status], { status });
 }
 
+function close_socket(socket, reason: string): void {
+	socket.close();
+	log_warn(`web socket forcibly closed: {${reason}}`);
+}
+
+function send_socket_message(socket, data: Record<string, any>): void {
+	socket.send(JSON.stringify(data));
+}
+
 function init_local_server(): void {
 	let acp_key = configuration.web_server.admin_control_panel_key;
 	if (acp_key.length === 0)
@@ -73,6 +82,9 @@ function init_local_server(): void {
 	if (controller_pin.length === 0)
 		controller_pin = generate_controller_pin();
 
+	const authenticated_sockets = new WeakSet();
+
+	// @ts-ignore
 	const server = Bun.serve({
 		development: false,
 		port: configuration.web_server.port,
@@ -80,6 +92,11 @@ function init_local_server(): void {
 		async fetch(req) {
 			const url = new URL(req.url);
 			let pathname = url.pathname;
+
+			if (pathname === '/pipe') {
+				server.upgrade(req);
+				return;
+			}
 
 			if (pathname === '/')
 				pathname = '/index.html';
@@ -103,6 +120,38 @@ function init_local_server(): void {
 			log_error(`{${error.name}} ${error.message}`);
 
 			return new Response('An error occurred while processing the request.', { status: 500 });
+		},
+
+		websocket: {
+			message(ws, message) {
+				if (typeof message !== 'string')
+					return close_socket(ws, 'invalid message type');
+
+				try {
+					const data = JSON.parse(message as string);
+					if (typeof data.op !== 'string')
+						return close_socket(ws, 'missing operation type');
+
+					switch (data.op) {
+						case 'CMSG_KL_AUTHENTICATE': {
+							const success = data.key === controller_pin;
+
+							if (success)
+								authenticated_sockets.add(ws);
+
+							send_socket_message(ws, { op: 'SMSG_KL_AUTHENTICATE', success });
+							break;
+						}
+					}
+
+				} catch (e) {
+					return close_socket(ws, e.message);
+				}
+			},
+
+			open(ws) {
+				log_ok(`websocket connection established with {${ws.remoteAddress}}`);
+			}
 		}
 	});
 
