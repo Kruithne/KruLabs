@@ -143,7 +143,7 @@ async function init_config(): Promise<void> {
 		log_warn(`configuration file not found at {${CONFIG_FILE_PATH}}; writing default configuration`);
 
 		try {
-			Bun.write(CONFIG_FILE_PATH, JSON.stringify(configuration, null, 4));
+			await Bun.write(CONFIG_FILE_PATH, JSON.stringify(configuration, null, 4));
 		} catch (e) {
 			log_error(`failed to write default configuration to {${CONFIG_FILE_PATH}}; using default configuration`);
 		}
