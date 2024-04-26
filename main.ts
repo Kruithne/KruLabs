@@ -1,5 +1,7 @@
 import package_json from './package.json';
 import node_os from 'node:os';
+import node_http from 'node:http';
+import node_path from 'node:path';
 
 const ANSI_RED = '\x1b[31m';
 const ANSI_GREEN = '\x1b[32m';
@@ -52,8 +54,12 @@ function print_ipv4_addresses(): void {
 	}
 }
 
-function generate_controller_pin(): number {
-	return Math.floor(Math.random() * 9000) + 1000;
+function generate_controller_pin(): string {
+	return (Math.floor(Math.random() * 9000) + 1000).toString();
+}
+
+function http_response(status: number): Response {
+	return new Response(node_http.STATUS_CODES[status], { status });
 }
 
 function init_local_server(): void {
@@ -63,9 +69,26 @@ function init_local_server(): void {
 	const server = Bun.serve({
 		development: false,
 		port: configuration.web_server.port,
-		fetch(req) {
+
+		async fetch(req) {
 			const url = new URL(req.url);
-			return new Response('Hello world', { status: 200 });
+			let pathname = url.pathname;
+
+			if (pathname === '/')
+				pathname = '/index.html';
+			else if (node_path.extname(pathname) === '')
+				pathname = pathname + '.html';
+
+			const file_path = node_path.join('./src/web', pathname);
+
+			if (pathname === '/admin.html' && url.searchParams.get('key') !== acp_key)
+				return http_response(403); // forbidden
+
+			const file = Bun.file(file_path);
+			if (!await file.exists())
+				return http_response(404); // not found
+
+			return new Response(file, { status: 200 });
 		},
 
 		error(error) {
@@ -77,9 +100,9 @@ function init_local_server(): void {
 	});
 
 	log_ok('local server initiated');
-	log_info(`{admin control panel} available at {http://localhost:${server.port}/admin/${acp_key}}`);
-	log_info(`{production controller} available at {http://localhost:${server.port}/controller/${controller_pin}}`);
-	log_info(`{production observer} available at {http://localhost:${server.port}/observer}`);
+	log_info(`{admin control panel} available at {http://localhost:${server.port}/admin?key=${acp_key}}`);
+	log_info(`{production controller} available at {http://localhost:${server.port}/controller?key=${controller_pin}}`);
+	log_info(`{production observer} available at {http://localhost:${server.port}/controller}`);
 
 	print_ipv4_addresses();
 }
