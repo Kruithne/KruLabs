@@ -10,7 +10,7 @@ const CONFIG_FILE_PATH = './config.json';
 
 const configuration = {
 	web_server: {
-		port: 4000
+		port: 0
 	}
 };
 
