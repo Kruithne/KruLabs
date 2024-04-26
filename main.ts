@@ -52,7 +52,14 @@ function print_ipv4_addresses(): void {
 	}
 }
 
+function generate_controller_pin(): number {
+	return Math.floor(Math.random() * 9000) + 1000;
+}
+
 function init_local_server(): void {
+	const acp_key = crypto.randomUUID();
+	const controller_pin = generate_controller_pin();
+
 	const server = Bun.serve({
 		development: false,
 		port: configuration.web_server.port,
@@ -70,8 +77,8 @@ function init_local_server(): void {
 	});
 
 	log_ok('local server initiated');
-	log_info(`{admin control panel} available at {http://localhost:${server.port}/admin/a811aa62-d90d-4262-be0d-ee4b901817ee}`);
-	log_info(`{production controller} available at {http://localhost:${server.port}/controller/7587}`);
+	log_info(`{admin control panel} available at {http://localhost:${server.port}/admin/${acp_key}`);
+	log_info(`{production controller} available at {http://localhost:${server.port}/controller/${controller_pin}`);
 	log_info(`{production observer} available at {http://localhost:${server.port}/observer}`);
 
 	print_ipv4_addresses();
