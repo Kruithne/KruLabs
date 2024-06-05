@@ -12,7 +12,7 @@ import { createApp } from './vue.js';
 
 	function handle_socket_message(data) {
 		switch (data.op) {
-			case 'SMSG_KL_AUTHENTICATE': {
+			case 'SMSG_AUTHENTICATE': {
 				if (data.success)
 					console.log('authenticated');
 				else

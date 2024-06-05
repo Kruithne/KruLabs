@@ -39,7 +39,7 @@ function handle_socket_open() {
 	const url_params = new URLSearchParams(location.search);
 	if (url_params.has('key')) {
 		socket_send({
-			op: 'CMSG_KL_AUTHENTICATE',
+			op: 'CMSG_AUTHENTICATE',
 			key: url_params.get('key')
 		});
 	}

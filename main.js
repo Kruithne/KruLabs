@@ -212,13 +212,13 @@ function init_local_server() {
 
 					switch (data.op) {
 						// TODO: switch to numeric opcodes for performance.
-						case 'CMSG_KL_AUTHENTICATE': {
+						case 'CMSG_AUTHENTICATE': {
 							const success = data.key === controller_pin;
 
 							if (success)
 								authenticated_sockets.add(ws);
 
-							send_socket_message(ws, { op: 'SMSG_KL_AUTHENTICATE', success });
+							send_socket_message(ws, { op: 'SMSG_AUTHENTICATE', success });
 							break;
 						}
 
