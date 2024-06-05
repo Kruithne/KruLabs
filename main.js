@@ -1,7 +1,5 @@
 /*
-
 	TODO
-	- Remove OBS support.
 	- Make marker system more robust with Blender add-on.
 	- Remove admin panel, everything will be done via controller.
 	- Fix non-authenticated controller from sending requests to server.
@@ -23,17 +21,7 @@ const ANSI_GREEN = '\x1b[32m';
 const ANSI_CYAN = '\x1b[36m';
 const ANSI_ORANGE = '\x1b[33m';
 
-const OBS_OPCODE_HELLO = 0;
-const OBS_OPCODE_IDENTIFY = 1;
-const OBS_OPCODE_IDENTIFIED = 2;
-const OBS_OPCODE_REIDENTIFY = 3;
-const OBS_OPCODE_EVENT = 5;
-const OBS_OPCODE_REQUEST = 6;
-
 const CONFIG_FILE_PATH = './config.json';
-
-let obs_socket;
-let is_obs_socket_open = false; 
 
 const client_sockets = new Set();
 
@@ -42,15 +30,10 @@ const configuration = {
 		port: 0,
 		admin_control_panel_key: '',
 		controller_pin: ''
-	},
-	obs: {
-		host: 'localhost',
-		port: 4455,
-		password: '',
-		reconnect_interval: 1000
 	}
 };
 
+// TODO: This should not be hard-coded like this.
 const MARKER_CONFIG = {
 	'ACT_1': './markers/ACT_1_MARKERS.json',
 	'ACT_2': './markers/ACT_2_MARKERS.json'
@@ -157,93 +140,6 @@ function send_socket_message_all(data) {
 	}
 }
 
-/**
- * @param {number} op
- * @param {Record<string, any>} data
- */
-function obs_send_message(op, data) {
-	// TODO: handle if `is_obs_socket_open` is false.
-	obs_socket.send(JSON.stringify({ op, d: data }));
-}
-
-/**
- * @param {string} request_type
- * @param {Record<string, any>} request_data
- */
-function obs_send_request(request_type, request_data) {
-	obs_send_message(OBS_OPCODE_REQUEST, {
-		requestType: request_type,
-		requestId: crypto.randomUUID(),
-		requestData: request_data
-	});
-}
-
-/**
- * @param {string} scene_name
- */
-function obs_change_scene(scene_name) {
-	obs_send_request('SetCurrentProgramScene', { sceneName: scene_name });
-}
-
-async function init_obs_socket() {
-	const obs_host = `ws://${configuration.obs.host}:${configuration.obs.port}`;
-	obs_socket = new WebSocket(obs_host, 'obswebsocket.json');
-
-	obs_socket.addEventListener('open', () => {
-		log_ok(`connection to OBS established at {${obs_host}}`);
-		is_obs_socket_open = false;
-	});
-
-	obs_socket.addEventListener('message', (event) => {
-		// TODO: validate event.data is a string (use event.type or typeof event.data)
-		const data = JSON.parse(event.data);
-
-		// see https://github.com/obsproject/obs-websocket/blob/master/docs/generated/protocol.md
-		switch (data.op) {
-			case OBS_OPCODE_HELLO: {
-				// TODO: authentication may be optional if data.authentication is not set.
-				// TODO: print obsWebSocketVersion and rpcVersion for debugging
-
-				// TODO: message queueing to prevent loss during reidentification
-				
-				// TODO: authentication
-				//const secret = node_crypto.createHash('sha256').update(configuration.obs.password + data.d.authentication.salt).digest('base64');
-
-				//const authentication = node_crypto.createHash('sha256').update(secret + data.d.authentication.challenge).digest('base64');
-				//obs_send_message(OBS_OPCODE_IDENTIFY, { authentication, rpcVersion: 1 });
-
-				obs_send_message(OBS_OPCODE_IDENTIFY, { rpcVersion: 1 });
-				break;
-			}
-
-			case OBS_OPCODE_IDENTIFIED: {
-				is_obs_socket_open = true;
-				break;
-			}
-
-			case OBS_OPCODE_REIDENTIFY: {
-				// TODO: authentication
-				is_obs_socket_open = false;
-				obs_send_message(OBS_OPCODE_IDENTIFY, { rpcVersion: 1 });
-				break;
-			}
-
-			default: {
-				console.log(data); // TODO: remove
-			}
-		}
-	});
-
-	obs_socket.addEventListener('close', event => {
-		is_obs_socket_open = false;
-
-		const reconnect_interval = configuration.obs.reconnect_interval;
-		log_warn(`connection to OBS lost ({${event.code}}); attempting to reconnect in {${reconnect_interval}}ms`);
-
-		setTimeout(() => init_obs_socket(), reconnect_interval);
-	});
-}
-
 // TODO: Automatically send sources to the client rather than hard-coding in HTML.
 // TODO: Load sources dynamically as opposed to hard-coding them here.
 const sources = {
@@ -344,7 +240,7 @@ function init_local_server() {
 
 							const scene_sources = sources[current_scene];
 							for (const scene of scene_sources) {
-								obs_send_request('SetMediaInputCursor', { inputName: scene, mediaCursor: data.position });
+								//obs_send_request('SetMediaInputCursor', { inputName: scene, mediaCursor: data.position });
 							}
 							
 							break;
@@ -355,15 +251,10 @@ function init_local_server() {
 								return close_socket(ws, 'unauthenticated');
 
 							current_scene = data.scene;
-							obs_change_scene(data.scene);
+							//obs_change_scene(data.scene);
 
 							// send RESTART and PAUSE to all sources in the new scene
 							const scene_sources = sources[data.scene];
-
-							for (const scene of scene_sources) {
-								obs_send_request('TriggerMediaInputAction', { inputName: scene, mediaAction: 'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_RESTART' });
-								obs_send_request('TriggerMediaInputAction', { inputName: scene, mediaAction: 'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_PAUSE' });
-							}
 
 							const markers = scene_markers[data.scene];
 							send_socket_message_all({ op: 'SMSG_LOAD_MARKERS', markers: markers ?? [] });
@@ -380,7 +271,7 @@ function init_local_server() {
 
 							const scene_sources = sources[current_scene];
 							for (const scene of scene_sources)
-								obs_send_request('TriggerMediaInputAction', { inputName: scene, mediaAction: 'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_PLAY' });
+								//obs_send_request('TriggerMediaInputAction', { inputName: scene, mediaAction: 'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_PLAY' });
 
 							break;
 						}
@@ -394,7 +285,7 @@ function init_local_server() {
 
 							const scene_sources = sources[current_scene];
 							for (const scene of scene_sources)
-								obs_send_request('TriggerMediaInputAction', { inputName: scene, mediaAction: 'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_PAUSE' });
+								//obs_send_request('TriggerMediaInputAction', { inputName: scene, mediaAction: 'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_PAUSE' });
 
 							break;
 						}
@@ -562,5 +453,4 @@ async function init_markers() {
 	await init_config();
 	await init_markers();
 	init_local_server();
-	await init_obs_socket();
 })();
