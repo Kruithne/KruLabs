@@ -1,7 +1,6 @@
 /*
 	TODO
 	- Make marker system more robust with Blender add-on.
-	- Remove admin panel, everything will be done via controller.
 	- Fix non-authenticated controller from sending requests to server.
 	- Implement projection screen interface.
 	- Implement projection screen debug mode.
@@ -28,7 +27,6 @@ const client_sockets = new Set();
 const configuration = {
 	web_server: {
 		port: 0,
-		admin_control_panel_key: '',
 		controller_pin: ''
 	}
 };
@@ -157,10 +155,6 @@ const sources = {
 }
 
 function init_local_server() {
-	let acp_key = configuration.web_server.admin_control_panel_key;
-	if (acp_key.length === 0)
-		acp_key = crypto.randomUUID();
-
 	let controller_pin = configuration.web_server.controller_pin;
 	if (controller_pin.length === 0)
 		controller_pin = generate_controller_pin();
@@ -187,9 +181,6 @@ function init_local_server() {
 				pathname = pathname + '.html';
 
 			const file_path = node_path.join('./src/web', pathname);
-
-			if (pathname === '/admin.html' && url.searchParams.get('key') !== acp_key)
-				return http_response(403); // forbidden
 
 			const file = Bun.file(file_path);
 			if (!await file.exists())
@@ -318,7 +309,6 @@ function init_local_server() {
 	});
 
 	log_ok('local server initiated');
-	log_info(`{admin control panel} available at {http://localhost:${server.port}/admin?key=${acp_key}}`);
 	log_info(`{production controller} available at {http://localhost:${server.port}/controller?key=${controller_pin}}`);
 	log_info(`{production observer} available at {http://localhost:${server.port}/controller}`);
 
