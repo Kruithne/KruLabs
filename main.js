@@ -1,7 +1,5 @@
 /*
 	TODO
-	- Make marker system more robust with Blender add-on.
-	- Fix non-authenticated controller from sending requests to server.
 	- Implement projection screen interface.
 	- Implement projection screen debug mode.
 	- Implement video, audio and image streaming.
