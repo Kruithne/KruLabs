@@ -37,6 +37,11 @@ Below is a complete overview of available configuration with the internal defaul
 		"port": 0, // if set to 0, a random port will be selected
 		"admin_control_panel_key": "", // if empty, will be randomly generated for each run
 		"controller_pin": "", // if empty, will be randomly generated for each run
+	},
+	"obs": {
+		"host": "localhost",
+		"port": 4455,
+		"password": "",
 	}
 }
 ```

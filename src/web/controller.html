@@ -6,6 +6,17 @@
 		<script src="./scripts/controller.js" type="module"></script>
 	</head>
 	<body>
-		<div id="test"></div>
+		<div id="app">
+			<div id="buttons">
+				<input type="button" value="ACT 1" @click="switch_scene_act1">
+				<input type="button" value="ACT 2" @click="switch_scene_act2">
+				<input type="button" value="DIAMOND" @click="switch_scene_diamond">
+				<input type="button" value="GO" @click="play">
+				<input type="button" value="HOLD" @click="pause">
+			</div>
+			<div id="markers">
+				<div v-for="marker in markers" @click="seek(marker.position)">{{ marker.name }}</div>
+			</div>
+		</div>
 	</body>
 </html>
