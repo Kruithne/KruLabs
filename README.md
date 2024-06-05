@@ -30,8 +30,10 @@ If the configuration file fails to pass, contains unknown entries, or existing e
 
 Below is a complete overview of available configuration with the internal defaults.
 
+> [!IMPORTANT]
+> The comments below are for documentation purposes and are not valid JSON. Do not include comments in your configuration.
+
 ```jsonc
-// NOTE: comments here are for documentation and are not valid JSON
 {
 	"web_server": {
 		"port": 0, // if set to 0, a random port will be selected
