@@ -30,7 +30,7 @@ If the configuration file fails to pass, contains unknown entries, or existing e
 
 Below is a complete overview of available configuration with the internal defaults.
 
-```json
+```jsonc
 // NOTE: comments here are for documentation and are not valid JSON
 {
 	"web_server": {
