@@ -2,8 +2,6 @@ import { document_ready } from './util.js';
 import { socket_init, register_socket_listener, socket_send } from './socket.js';
 import { createApp } from './vue.js';
 
-// todo: implement v-cloak with loading spinner
-
 (async () => {
 	register_socket_listener(handle_socket_message);
 
