@@ -2,20 +2,30 @@
 <html>
 	<head>
 		<title>KruLabs :: Controller</title>
-		<link rel="stylesheet" type="text/css" href="./style/shared.css">
+		<link rel="stylesheet" type="text/css" href="./style/controller.css">
 		<script src="./scripts/controller.js" type="module"></script>
 	</head>
 	<body>
 		<div id="app">
-			<div id="buttons">
-				<input type="button" value="ACT 1" @click="switch_scene_act1">
-				<input type="button" value="ACT 2" @click="switch_scene_act2">
-				<input type="button" value="DIAMOND" @click="switch_scene_diamond">
-				<input type="button" value="GO" @click="play">
-				<input type="button" value="HOLD" @click="pause">
+			<div id="loading" v-if="false">
+				<div class="loading-ring"></div>
 			</div>
-			<div id="markers">
-				<div v-for="marker in markers" @click="seek(marker.position)">{{ marker.name }}</div>
+			<div v-cloak>
+				<div id="header">
+					<span id="header-title">KruLabs</span>
+					<span id="header-scene-title">Bill & Fred's Excellent Adventure</span>
+					<span id="header-buttons">PAGE</span>
+				</div>
+				<div id="buttons">
+					<input type="button" value="ACT 1" @click="switch_scene_act1">
+					<input type="button" value="ACT 2" @click="switch_scene_act2">
+					<input type="button" value="DIAMOND" @click="switch_scene_diamond">
+					<input type="button" value="GO" @click="play">
+					<input type="button" value="HOLD" @click="pause">
+				</div>
+				<div id="markers">
+					<div v-for="marker in markers" @click="seek(marker.position)">{{ marker.name }}</div>
+			</div>
 			</div>
 		</div>
 	</body>

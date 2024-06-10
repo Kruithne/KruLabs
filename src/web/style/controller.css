@@ -1,0 +1,92 @@
+@font-face {
+	font-family: 'Kanit';
+	font-style: normal;
+	font-weight: 400;
+	font-display: swap;
+	src: url(../fonts/kanit.woff2) format('woff2');
+}
+
+* {
+	font-family: "Kanit", sans-serif;
+	font-weight: 400;
+	font-style: normal;
+	color: white;
+	text-shadow: 2px 2px 3px black;
+	font-size: 20px;
+}
+
+[v-cloak] {
+	display: none;
+}
+
+body {
+	background-color: #232323;
+	background-image: url(../images/stripe_base.png);
+	background-blend-mode: multiply;
+	background-attachment: fixed;
+	margin: 0;
+}
+
+#loading {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	position: fixed;
+	top: 0;
+	left: 0;
+	bottom: 0;
+	right: 0;
+}
+
+.loading-ring {
+	display: inline-block;
+	width: 300px;
+	height: 300px;
+	box-sizing: border-box;
+}
+
+.loading-ring:after {
+	content: " ";
+	display: block;
+	width: 100%;
+	height: 100%;
+	border-radius: 50%;
+	border: 20px solid white;
+	border-color: white transparent white transparent;
+	animation: anim-loading-ring 2s linear infinite;
+	box-sizing: border-box;
+}
+
+@keyframes anim-loading-ring {
+	0% {
+		transform: rotate(0deg);
+	}
+
+	100% {
+		transform: rotate(360deg);
+	}
+}
+
+input[type="button"] {
+	background-color: #3f2bee;
+	background-image: url(../images/stripe_base.png);
+	background-blend-mode: multiply;
+	background-attachment: fixed;
+}
+
+#header {
+	display: grid;
+	grid-template-columns: auto 1fr auto;
+	padding: 10px 15px;
+	background-color: #3d56af;
+	background-image: url(../images/stripe_base.png);
+	background-blend-mode: multiply;
+	background-attachment: fixed;
+}
+
+#header-title {
+}
+
+#header-scene-title {
+	text-align: center;
+}
