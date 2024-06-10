@@ -1,13 +1,3 @@
-/*
-	TODO
-	- Implement projection screen interface.
-	- Implement projection screen debug mode.
-	- Implement video, audio and image streaming.
-	- Create dynamic scene system.
-	- Implement autoplay support for sources.
-	- Implement loop support for sources.
-*/
-
 import package_json from './package.json';
 import node_os from 'node:os';
 import node_http from 'node:http';
