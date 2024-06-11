@@ -11,10 +11,22 @@ const ANSI_ORANGE = '\x1b[33m';
 const STATE_MEMORY_FILE = './internal_state.json';
 const VALID_CLI_ARGS = ['port'];
 
+const CLIENT_AUTHENTICATED = 1 << 0;
+const CLIENT_BLENDER = 1 << 1;
+const CLIENT_CONTROLLER = 1 << 2;
+const CLIENT_PROJECTOR = 1 << 3;
+
+const CLIENT_LABELS = {
+	[CLIENT_AUTHENTICATED]: 'authenticated',
+	[CLIENT_BLENDER]: 'blender',
+	[CLIENT_CONTROLLER]: 'controller',
+	[CLIENT_PROJECTOR]: 'projector'
+};
+
 const cli_args = new Map();
 let state_memory = {};
 
-const client_sockets = new Set();
+const client_sockets = new Map();
 
 /**
  * @param {string} message
@@ -96,6 +108,23 @@ function close_socket(socket, reason) {
 }
 
 /**
+ * @param {WebSocket} ws 
+ * @returns {string}
+ */
+function get_socket_labels(ws) {
+	const identity = client_sockets.get(ws);
+
+	const labels = [];
+
+	for (const [flag, label] of Object.entries(CLIENT_LABELS)) {
+		if (identity & flag)
+			labels.push('{' + label + '}');
+	}
+
+	return labels.join(' | ');
+}
+
+/**
  * @param {WebSocket} socket
  * @param {Record<string, any>} data
  */
@@ -104,13 +133,27 @@ function send_socket_message(socket, data) {
 }
 
 /**
+ * @param {number} filter 
+ * @param {Record<string, any>} data 
+ */
+function send_socket_message_filtered(filter, data) {
+	const payload = JSON.stringify(data);
+
+	for (const [socket, identity] of client_sockets) {
+		if (identity > 0 && identity & filter)
+			socket.send(payload);
+	}
+}
+
+/**
  * @param {Record<string, any>} data 
  */
 function send_socket_message_all(data) {
 	const payload = JSON.stringify(data);
 
-	for (const socket of client_sockets) 
-		socket.send(payload);
+	for (const [socket, identity] of client_sockets)
+		if (identity > 0)
+			socket.send(payload);
 }
 
 async function save_memory() {
@@ -161,8 +204,6 @@ async function save_memory() {
 	const controller_pin = generate_controller_pin();
 	const server_port = cli_args.has('port') ? parseInt(cli_args.get('port')) : 19531;
 
-	const authenticated_sockets = new WeakSet();
-
 	const server = Bun.serve({
 		development: false,
 		port: server_port,
@@ -208,51 +249,45 @@ async function save_memory() {
 
 				try {
 					const data = JSON.parse(message);
-					if (typeof data.op !== 'string')
+					const op = data.op;
+
+					if (typeof op !== 'string')
 						return close_socket(ws, 'missing operation type');
 
-					switch (data.op) {
-						case 'CMSG_UPLOAD_SCENES': {
-							state_memory.scenes = data.scenes;
-							save_memory();
-							break;
-						}
+					if (op === 'CMSG_IDENTITY') {
+						let identity = data.identity;
 
-						case 'CMSG_DOWNLOAD_SCENES': {
-							const scenes = state_memory.scenes ?? [];
-							send_socket_message(ws, { op: 'SMSG_DOWNLOAD_SCENES', scenes });
-							break;
-						}
+						if (identity & CLIENT_AUTHENTICATED && data.key !== controller_pin)
+							identity &= ~CLIENT_AUTHENTICATED;
 
-						case 'CMSG_AUTHENTICATE': {
-							const success = data.key === controller_pin;
+						const authenticated = identity & CLIENT_AUTHENTICATED;
 
-							if (success)
-								authenticated_sockets.add(ws);
+						client_sockets.set(ws, identity);
+						send_socket_message(ws, { op: 'SMSG_IDENTITY', authenticated });
 
-							send_socket_message(ws, { op: 'SMSG_AUTHENTICATE', success });
-							break;
-						}
+						log_info(`client connected {${ws.remoteAddress}} [${get_socket_labels(ws)}]`);
 
-						case 'CMSG_SEEK': {
-							if (!authenticated_sockets.has(ws))
-								return close_socket(ws, 'unauthenticated');
-
-							// todo: reimplement
-							
-							break;
-						}
-
-						case 'CMSG_SWITCH_SCENE': {
-							if (!authenticated_sockets.has(ws))
-								return close_socket(ws, 'unauthenticated');
-
-							// todo: reimplement
-
-							break;
-						}
+						return;
 					}
 
+					const socket_identity = client_sockets.get(ws);
+					const is_socket_authenticated = socket_identity & CLIENT_AUTHENTICATED;
+
+					// do not respond to other packets until identity has been sent
+					if (socket_identity === 0)
+						return;
+
+					if (op === 'CMSG_UPLOAD_SCENES') {
+						state_memory.scenes = data.scenes;
+						save_memory();
+						return;
+					}
+
+					if (op === 'CMSG_DOWNLOAD_SCENES') {
+						const scenes = state_memory.scenes ?? [];
+						send_socket_message(ws, { op: 'SMSG_DOWNLOAD_SCENES', scenes });
+						return;
+					}
 				} catch (e) {
 					return close_socket(ws, e.message);
 				}
@@ -263,7 +298,7 @@ async function save_memory() {
 			 */
 			open(ws) {
 				log_ok(`websocket connection established with {${ws.remoteAddress}}`);
-				client_sockets.add(ws);
+				client_sockets.set(ws, 0x0);
 			},
 
 			/**

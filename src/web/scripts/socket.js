@@ -1,26 +1,36 @@
 let ws;
 let is_socket_open = false;
-let init_fn;
+let client_identity = 0;
+let auth_key = undefined;
 
 const event_listeners = [];
 
+export const CLIENT_IDENTITY = {
+	AUTHENTICATED: 1 << 0,
+	BLENDER: 1 << 1,
+	CONTROLLER: 1 << 2,
+	PROJECTOR: 1 << 3
+};
+
 /**
- * @param {function} init 
+ * @param {number} identity
+ * @param {number} key
  */
-export async function socket_init(init) {
+export async function socket_init(identity, key) {
 	ws = new WebSocket(`ws://${location.host}/pipe`);
+
+	client_identity = identity;
+	auth_key = key;
 	
 	ws.addEventListener('close', handle_socket_close);
 	ws.addEventListener('error', console.error);
 	ws.addEventListener('message', handle_socket_message);
 	ws.addEventListener('open', handle_socket_open);
-
-	init_fn = init;
 }
 
-export function socket_send(data) {
+export function send_packet(op, data) {
 	if (is_socket_open)
-		ws.send(JSON.stringify(data));
+		ws.send(JSON.stringify({ op, ...data }));
 }
 
 export function register_socket_listener(callback) {
@@ -41,5 +51,5 @@ function handle_socket_message(event) {
 
 function handle_socket_open() {
 	is_socket_open = true;
-	init_fn?.();
+	send_packet('CMSG_IDENTITY', { identity: client_identity, key: auth_key });
 }

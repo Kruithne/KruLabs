@@ -1,20 +1,17 @@
 import { document_ready } from './util.js';
-import { socket_init, register_socket_listener, socket_send } from './socket.js';
+import { socket_init, register_socket_listener, send_packet, CLIENT_IDENTITY } from './socket.js';
 import { createApp } from './vue.js';
 
 (async () => {
 	register_socket_listener(handle_socket_message);
 
 	await document_ready();
-	await socket_init(() => {
-		const url_params = new URLSearchParams(location.search);
-		if (url_params.has('key')) {
-			socket_send({
-				op: 'CMSG_AUTHENTICATE',
-				key: url_params.get('key')
-			});
-		}
-	});
+
+	const url_params = new URLSearchParams(location.search);
+	if (url_params.has('key'))
+		await socket_init(CLIENT_IDENTITY.CONTROLLER | CLIENT_IDENTITY.AUTHENTICATED, url_params.get('key'))
+	else
+		await socket_init(CLIENT_IDENTITY.CONTROLLER);
 
 	function handle_socket_message(data) {
 		switch (data.op) {

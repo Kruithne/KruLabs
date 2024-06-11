@@ -36,6 +36,7 @@ class WebSocketClientApp(WebSocketClient):
 	def opened(self):
 		global ws_connection_state
 		ws_connection_state = WS_STATE_CONNECTED
+		ws_send_packet('CMSG_IDENTITY', { 'identity': 1 << 1 })
 		bpy.app.timers.register(ws_process_queue)
 		
 	def closed(self, code, reason=None):
