@@ -1,21 +1,21 @@
 let ws;
 let is_socket_open = false;
+let init_fn;
 
 const event_listeners = [];
 
 /**
- * @param {function} init_fn 
+ * @param {function} init 
  */
-export async function socket_init(init_fn) {
+export async function socket_init(init) {
 	ws = new WebSocket(`ws://${location.host}/pipe`);
 	
 	ws.addEventListener('close', handle_socket_close);
 	ws.addEventListener('error', console.error);
 	ws.addEventListener('message', handle_socket_message);
-	ws.addEventListener('open', () => {
-		is_socket_open = true;
-		init_fn?.();
-	});
+	ws.addEventListener('open', handle_socket_open);
+
+	init_fn = init;
 }
 
 export function socket_send(data) {
@@ -37,4 +37,9 @@ function handle_socket_message(event) {
 	const data = JSON.parse(event.data);
 	for (const listener of event_listeners)
 		listener(data);
+}
+
+function handle_socket_open() {
+	is_socket_open = true;
+	init_fn?.();
 }
