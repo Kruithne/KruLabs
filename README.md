@@ -3,6 +3,10 @@
 KruLabs is a bespoke automation system for theatre production.
 
 ## Disclaimer
+
+KruLabs is purpose built. It is not intended for general-purpose use and is not supported for such. This project is open-sourced for educational and research purposes. It is not recommended to use this software.
+
+## Responsibility
 Neither the author nor the contributor of this software are responsible for any damages caused by the use of this software. This software is provided as-is, with no warranty or guarantee of any kind. By using this software you understand the potential risks and assume all responsibility.
 
 ## Installation
@@ -20,26 +24,6 @@ git clone https://github.com/Kruithne/KruLabs.git
 
 ```bash
 bun run krulabs
-```
-
-## Configuration
-
-Configuration must be defined in `config.json` in the root of the project. If the file does not exist, it will be created with default values when running KruLabs.
-
-If the configuration file fails to pass, contains unknown entries, or existing entries are not of the expected type, KruLabs will substitute the invalid entries with default values, but will not correct the file itself.
-
-Below is a complete overview of available configuration with the internal defaults.
-
-> [!IMPORTANT]
-> The comments below are for documentation purposes and are not valid JSON. Do not include comments in your configuration.
-
-```jsonc
-{
-	"web_server": {
-		"port": 0, // if set to 0, a random port will be selected
-		"controller_pin": "", // if empty, will be randomly generated for each run
-	}
-}
 ```
 
 ## License

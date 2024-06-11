@@ -8,24 +8,13 @@ const ANSI_GREEN = '\x1b[32m';
 const ANSI_CYAN = '\x1b[36m';
 const ANSI_ORANGE = '\x1b[33m';
 
-const CONFIG_FILE_PATH = './config.json';
+const STATE_MEMORY_FILE = './internal_state.json';
+const VALID_CLI_ARGS = ['port'];
+
+const cli_args = new Map();
+let state_memory = {};
 
 const client_sockets = new Set();
-
-const configuration = {
-	web_server: {
-		port: 0,
-		controller_pin: ''
-	}
-};
-
-// TODO: This should not be hard-coded like this.
-const MARKER_CONFIG = {
-	'ACT_1': './markers/ACT_1_MARKERS.json',
-	'ACT_2': './markers/ACT_2_MARKERS.json'
-};
-
-const scene_markers = {};
 
 /**
  * @param {string} message
@@ -120,39 +109,63 @@ function send_socket_message(socket, data) {
 function send_socket_message_all(data) {
 	const payload = JSON.stringify(data);
 
-	for (const socket of client_sockets) {
-		// TODO: do we need to validate here that the socket is still active? edge case?
+	for (const socket of client_sockets) 
 		socket.send(payload);
+}
+
+async function save_memory() {
+	try {
+		await Bun.write(STATE_MEMORY_FILE, JSON.stringify(state_memory, null, 4));
+	} catch (e) {
+		log_error(`failed to save internal state memory to {${STATE_MEMORY_FILE}}; data loss may occur`);
 	}
 }
 
-// TODO: Automatically send sources to the client rather than hard-coding in HTML.
-// TODO: Load sources dynamically as opposed to hard-coding them here.
-const sources = {
-	'ACT_1': [
-		'ICONIC_ACT_1_RENDER.mp4'
-	],
+(async function main() {
+	log_info(`KruLabs {v${package_json.version}}`);
+	
+	// command line arguments
+	const args = process.argv.slice(2);
 
-	'ACT_2': [
-		'ICONIC_ACT_2_RENDER.mp4'
-	],
+	for (const arg of args) {
+		let [key, value] = arg.split('=');
+		if (key === undefined || value === undefined) {
+			log_error(`invalid command line argument {${arg}}`);
+			continue;
+		}
 
-	'DIAMOND': [
-		'ICONIC_DIAMONDS.mp4'
-	]
-}
+		key = key.replace(/^-+/, '');
 
-function init_local_server() {
-	let controller_pin = configuration.web_server.controller_pin;
-	if (controller_pin.length === 0)
-		controller_pin = generate_controller_pin();
+		if (!VALID_CLI_ARGS.includes(key)) {
+			log_error(`unknown command line argument {${key}}`);
+			continue;
+		}
+
+		cli_args.set(key, value);
+	}
+
+	// internal state memory
+	const state_file = Bun.file(STATE_MEMORY_FILE);
+	if (await state_file.exists()) {
+		try {
+			state_memory = await state_file.json();
+			log_ok(`loaded internal state memory [{${Math.ceil(state_file.size / 1024)}kb}]`);
+		} catch (e) {
+			log_error(`failed to load internal state memory from {${STATE_MEMORY_FILE}}; data loss may occur`);
+		}
+	} else {
+		log_warn(`internal state memory not found; creating new memory file`);
+	}
+
+	// local server
+	const controller_pin = generate_controller_pin();
+	const server_port = cli_args.has('port') ? parseInt(cli_args.get('port')) : 19531;
 
 	const authenticated_sockets = new WeakSet();
-	let current_scene = null;
 
 	const server = Bun.serve({
 		development: false,
-		port: configuration.web_server.port,
+		port: server_port,
 
 		async fetch(req) {
 			const url = new URL(req.url);
@@ -199,7 +212,18 @@ function init_local_server() {
 						return close_socket(ws, 'missing operation type');
 
 					switch (data.op) {
-						// TODO: switch to numeric opcodes for performance.
+						case 'CMSG_UPLOAD_SCENES': {
+							state_memory.scenes = data.scenes;
+							save_memory();
+							break;
+						}
+
+						case 'CMSG_DOWNLOAD_SCENES': {
+							const scenes = state_memory.scenes ?? [];
+							send_socket_message(ws, { op: 'SMSG_DOWNLOAD_SCENES', scenes });
+							break;
+						}
+
 						case 'CMSG_AUTHENTICATE': {
 							const success = data.key === controller_pin;
 
@@ -214,13 +238,7 @@ function init_local_server() {
 							if (!authenticated_sockets.has(ws))
 								return close_socket(ws, 'unauthenticated');
 
-							if (current_scene === null)
-								return;
-
-							const scene_sources = sources[current_scene];
-							for (const scene of scene_sources) {
-								//obs_send_request('SetMediaInputCursor', { inputName: scene, mediaCursor: data.position });
-							}
+							// todo: reimplement
 							
 							break;
 						}
@@ -229,42 +247,7 @@ function init_local_server() {
 							if (!authenticated_sockets.has(ws))
 								return close_socket(ws, 'unauthenticated');
 
-							current_scene = data.scene;
-							//obs_change_scene(data.scene);
-
-							// send RESTART and PAUSE to all sources in the new scene
-							const scene_sources = sources[data.scene];
-
-							const markers = scene_markers[data.scene];
-							send_socket_message_all({ op: 'SMSG_LOAD_MARKERS', markers: markers ?? [] });
-
-							break;
-						}
-
-						case 'CMSG_PLAY': {
-							if (!authenticated_sockets.has(ws))
-								return close_socket(ws, 'unauthenticated');
-
-							if (current_scene === null)
-								return;
-
-							const scene_sources = sources[current_scene];
-							for (const scene of scene_sources)
-								//obs_send_request('TriggerMediaInputAction', { inputName: scene, mediaAction: 'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_PLAY' });
-
-							break;
-						}
-
-						case 'CMSG_PAUSE': {
-							if (!authenticated_sockets.has(ws))
-								return close_socket(ws, 'unauthenticated');
-
-							if (current_scene === null)
-								return;
-
-							const scene_sources = sources[current_scene];
-							for (const scene of scene_sources)
-								//obs_send_request('TriggerMediaInputAction', { inputName: scene, mediaAction: 'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_PAUSE' });
+							// todo: reimplement
 
 							break;
 						}
@@ -301,134 +284,4 @@ function init_local_server() {
 	log_info(`{production observer} available at {http://localhost:${server.port}/controller}`);
 
 	print_ipv4_addresses();
-}
-
-/**
- * @param {Record<string, any>} object
- * @param {string} key
- * @returns {any}
- */
-function resolve_object_entry(object, key) {
-	const keys = key.split('.');
-
-	for (const key of keys) {
-		if (object === undefined)
-			return undefined;
-
-		object = object[key];
-	}
-
-	return object;
-}
-
-/**
- * @param {Record<string, any>} object
- * @param {string} key
- * @param {any} value
- */
-function set_object_entry(object, key, value) {
-	const keys = key.split('.');
-
-	for (let i = 0; i < keys.length - 1; i++) {
-		const key = keys[i];
-
-		if (object[key] === undefined)
-			object[key] = {};
-
-		object = object[key];
-	}
-
-	object[keys[keys.length - 1]] = value;
-}
-
-/**
- * @param {any} object
- * @returns {string}
- */
-function get_object_type(object) {
-	if (object === null)
-		return 'null';
-
-	if (Array.isArray(object))
-		return 'array';
-
-	return typeof object;
-}
-
-/**
- * @param {Record<string, any>} config
- * @param {string} [parent_key='']
- */
-function parse_config(config, parent_key = '') {
-	for (const [key, value] of Object.entries(config)) {
-		const full_key = parent_key === '' ? key : `${parent_key}.${key}`;
-		const target_value = resolve_object_entry(configuration, full_key);
-
-		if (target_value === undefined) {
-			log_warn(`unknown configuration entry {${full_key}}; ignoring entry`);
-		} else {
-			const value_type = get_object_type(value);
-			const target_type = get_object_type(target_value);
-
-			if (value_type !== target_type) {
-				log_warn(`invalid configuration entry {${full_key}}, expected {${target_type}} but got {${value_type}}; using default`);
-			} else if (value_type === 'object') {
-				parse_config(value, full_key);
-			} else {
-				set_object_entry(configuration, full_key, value);
-			}
-		}
-	}
-}
-
-async function init_config() {
-	const config_file = Bun.file(CONFIG_FILE_PATH);
-	if (!await config_file.exists()) {
-		log_warn(`configuration file not found at {${CONFIG_FILE_PATH}}; writing default configuration`);
-
-		try {
-			await Bun.write(CONFIG_FILE_PATH, JSON.stringify(configuration, null, 4));
-		} catch (e) {
-			log_error(`failed to write default configuration to {${CONFIG_FILE_PATH}}; using default configuration`);
-		}
-	}
-
-	try {
-		const user_configuration = await config_file.json();
-		parse_config(user_configuration);
-	} catch (e) {
-		log_error(`failed to parse configuration file at {${CONFIG_FILE_PATH}}; using default configuration`);
-	}
-
-	log_ok(`configuration loaded from {${CONFIG_FILE_PATH}}`);
-}
-
-async function init_markers() {
-	// TODO: This should be a much more robust system rather than just hard-loading from a file.
-
-	for (const [key, marker_path] of Object.entries(MARKER_CONFIG)) {
-		const marker_file = Bun.file(marker_path);
-		if (!await marker_file.exists()) {
-			log_error(`marker file not found at {${marker_path}}`);
-			continue;
-		}
-
-		try {
-			const marker_json = await marker_file.json();
-
-			// TODO: Validate that the JSON actually contains a .markers property.
-			scene_markers[key] = marker_json.markers;
-
-			log_ok(`loaded {${marker_json.markers.length}} markers for {${key}}`);
-		} catch (e) {
-			log_error(`failed to parse marker file at {${marker_path}}`);
-		}
-	}
-}
-
-(async function main() {
-	log_info(`KruLabs {v${package_json.version}}`);
-	await init_config();
-	await init_markers();
-	init_local_server();
 })();
