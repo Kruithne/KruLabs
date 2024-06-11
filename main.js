@@ -317,6 +317,7 @@ async function save_memory() {
 	log_ok('local server initiated');
 	log_info(`{production controller} available at {http://localhost:${server.port}/controller?key=${controller_pin}}`);
 	log_info(`{production observer} available at {http://localhost:${server.port}/controller}`);
+	log_info(`{projector} available at {http://localhost:${server.port}/projector}`);
 
 	print_ipv4_addresses();
 })();
