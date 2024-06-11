@@ -6,7 +6,15 @@ import { createApp } from './vue.js';
 	register_socket_listener(handle_socket_message);
 
 	await document_ready();
-	await socket_init();
+	await socket_init(() => {
+		const url_params = new URLSearchParams(location.search);
+		if (url_params.has('key')) {
+			socket_send({
+				op: 'CMSG_AUTHENTICATE',
+				key: url_params.get('key')
+			});
+		}
+	});
 
 	function handle_socket_message(data) {
 		switch (data.op) {

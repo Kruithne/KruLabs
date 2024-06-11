@@ -3,13 +3,19 @@ let is_socket_open = false;
 
 const event_listeners = [];
 
-export async function socket_init() {
+/**
+ * @param {function} init_fn 
+ */
+export async function socket_init(init_fn) {
 	ws = new WebSocket(`ws://${location.host}/pipe`);
 	
-	ws.addEventListener('open', handle_socket_open);
 	ws.addEventListener('close', handle_socket_close);
 	ws.addEventListener('error', console.error);
 	ws.addEventListener('message', handle_socket_message);
+	ws.addEventListener('open', () => {
+		is_socket_open = true;
+		init_fn?.();
+	});
 }
 
 export function socket_send(data) {
@@ -31,16 +37,4 @@ function handle_socket_message(event) {
 	const data = JSON.parse(event.data);
 	for (const listener of event_listeners)
 		listener(data);
-}
-
-function handle_socket_open() {
-	is_socket_open = true;
-
-	const url_params = new URLSearchParams(location.search);
-	if (url_params.has('key')) {
-		socket_send({
-			op: 'CMSG_AUTHENTICATE',
-			key: url_params.get('key')
-		});
-	}
 }
