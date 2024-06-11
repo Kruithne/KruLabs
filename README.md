@@ -26,5 +26,13 @@ git clone https://github.com/Kruithne/KruLabs.git
 bun run krulabs
 ```
 
+## Port
+
+By default, the KruLabs interface is hosted on port `19531`. A different port can be specified by setting the `--port` argument.
+
+```bash
+bun run krulabs --port=4040
+```
+
 ## License
 This project is licensed under the MIT license. For more information, please refer to the [LICENSE](LICENSE) file.
