@@ -265,7 +265,7 @@ async function save_memory() {
 						client_sockets.set(ws, identity);
 						send_socket_message(ws, { op: 'SMSG_IDENTITY', authenticated });
 
-						log_info(`client connected {${ws.remoteAddress}} [${get_socket_labels(ws)}]`);
+						log_info(`client identified {${ws.remoteAddress}} [${get_socket_labels(ws)}]`);
 
 						return;
 					}
