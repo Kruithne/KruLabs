@@ -129,18 +129,20 @@ function get_socket_labels(ws) {
 
 /**
  * @param {WebSocket} socket
+ * @param {number} op
  * @param {Record<string, any>} data
  */
-function send_socket_message(socket, data) {
-	socket.send(JSON.stringify(data));
+function send_socket_message(socket, op, data = {}) {
+	socket.send(JSON.stringify({ op, ...data }));
 }
 
 /**
  * @param {number} filter 
+ * @param {number} op
  * @param {Record<string, any>} data 
  */
-function send_socket_message_filtered(filter, data) {
-	const payload = JSON.stringify(data);
+function send_socket_message_filtered(filter, op, data = {}) {
+	const payload = JSON.stringify({ op, ...data });
 
 	for (const [socket, identity] of client_sockets) {
 		if (identity > 0 && identity & filter)
@@ -149,10 +151,11 @@ function send_socket_message_filtered(filter, data) {
 }
 
 /**
+ * @param {number} op
  * @param {Record<string, any>} data 
  */
-function send_socket_message_all(data) {
-	const payload = JSON.stringify(data);
+function send_socket_message_all(op, data = {}) {
+	const payload = JSON.stringify({ op, ...data });
 
 	for (const [socket, identity] of client_sockets)
 		if (identity > 0)
@@ -286,7 +289,7 @@ async function save_memory() {
 						const authenticated = identity & CLIENT_AUTHENTICATED;
 
 						client_sockets.set(ws, identity);
-						send_socket_message(ws, { op: 'SMSG_IDENTITY', authenticated });
+						send_socket_message(ws, 'SMSG_IDENTITY', { authenticated });
 
 						log_info(`client identified {${ws.remoteAddress}} [${get_socket_labels(ws)}]`);
 
@@ -308,7 +311,7 @@ async function save_memory() {
 
 					if (op === 'CMSG_DOWNLOAD_SCENES') {
 						const scenes = state_memory.scenes ?? [];
-						send_socket_message(ws, { op: 'SMSG_DOWNLOAD_SCENES', scenes });
+						send_socket_message(ws, 'SMSG_DOWNLOAD_SCENES', { scenes });
 						return;
 					}
 
@@ -316,7 +319,7 @@ async function save_memory() {
 						let sources = await node_fs.promises.readdir(SOURCES_DIRECTORY);
 						sources = sources.filter(source => !source.startsWith('.'));
 
-						send_socket_message(ws, { op: 'SMSG_LIST_SOURCES', sources });
+						send_socket_message(ws, 'SMSG_LIST_SOURCES', { sources });
 						return;
 					}
 				} catch (e) {
