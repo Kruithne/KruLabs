@@ -27,6 +27,9 @@ WS_STATE_FAILED = 3
 
 STRIP_PROP_TYPE = 'KL_STRIP_TYPE'
 MARKER_PROP_TYPE = 'KL_MARKER_TYPE'
+ZONE_SOURCE_ID = 'KL_SRC_ID'
+
+SRC_NONE = ('SRC_NONE', 'No Source', '')
 
 ws_message_queue = queue.Queue()
 ws_connection_state = WS_STATE_DISCONNECTED
@@ -86,6 +89,15 @@ def ws_process_queue():
 		
 		if op == 'SMSG_DOWNLOAD_SCENES':
 			process_downloaded_scenes(message['scenes'])
+			break
+
+		if op == 'SMSG_IDENTITY':
+			request_source_list()
+			break
+
+		if op == 'SMSG_LIST_SOURCES':
+			process_source_list(message['sources'])
+			break
 	
 	return 0.1
 
@@ -188,6 +200,18 @@ def create_scene(name, channel, start, duration=14400):
 
 	return strip
 
+def process_source_list(sources):
+	source_list = [SRC_NONE]
+	
+	for source in sources:
+		source_list.append((source, source, ''))
+
+	bpy.types.Scene.krulabs_source_list = bpy.props.EnumProperty(
+		items=source_list,
+		name='Source',
+		update=update_source_list_enum
+	)
+
 def process_downloaded_scenes(scenes):
 	scene = bpy.context.scene
 	scene_channel = get_best_scene_channel()
@@ -239,6 +263,7 @@ def process_downloaded_scenes(scenes):
 				new_zone.crop.min_y = zone['crop_min_y']
 				new_zone.crop.max_x = zone['crop_max_x']
 				new_zone.crop.max_y = zone['crop_max_y']
+				new_zone[ZONE_SOURCE_ID] = zone['source']
 
 def get_scene_zones(scene_strip):
 	scene = bpy.context.scene
@@ -257,6 +282,19 @@ def get_scene_zones(scene_strip):
 def apply_props(operator, properties):
     for key, value in properties.items():
         setattr(operator, key, value)
+
+def request_source_list():
+	ws_send_packet('CMSG_LIST_SOURCES')
+
+def get_zone_strip_source(strip):
+	return ZONE_SOURCE_ID in strip and strip[ZONE_SOURCE_ID] or 'SRC_NONE'
+
+def update_source_list_enum(self, context):
+	scene = context.scene
+
+	active_strip = scene.sequence_editor.active_strip
+	if active_strip.select and is_zone_strip(active_strip):
+		active_strip[ZONE_SOURCE_ID] = scene.krulabs_source_list
 
 class KruLabsProperties(bpy.types.PropertyGroup):
 	ws_server_addr: bpy.props.StringProperty(name='Server IP', default='127.0.0.1') # type: ignore
@@ -325,9 +363,19 @@ class KruLabsZonesPanel(bpy.types.Panel):
 	bl_category = 'KruLabs'
 
 	def draw(self, context):
+		scene = context.scene
 		layout = self.layout
 
 		layout.operator(KruLabsAddZoneOperator.bl_idname, text='Add Zone')
+
+		active_strip = scene.sequence_editor.active_strip
+		if active_strip.select and is_zone_strip(active_strip):
+			row = layout.row()
+			row.prop(active_strip, '["' + ZONE_SOURCE_ID + '"]', text='Source')
+
+			row = layout.row()
+			row.prop(scene, 'krulabs_source_list', text='')
+			row.operator(KruLabsUpdateSourceListOperator.bl_idname, text='', icon='FILE_REFRESH')
 
 class KruLabsDebugPanel(bpy.types.Panel):
 	bl_label = 'Debug'
@@ -395,7 +443,8 @@ class KruLabsUploadScenesOperator(bpy.types.Operator):
 						'crop_min_x': zone.crop.min_x,
 						'crop_min_y': zone.crop.min_y,
 						'crop_max_x': zone.crop.max_x,
-						'crop_max_y': zone.crop.max_y
+						'crop_max_y': zone.crop.max_y,
+						'source': get_zone_strip_source(zone)
 					})
 
 				scenes_arr.append({
@@ -536,6 +585,19 @@ class KruLabsAddZoneOperator(bpy.types.Operator):
 	
 	def invoke(self, context, window):
 		return context.window_manager.invoke_props_dialog(self)
+	
+class KruLabsUpdateSourceListOperator(bpy.types.Operator):
+	bl_idname = 'sequencer.krulabs_update_source_list'
+	bl_label = 'Reload Sources'
+	bl_description = 'Reload available source list'
+
+	def execute(self, context):
+		if not ws_is_connected():
+			return operator_error(self, 'Not connected to server')
+		
+		request_source_list()
+		
+		return {'FINISHED'}
 
 class KruLabsConnectMasterServerOperator(bpy.types.Operator):
 	bl_idname = 'sequencer.krulabs_connect_master_server'
@@ -593,12 +655,15 @@ classes = (
 
 	# Zone Operators
 	KruLabsAddZoneOperator,
+	KruLabsUpdateSourceListOperator,
 
 	# Debug Operators
 	KrulabsReloadAddonOperator,
 )
 
 def register():
+	process_source_list([])
+	
 	for cls in classes:
 		bpy.utils.register_class(cls)
 

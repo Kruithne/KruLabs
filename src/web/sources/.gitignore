@@ -1,0 +1,5 @@
+# This directory is used for sources for the projection system.
+# This includes video, audio and images that should be available to the sources system.
+
+*
+!.gitignore

@@ -2,6 +2,7 @@ import package_json from './package.json';
 import node_os from 'node:os';
 import node_http from 'node:http';
 import node_path from 'node:path';
+import node_fs from 'node:fs';
 
 const ANSI_RED = '\x1b[31m';
 const ANSI_GREEN = '\x1b[32m';
@@ -10,6 +11,8 @@ const ANSI_ORANGE = '\x1b[33m';
 
 const STATE_MEMORY_FILE = './internal_state.json';
 const VALID_CLI_ARGS = ['port'];
+
+const SOURCES_DIRECTORY = './src/web/sources';
 
 const CLIENT_AUTHENTICATED = 1 << 0;
 const CLIENT_BLENDER = 1 << 1;
@@ -263,7 +266,7 @@ async function save_memory() {
 			 * @param {WebSocket} ws
 			 * @param {string | ArrayBuffer | Buffer | Buffer[]} message
 			 */
-			message(ws, message) {
+			async message(ws, message) {
 				if (typeof message !== 'string')
 					return close_socket(ws, 'invalid message type');
 
@@ -306,6 +309,14 @@ async function save_memory() {
 					if (op === 'CMSG_DOWNLOAD_SCENES') {
 						const scenes = state_memory.scenes ?? [];
 						send_socket_message(ws, { op: 'SMSG_DOWNLOAD_SCENES', scenes });
+						return;
+					}
+
+					if (op === 'CMSG_LIST_SOURCES') {
+						let sources = await node_fs.promises.readdir(SOURCES_DIRECTORY);
+						sources = sources.filter(source => !source.startsWith('.'));
+
+						send_socket_message(ws, { op: 'SMSG_LIST_SOURCES', sources });
 						return;
 					}
 				} catch (e) {
