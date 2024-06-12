@@ -128,6 +128,12 @@ def is_scene_strip(strip):
 	
 	return STRIP_PROP_TYPE in strip and strip[STRIP_PROP_TYPE] == 'SCENE'
 
+def is_zone_strip(strip):
+	if strip.type != 'COLOR':
+		return False
+	
+	return STRIP_PROP_TYPE in strip and strip[STRIP_PROP_TYPE] == 'ZONE'
+
 def is_cue_marker(marker):
 	return MARKER_PROP_TYPE in marker and marker[MARKER_PROP_TYPE] == 'CUE'
 
@@ -150,6 +156,22 @@ def get_best_scene_channel():
 		
 	return highest_channel
 
+def create_zone(name, channel, start, duration):
+	scene = bpy.context.scene
+
+	zone = scene.sequence_editor.sequences.new_effect(
+		name=name,
+		type='COLOR',
+		channel=channel,
+		frame_start=start,
+		frame_end=start + duration
+	)
+
+	zone.color = (0.152, 0, 0.650)
+	zone[STRIP_PROP_TYPE] = 'ZONE'
+
+	return zone
+
 def create_scene(name, channel, start, duration=14400):
 	scene = bpy.context.scene
 
@@ -161,8 +183,6 @@ def create_scene(name, channel, start, duration=14400):
 		frame_end=start + duration
 	)
 
-	strip.name = name
-	strip.frame_final_duration = duration
 	strip.color = (1, 0.5625, 0)
 	strip[STRIP_PROP_TYPE] = 'SCENE'
 
@@ -172,13 +192,67 @@ def process_downloaded_scenes(scenes):
 	scene = bpy.context.scene
 	scene_channel = get_best_scene_channel()
 	
-	for strip in scene.sequence_editor.sequences:
-		if is_scene_strip(strip):
-			scene.sequence_editor.sequences.remove(strip)
+	fps = scene.render.fps
+	timeline_markers = scene.timeline_markers
+
+	scene_strips = [strip for strip in scene.sequence_editor.sequences if is_scene_strip(strip)]	
+	for strip in scene_strips:
+		frame_start = strip.frame_start
+		frame_end = frame_start + strip.frame_final_duration
+
+		# remove markers
+		for marker in timeline_markers:
+			if MARKER_PROP_TYPE in marker and marker.frame >= frame_start and marker.frame <= frame_end:
+				timeline_markers.remove(marker)
+
+		# remove zones
+		for zone in get_scene_zones(strip):
+			scene.sequence_editor.sequences.remove(zone)
+
+		scene.sequence_editor.sequences.remove(strip)
 
 	for new_scene in scenes:
-		print(new_scene)
-		create_scene(new_scene['name'], scene_channel, new_scene['frame_start'], new_scene['frame_final_duration'])
+		scene_frame_start = new_scene['frame_start']
+		scene_duration = new_scene['frame_final_duration']
+		create_scene(new_scene['name'], scene_channel, scene_frame_start, scene_duration)
+
+		# create new markers
+		if 'markers' in new_scene:
+			for marker in new_scene['markers']:
+				marker_frame = int(scene_frame_start + (marker['position'] / (1000 / fps)))
+
+				new_marker = timeline_markers.new(marker['name'], frame=marker_frame)
+				new_marker[MARKER_PROP_TYPE] = marker['type']
+
+		# create new zones
+		if 'zones' in new_scene:
+			for zone in new_scene['zones']:
+				zone_channel = scene_channel + zone['channel_offset']
+
+				new_zone = create_zone(zone['name'], zone_channel, scene_frame_start, scene_duration)
+				new_zone.transform.offset_x = zone['offset_x']
+				new_zone.transform.offset_y = zone['offset_y']
+				new_zone.transform.scale_x = zone['scale_x']
+				new_zone.transform.scale_y = zone['scale_y']
+				new_zone.transform.rotation = zone['rotation']
+				new_zone.crop.min_x = zone['crop_min_x']
+				new_zone.crop.min_y = zone['crop_min_y']
+				new_zone.crop.max_x = zone['crop_max_x']
+				new_zone.crop.max_y = zone['crop_max_y']
+
+def get_scene_zones(scene_strip):
+	scene = bpy.context.scene
+
+	scene_start_frame = scene_strip.frame_start
+	scene_end_frame = scene_start_frame + scene_strip.frame_final_duration
+
+	zones = []
+	for strip in scene.sequence_editor.sequences:
+		if is_zone_strip(strip):
+			if strip.frame_start >= scene_start_frame and strip.frame_start <= scene_end_frame:
+				zones.append(strip)
+
+	return zones
 
 def apply_props(operator, properties):
     for key, value in properties.items():
@@ -243,6 +317,18 @@ class KruLabsMarkersPanel(bpy.types.Panel):
 
 		layout.operator(KruLabsSelectSceneMarkersOperator.bl_idname, text='Select Scene Markers')
 
+class KruLabsZonesPanel(bpy.types.Panel):
+	bl_label = 'Zones'
+	bl_idname = 'SEQUENCE_EDITOR_PT_krulabs_zones_panel'
+	bl_space_type = 'SEQUENCE_EDITOR'
+	bl_region_type = 'UI'
+	bl_category = 'KruLabs'
+
+	def draw(self, context):
+		layout = self.layout
+
+		layout.operator(KruLabsAddZoneOperator.bl_idname, text='Add Zone')
+
 class KruLabsDebugPanel(bpy.types.Panel):
 	bl_label = 'Debug'
 	bl_idname = 'SEQUENCE_EDITOR_PT_krulabs_debug_panel'
@@ -277,7 +363,6 @@ class KruLabsUploadScenesOperator(bpy.types.Operator):
 		if not ws_is_connected():
 			return operator_error(self, 'Not connected to server')
 		
-		
 		scene = context.scene
 		scenes_arr = []
 
@@ -297,11 +382,28 @@ class KruLabsUploadScenesOperator(bpy.types.Operator):
 							'position': (marker.frame - start_frame) * (1000 / fps)
 						})
 
+				zones = []
+				for zone in get_scene_zones(strip):
+					zones.append({
+						'name': zone.name,
+						'channel_offset': zone.channel - strip.channel,
+						'offset_x': zone.transform.offset_x,
+						'offset_y': zone.transform.offset_y,
+						'scale_x': zone.transform.scale_x,
+						'scale_y': zone.transform.scale_y,
+						'rotation': zone.transform.rotation,
+						'crop_min_x': zone.crop.min_x,
+						'crop_min_y': zone.crop.min_y,
+						'crop_max_x': zone.crop.max_x,
+						'crop_max_y': zone.crop.max_y
+					})
+
 				scenes_arr.append({
 					'name': strip.name,
 					'frame_start': start_frame,
 					'frame_final_duration': strip.frame_final_duration,
-					'markers': markers
+					'markers': markers,
+					'zones': zones
 				})
 
 		ws_send_packet('CMSG_UPLOAD_SCENES', {
@@ -408,6 +510,32 @@ class KruLabsSelectSceneMarkersOperator(bpy.types.Operator):
 						marker.select = True
 
 		return {'FINISHED'}
+	
+class KruLabsAddZoneOperator(bpy.types.Operator):
+	bl_idname = 'sequencer.krulabs_add_zone'
+	bl_label = 'KruLabs: Add Zone'
+	bl_description = 'Add zone to the selected scene'
+
+	zone_name: bpy.props.StringProperty(name='Zone Name') # type: ignore
+
+	def execute(self, context):
+		active_strip = context.scene.sequence_editor.active_strip
+		if not active_strip.select or not is_scene_strip(active_strip):
+			return operator_error(self, 'No scene selected')
+
+		scene_zones = get_scene_zones(active_strip)
+		highest_channel = active_strip.channel
+
+		for zone in scene_zones:
+			if zone.channel > highest_channel:
+				highest_channel = zone.channel
+
+		create_zone(self.zone_name, highest_channel + 1, int(active_strip.frame_start), int(active_strip.frame_final_duration))
+
+		return {'FINISHED'}
+	
+	def invoke(self, context, window):
+		return context.window_manager.invoke_props_dialog(self)
 
 class KruLabsConnectMasterServerOperator(bpy.types.Operator):
 	bl_idname = 'sequencer.krulabs_connect_master_server'
@@ -446,6 +574,7 @@ classes = (
 	KruLabsServerPanel,
 	KruLabsScenesPanel,
 	KruLabsMarkersPanel,
+	KruLabsZonesPanel,
 	KruLabsDebugPanel,
 
 	# Scene Operators
@@ -461,6 +590,9 @@ classes = (
 	KruLabsAddCueMarkerOperator,
 	KruLabsDeleteMarkersOperator,
 	KruLabsSelectSceneMarkersOperator,
+
+	# Zone Operators
+	KruLabsAddZoneOperator,
 
 	# Debug Operators
 	KrulabsReloadAddonOperator,
