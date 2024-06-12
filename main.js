@@ -228,6 +228,26 @@ async function save_memory() {
 			if (!await file.exists())
 				return http_response(404); // not found
 
+			if (req.headers.has('range')) {
+				const range_header = req.headers.get('range');
+				const match = range_header.match(/bytes=(\d*)-(\d*)/);
+
+				if (match !== null) {
+					const start = parseInt(match[1], 10);
+					const end = match[2] ? parseInt(match[2], 10) : file.size - 1;
+					const chunk_size = (end - start) + 1;
+
+					log_info(`streaming chunk {${pathname}} requested: {${start}}-{${end}}/{${file.size}}`)
+
+					return new Response(file.slice(start, end + 1), { status: 206, headers: {
+						'Content-Range': `bytes ${start}-${end}/${file.size}`,
+						'Accept-Ranges': 'bytes',
+						'Content-Length': chunk_size.toString(),
+						'Content-Type': file.type
+					}});
+				}
+			}
+
 			return new Response(file, { status: 200 });
 		},
 
