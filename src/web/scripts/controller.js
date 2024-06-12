@@ -6,12 +6,7 @@ import { createApp } from './vue.js';
 	register_socket_listener(handle_socket_message);
 
 	await document_ready();
-
-	const url_params = new URLSearchParams(location.search);
-	if (url_params.has('key'))
-		await socket_init(CLIENT_IDENTITY.CONTROLLER | CLIENT_IDENTITY.AUTHENTICATED, url_params.get('key'))
-	else
-		await socket_init(CLIENT_IDENTITY.CONTROLLER);
+	await socket_init(CLIENT_IDENTITY.CONTROLLER);
 
 	function handle_socket_message(data) {
 		switch (data.op) {

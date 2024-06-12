@@ -14,13 +14,11 @@ const VALID_CLI_ARGS = ['port'];
 
 const SOURCES_DIRECTORY = './src/web/sources';
 
-const CLIENT_AUTHENTICATED = 1 << 0;
 const CLIENT_BLENDER = 1 << 1;
 const CLIENT_CONTROLLER = 1 << 2;
 const CLIENT_PROJECTOR = 1 << 3;
 
 const CLIENT_LABELS = {
-	[CLIENT_AUTHENTICATED]: 'authenticated',
 	[CLIENT_BLENDER]: 'blender',
 	[CLIENT_CONTROLLER]: 'controller',
 	[CLIENT_PROJECTOR]: 'projector'
@@ -87,13 +85,6 @@ function print_ipv4_addresses() {
 				log_info(`{${interface_name}} has IPv4 address {${address.address}}`);
 		}
 	}
-}
-
-/**
- * @returns {string}
- */
-function generate_controller_pin() {
-	return (Math.floor(Math.random() * 9000) + 1000).toString();
 }
 
 /**
@@ -219,7 +210,6 @@ async function save_memory() {
 	}
 
 	// local server
-	const controller_pin = generate_controller_pin();
 	const server_port = cli_args.has('port') ? parseInt(cli_args.get('port')) : 19531;
 
 	const server = Bun.serve({
@@ -293,15 +283,8 @@ async function save_memory() {
 						return close_socket(ws, 'missing operation type');
 
 					if (op === 'CMSG_IDENTITY') {
-						let identity = data.identity;
-
-						if (identity & CLIENT_AUTHENTICATED && data.key !== controller_pin)
-							identity &= ~CLIENT_AUTHENTICATED;
-
-						const authenticated = identity & CLIENT_AUTHENTICATED;
-
-						client_sockets.set(ws, identity);
-						send_socket_message(ws, 'SMSG_IDENTITY', { authenticated });
+						client_sockets.set(ws, data.identity);
+						send_socket_message(ws, 'SMSG_IDENTITY');
 
 						log_info(`client identified {${ws.remoteAddress}} [${get_socket_labels(ws)}]`);
 
@@ -309,7 +292,6 @@ async function save_memory() {
 					}
 
 					const socket_identity = client_sockets.get(ws);
-					const is_socket_authenticated = socket_identity & CLIENT_AUTHENTICATED;
 
 					// do not respond to other packets until identity has been sent
 					if (socket_identity === 0)
@@ -389,8 +371,7 @@ async function save_memory() {
 	});
 
 	log_ok('local server initiated');
-	log_info(`{production controller} available at {http://localhost:${server.port}/controller?key=${controller_pin}}`);
-	log_info(`{production observer} available at {http://localhost:${server.port}/controller}`);
+	log_info(`{production controller} available at {http://localhost:${server.port}/controller}`);
 	log_info(`{projector} available at {http://localhost:${server.port}/projector}`);
 
 	print_ipv4_addresses();

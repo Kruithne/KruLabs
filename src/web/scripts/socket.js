@@ -6,7 +6,6 @@ let auth_key = undefined;
 const event_listeners = [];
 
 export const CLIENT_IDENTITY = {
-	AUTHENTICATED: 1 << 0,
 	BLENDER: 1 << 1,
 	CONTROLLER: 1 << 2,
 	PROJECTOR: 1 << 3
@@ -16,11 +15,10 @@ export const CLIENT_IDENTITY = {
  * @param {number} identity
  * @param {number} key
  */
-export async function socket_init(identity, key) {
+export async function socket_init(identity) {
 	ws = new WebSocket(`ws://${location.host}/pipe`);
 
 	client_identity = identity;
-	auth_key = key;
 	
 	ws.addEventListener('close', handle_socket_close);
 	ws.addEventListener('error', console.error);
@@ -51,5 +49,5 @@ function handle_socket_message(event) {
 
 function handle_socket_open() {
 	is_socket_open = true;
-	send_packet('CMSG_IDENTITY', { identity: client_identity, key: auth_key });
+	send_packet('CMSG_IDENTITY', { identity: client_identity });
 }
