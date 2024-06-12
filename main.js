@@ -31,6 +31,9 @@ let state_memory = {};
 
 const client_sockets = new Map();
 
+// scene state
+let active_scene = 'SCENE_NONE';
+
 /**
  * @param {string} message
  * @param {string} color
@@ -108,6 +111,15 @@ function http_response(status) {
 function close_socket(socket, reason) {
 	socket.close();
 	log_warn(`web socket forcibly closed: {${reason}}`);
+}
+
+/**
+ * @param {WebSocket} socket
+ * @param {string} message
+ */
+function warn_socket(socket, message) {
+	log_warn(`{${socket.remoteAddress}}: ${message}`);
+	send_socket_message(socket, 'SMSG_WARN', { message });
 }
 
 /**
@@ -303,8 +315,36 @@ async function save_memory() {
 					if (socket_identity === 0)
 						return;
 
+					if (op === 'CMSG_LIST_SCENES') {
+						const scenes = state_memory.scenes ?? [];
+						send_socket_message(ws, 'SMSG_LIST_SCENES', { scenes: scenes.map(scene => scene.name) });
+						return;
+					}
+
+					if (op === 'CMSG_GET_ACTIVE_SCENE') {
+						log_info(`active scene requested by {${ws.remoteAddress}}`)
+						send_socket_message(ws, 'SMSG_ACTIVE_SCENE', { scene: active_scene });
+						return;
+					}
+
+					if (op === 'CMSG_SET_ACTIVE_SCENE') {
+						const scene_name = data.scene;
+						const scenes = state_memory.scenes ?? [];
+
+						log_info(`scene switch requested to {${scene_name}}`);
+
+						if (scene_name !== 'SCENE_NONE' && !scenes.some(scene => scene.name === scene_name))
+							return warn_socket(ws, 'scene not found');
+
+
+						active_scene = scene_name;
+						send_socket_message_all('SMSG_ACTIVE_SCENE', { scene: active_scene });
+						return;
+					}
+
 					if (op === 'CMSG_UPLOAD_SCENES') {
 						state_memory.scenes = data.scenes;
+						send_socket_message_all('SMSG_DATA_UPDATED');
 						save_memory();
 						return;
 					}
