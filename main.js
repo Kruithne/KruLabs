@@ -31,6 +31,8 @@ const client_sockets = new Map();
 
 // scene state
 let active_scene = 'SCENE_NONE';
+let is_live_go = false;
+let live_position = 0;
 
 /**
  * @param {string} message
@@ -165,6 +167,16 @@ function send_socket_message_all(op, data = {}) {
 			socket.send(payload);
 }
 
+/**
+ * @returns {Record<string, any> | undefined}
+ */
+function get_active_scene() {
+	if (active_scene === 'SCENE_NONE')
+		return undefined;
+
+	return state_memory.scenes.find(scene => scene.name === active_scene);
+}
+
 async function save_memory() {
 	try {
 		await Bun.write(STATE_MEMORY_FILE, JSON.stringify(state_memory, null, 4));
@@ -297,15 +309,56 @@ async function save_memory() {
 					if (socket_identity === 0)
 						return;
 
-					if (op === 'CMSG_LIST_SCENES') {
-						const scenes = state_memory.scenes ?? [];
-						send_socket_message(ws, 'SMSG_LIST_SCENES', { scenes: scenes.map(scene => scene.name) });
+					if (op === 'CMSG_LIVE_GO') {
+						if (!is_live_go) {
+							is_live_go = true;
+							send_socket_message_all('SMSG_LIVE_GO');
+						}
+						return;
+					}
+
+					if (op === 'CMSG_LIVE_HOLD') {
+						if (is_live_go) {
+							is_live_go = false;
+							send_socket_message_all('SMSG_LIVE_HOLD');
+						}
+						return;
+					}
+
+					if (op === 'CMSG_LIVE_SEEK') {
+						live_position = data.position;
+						send_socket_message_all('SMSG_LIVE_SEEK', { position: live_position });
+						return;
+					}
+
+					if (op === 'CMSG_GET_PROJECT_STATE') {
+						send_socket_message(ws, 'SMSG_PROJECT_STATE', {
+							name: state_memory.project_name ?? 'Live Production',
+							scenes: (state_memory.scenes ?? []).map(scene => scene.name),
+							active_scene,
+							is_live_go
+						});
 						return;
 					}
 
 					if (op === 'CMSG_GET_ACTIVE_SCENE') {
-						log_info(`active scene requested by {${ws.remoteAddress}}`)
 						send_socket_message(ws, 'SMSG_ACTIVE_SCENE', { scene: active_scene });
+						return;
+					}
+					
+					if (op === 'CMSG_GET_ACTIVE_CUE_STACK') {
+						const scene = get_active_scene();
+						send_socket_message(ws, 'SMSG_ACTIVE_CUE_STACK', {
+							cue_stack: (scene && scene.markers) || []
+						});
+						return;
+					}
+
+					if (op === 'CMSG_GET_ACTIVE_ZONES') {
+						const scene = get_active_scene();
+						send_socket_message(ws, 'SMSG_ACTIVE_ZONES', {
+							zones: (scene && scene.zones) || []
+						});
 						return;
 					}
 
@@ -320,20 +373,20 @@ async function save_memory() {
 
 
 						active_scene = scene_name;
-						send_socket_message_all('SMSG_ACTIVE_SCENE', { scene: active_scene });
+						send_socket_message_all('SMSG_SCENE_CHANGED', { scene: active_scene });
 						return;
 					}
 
-					if (op === 'CMSG_UPLOAD_SCENES') {
-						state_memory.scenes = data.scenes;
+					if (op === 'CMSG_UPLOAD_PROJECT') {
+						state_memory = data.project;
+
 						send_socket_message_all('SMSG_DATA_UPDATED');
 						save_memory();
 						return;
 					}
 
-					if (op === 'CMSG_DOWNLOAD_SCENES') {
-						const scenes = state_memory.scenes ?? [];
-						send_socket_message(ws, 'SMSG_DOWNLOAD_SCENES', { scenes });
+					if (op === 'CMSG_DOWNLOAD_PROJECT') {
+						send_socket_message(ws, 'SMSG_DOWNLOAD_PROJECT', state_memory);
 						return;
 					}
 

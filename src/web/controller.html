@@ -14,19 +14,25 @@
 			<div v-cloak>
 				<div id="header">
 					<span id="header-title">KruLabs</span>
-					<span id="header-scene-title">Bill & Fred's Excellent Adventure</span>
-					<span id="header-buttons">PAGE</span>
+					<span id="header-scene-title">{{ production_name }} - {{ active_scene_name }}</span>
+					<span id="header-buttons">{{ is_live_go ? 'LIVE' : 'HOLD' }}</span>
 				</div>
-				<div id="buttons">
-					<input type="button" value="ACT 1" @click="switch_scene_act1">
-					<input type="button" value="ACT 2" @click="switch_scene_act2">
-					<input type="button" value="DIAMOND" @click="switch_scene_diamond">
-					<input type="button" value="GO" @click="play">
-					<input type="button" value="HOLD" @click="pause">
+				<div v-if="page === 'MAIN'">
+					<div class="button-tray">
+						<input type="button" value="SCENE" @click="show_page('SCENE_SELECT')">
+						<input v-if="is_live_go" type="button" value="HOLD" @click="live_hold" class="button-cancel">
+						<input v-else type="button" value="GO LIVE" @click="live_go">
+					</div>
+					<div class="cue-stack">
+						<div class="cue" v-for="cue in cue_stack" @click="live_seek(cue.position)">{{ cue.name }}</div>
+					</div>
 				</div>
-				<div id="markers">
-					<div v-for="marker in markers" @click="seek(marker.position)">{{ marker.name }}</div>
-			</div>
+				<div v-else-if="page === 'SCENE_SELECT'">
+					<div class="button-ladder">
+						<input type="button" v-for="scene of scenes" :value="scene" @click="select_scene(scene); show_page('MAIN');">
+						<input type="button" value="Cancel" @click="show_page('MAIN')" class="button-cancel">
+					</div>
+				</div>
 			</div>
 		</div>
 	</body>

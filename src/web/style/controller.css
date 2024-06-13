@@ -47,7 +47,47 @@ body {
 }
 
 input[type="button"] {
-	background-color: #3f2bee;
+	background-color: #6a6f7b;
+	background-image: url(../images/stripe_base.png);
+	background-blend-mode: multiply;
+	background-attachment: fixed;
+	border: 0;
+	border-radius: 0;
+	padding: 5px 10px;
+}
+
+.button-tray {
+	padding: 15px;
+	display: flex;
+	gap: 10px;
+}
+
+.button-cancel {
+	background-color: red !important;
+}
+
+.button-ladder {
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
+	padding: 20px;
+	align-items: center;
+}
+
+.button-ladder input[type="button"] {
+	width: 90%;
+}
+
+.cue-stack {
+	display: flex;
+	flex-direction: column;
+	padding: 0 20px;
+	gap: 10px;
+}
+
+.cue {
+	padding: 10px;
+	background-color: #eab72b;
 	background-image: url(../images/stripe_base.png);
 	background-blend-mode: multiply;
 	background-attachment: fixed;

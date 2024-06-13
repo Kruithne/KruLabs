@@ -36,13 +36,10 @@ ws_message_queue = queue.Queue()
 ws_connection_state = WS_STATE_DISCONNECTED
 ws_client = None
 
-suppress_live_triggers = False
-
 class WebSocketClientApp(WebSocketClient):
     def opened(self):
         global ws_connection_state
         ws_connection_state = WS_STATE_CONNECTED
-        reset_live_state()
         ws_send_packet('CMSG_IDENTITY', { 'identity': 1 << 1 })
         bpy.app.timers.register(ws_process_queue)
         
@@ -87,35 +84,23 @@ def ws_disconnect():
     ws_client = None
 
 def ws_process_queue():
-    global suppress_live_triggers
-    
     while not ws_message_queue.empty():
         message = ws_message_queue.get()
         op = message['op']
-
-        if op == 'SMSG_LIST_SCENES':
-            process_scene_list(message['scenes'])
-            break
         
-        if op == 'SMSG_DOWNLOAD_SCENES':
-            process_downloaded_scenes(message['scenes'])
-            break
+        if op == 'SMSG_DOWNLOAD_PROJECT':
+            process_downloaded_project(message)
+            continue
 
         if op == 'SMSG_IDENTITY':
             ws_send_packet('CMSG_LIST_SOURCES')
             ws_send_packet('CMSG_LIST_SCENES')
             ws_send_packet('CMSG_GET_ACTIVE_SCENE')
-            break
+            continue
 
         if op == 'SMSG_LIST_SOURCES':
             process_source_list(message['sources'])
-            break
-
-        if op == 'SMSG_ACTIVE_SCENE':
-            suppress_live_triggers = True
-            bpy.context.scene.krulabs_scene_list = message['scene']
-            suppress_live_triggers = False
-            break
+            continue
     
     return 0.1
 
@@ -199,6 +184,7 @@ def create_zone(name, channel, start, duration):
 
     zone.color = (0.152, 0, 0.650)
     zone[STRIP_PROP_TYPE] = 'ZONE'
+    zone[ZONE_SOURCE_ID] = 'SRC_NONE'
 
     return zone
 
@@ -218,18 +204,6 @@ def create_scene(name, channel, start, duration=14400):
 
     return strip
 
-def process_scene_list(scenes):
-    scene_list = [SCENE_NONE]
-
-    for scene in scenes:
-        scene_list.append((scene, scene, ''))
-
-    bpy.types.Scene.krulabs_scene_list = bpy.props.EnumProperty(
-        items=scene_list,
-        name='Scene',
-        update=update_active_scene
-    )
-
 def process_source_list(sources):
     source_list = [SRC_NONE]
     
@@ -242,12 +216,15 @@ def process_source_list(sources):
         update=update_source_list_enum
     )
 
-def process_downloaded_scenes(scenes):
+def process_downloaded_project(project):
     scene = bpy.context.scene
     scene_channel = get_best_scene_channel()
     
     fps = scene.render.fps
     timeline_markers = scene.timeline_markers
+
+    if 'project_name' in project:
+        scene.krulabs_properties.project_name = project['project_name']
 
     scene_strips = [strip for strip in scene.sequence_editor.sequences if is_scene_strip(strip)]	
     for strip in scene_strips:
@@ -265,35 +242,36 @@ def process_downloaded_scenes(scenes):
 
         scene.sequence_editor.sequences.remove(strip)
 
-    for new_scene in scenes:
-        scene_frame_start = new_scene['frame_start']
-        scene_duration = new_scene['frame_final_duration']
-        create_scene(new_scene['name'], scene_channel, scene_frame_start, scene_duration)
+    if 'scenes' in project:
+        for new_scene in project['scenes']:
+            scene_frame_start = new_scene['frame_start']
+            scene_duration = new_scene['frame_final_duration']
+            create_scene(new_scene['name'], scene_channel, scene_frame_start, scene_duration)
 
-        # create new markers
-        if 'markers' in new_scene:
-            for marker in new_scene['markers']:
-                marker_frame = int(scene_frame_start + (marker['position'] / (1000 / fps)))
+            # create new markers
+            if 'markers' in new_scene:
+                for marker in new_scene['markers']:
+                    marker_frame = int(scene_frame_start + (marker['position'] / (1000 / fps)))
 
-                new_marker = timeline_markers.new(marker['name'], frame=marker_frame)
-                new_marker[MARKER_PROP_TYPE] = marker['type']
+                    new_marker = timeline_markers.new(marker['name'], frame=marker_frame)
+                    new_marker[MARKER_PROP_TYPE] = marker['type']
 
-        # create new zones
-        if 'zones' in new_scene:
-            for zone in new_scene['zones']:
-                zone_channel = scene_channel + zone['channel_offset']
+            # create new zones
+            if 'zones' in new_scene:
+                for zone in new_scene['zones']:
+                    zone_channel = scene_channel + zone['channel_offset']
 
-                new_zone = create_zone(zone['name'], zone_channel, scene_frame_start, scene_duration)
-                new_zone.transform.offset_x = zone['offset_x']
-                new_zone.transform.offset_y = zone['offset_y']
-                new_zone.transform.scale_x = zone['scale_x']
-                new_zone.transform.scale_y = zone['scale_y']
-                new_zone.transform.rotation = zone['rotation']
-                new_zone.crop.min_x = zone['crop_min_x']
-                new_zone.crop.min_y = zone['crop_min_y']
-                new_zone.crop.max_x = zone['crop_max_x']
-                new_zone.crop.max_y = zone['crop_max_y']
-                new_zone[ZONE_SOURCE_ID] = zone['source']
+                    new_zone = create_zone(zone['name'], zone_channel, scene_frame_start, scene_duration)
+                    new_zone.transform.offset_x = zone['offset_x']
+                    new_zone.transform.offset_y = zone['offset_y']
+                    new_zone.transform.scale_x = zone['scale_x']
+                    new_zone.transform.scale_y = zone['scale_y']
+                    new_zone.transform.rotation = zone['rotation']
+                    new_zone.crop.min_x = zone['crop_min_x']
+                    new_zone.crop.min_y = zone['crop_min_y']
+                    new_zone.crop.max_x = zone['crop_max_x']
+                    new_zone.crop.max_y = zone['crop_max_y']
+                    new_zone[ZONE_SOURCE_ID] = zone['source']
 
 def get_scene_zones(scene_strip):
     scene = bpy.context.scene
@@ -316,30 +294,12 @@ def apply_props(operator, properties):
 def get_zone_strip_source(strip):
     return ZONE_SOURCE_ID in strip and strip[ZONE_SOURCE_ID] or 'SRC_NONE'
 
-def update_active_scene(self, context):
-    if not suppress_live_triggers:
-        ws_send_packet('CMSG_SET_ACTIVE_SCENE', { 'scene': context.scene.krulabs_scene_list })
-
 def update_source_list_enum(self, context):
     scene = context.scene
 
     active_strip = scene.sequence_editor.active_strip
     if active_strip.select and is_zone_strip(active_strip):
         active_strip[ZONE_SOURCE_ID] = scene.krulabs_source_list
-
-def reset_live_state():
-    global suppress_live_triggers
-    suppress_live_triggers = True
-
-    bpy.context.scene.krulabs_scene_list = 'SCENE_NONE'
-
-    suppress_live_triggers = False
-
-bpy.types.Scene.krulabs_scene_list = bpy.props.EnumProperty(
-    items=[],
-    name='Scene',
-    update=update_active_scene
-)
 
 bpy.types.Scene.krulabs_source_list = bpy.props.EnumProperty(
     items=[],
@@ -350,6 +310,8 @@ bpy.types.Scene.krulabs_source_list = bpy.props.EnumProperty(
 class KruLabsProperties(bpy.types.PropertyGroup):
     ws_server_addr: bpy.props.StringProperty(name='Server IP', default='127.0.0.1') # type: ignore
     ws_server_port: bpy.props.IntProperty(name='Server Port', default=19531, min=1024, max=65535) # type: ignore
+
+    project_name: bpy.props.StringProperty(name='Project', default='Live Production') # type: ignore
 
 class KruLabsServerPanel(bpy.types.Panel):
     bl_label = 'Master Server'
@@ -374,6 +336,27 @@ class KruLabsServerPanel(bpy.types.Panel):
         else:
             row.operator(KruLabsConnectMasterServerOperator.bl_idname, text='Connect')
 
+class KruLabsProjectPanel(bpy.types.Panel):
+    bl_label = 'Project'
+    bl_idname = 'SEQUENCE_EDITOR_PT_krulabs_project_panel'
+    bl_space_type = 'SEQUENCE_EDITOR'
+    bl_region_type = 'UI'
+    bl_category = 'KruLabs'
+
+    @classmethod
+    def poll(cls, context):
+        return ws_is_connected()
+
+    def draw(self, context):
+        scene = context.scene
+        layout = self.layout
+
+        layout.prop(scene.krulabs_properties, 'project_name')
+
+        row = layout.row()
+        row.operator(KruLabsDownloadProjectOperator.bl_idname, text='Download')
+        row.operator(KruLabsUploadProjectOperator.bl_idname, text='Upload')
+
 class KruLabsScenesPanel(bpy.types.Panel):
     bl_label = 'Scenes'
     bl_idname = 'SEQUENCE_EDITOR_PT_krulabs_scenes_panel'
@@ -384,10 +367,6 @@ class KruLabsScenesPanel(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         layout.operator(KruLabsAddSceneOperator.bl_idname, text='Add Scene')
-
-        row = layout.row()
-        row.operator(KruLabsDownloadScenesOperator.bl_idname, text='Download')
-        row.operator(KruLabsUploadScenesOperator.bl_idname, text='Upload')
 
 class KruLabsMarkersPanel(bpy.types.Panel):
     bl_label = 'Markers'
@@ -420,29 +399,13 @@ class KruLabsZonesPanel(bpy.types.Panel):
         layout.operator(KruLabsAddZoneOperator.bl_idname, text='Add Zone')
 
         active_strip = scene.sequence_editor.active_strip
-        if active_strip.select and is_zone_strip(active_strip):
+        if active_strip and active_strip.select and is_zone_strip(active_strip):
             row = layout.row()
             row.prop(active_strip, '["' + ZONE_SOURCE_ID + '"]', text='Source')
 
             row = layout.row()
             row.prop(scene, 'krulabs_source_list', text='')
             row.operator(KruLabsUpdateSourceListOperator.bl_idname, text='', icon='FILE_REFRESH')
-
-class KruLabsLivePanel(bpy.types.Panel):
-    bl_label = 'Live'
-    bl_idname = 'SEQUENCE_EDITOR_PT_krulabs_live_panel'
-    bl_space_type = 'SEQUENCE_EDITOR'
-    bl_region_type = 'UI'
-    bl_category = 'KruLabs'
-
-    def draw(self, context):
-        layout = self.layout
-        scene = context.scene
-
-        if ws_is_connected():
-            layout.prop(scene, 'krulabs_scene_list')
-        else:
-            layout.label(text='Not connected')
 
 class KruLabsDebugPanel(bpy.types.Panel):
     bl_label = 'Debug'
@@ -470,8 +433,8 @@ class KruLabsAddSceneOperator(bpy.types.Operator):
     def invoke(self, context, window):
         return context.window_manager.invoke_props_dialog(self)
     
-class KruLabsUploadScenesOperator(bpy.types.Operator):
-    bl_idname = 'sequencer.krulabs_upload_scenes'
+class KruLabsUploadProjectOperator(bpy.types.Operator):
+    bl_idname = 'sequencer.krulabs_upload_project'
     bl_label = 'KruLabs: Upload Scenes'
 
     def execute(self, context):
@@ -482,6 +445,8 @@ class KruLabsUploadScenesOperator(bpy.types.Operator):
         scenes_arr = []
 
         fps = scene.render.fps
+
+        properties = scene.krulabs_properties
 
         for strip in scene.sequence_editor.sequences:
             if is_scene_strip(strip):
@@ -522,21 +487,24 @@ class KruLabsUploadScenesOperator(bpy.types.Operator):
                     'zones': zones
                 })
 
-        ws_send_packet('CMSG_UPLOAD_SCENES', {
-            'scenes': scenes_arr
+        ws_send_packet('CMSG_UPLOAD_PROJECT', {
+            'project': {
+                'project_name': properties.project_name,
+                'scenes': scenes_arr
+            }
         })
 
         return {'FINISHED'}
     
-class KruLabsDownloadScenesOperator(bpy.types.Operator):
-    bl_idname = 'sequencer.krulabs_download_scenes'
+class KruLabsDownloadProjectOperator(bpy.types.Operator):
+    bl_idname = 'sequencer.krulabs_download_project'
     bl_label = 'KruLabs: Download Scenes'
 
     def execute(self, context):
         if not ws_is_connected():
             return operator_error(self, 'Not connected to server')
         
-        ws_send_packet('CMSG_DOWNLOAD_SCENES')
+        ws_send_packet('CMSG_DOWNLOAD_PROJECT')
         return {'FINISHED'}
     
 class KruLabsAddCueMarkerOperator(bpy.types.Operator):
@@ -701,16 +669,16 @@ classes = (
 
     # Panels
     KruLabsServerPanel,
+    KruLabsProjectPanel,
     KruLabsScenesPanel,
     KruLabsMarkersPanel,
     KruLabsZonesPanel,
-    KruLabsLivePanel,
     KruLabsDebugPanel,
 
     # Scene Operators
     KruLabsAddSceneOperator,
-    KruLabsUploadScenesOperator,
-    KruLabsDownloadScenesOperator,
+    KruLabsUploadProjectOperator,
+    KruLabsDownloadProjectOperator,
     
     # Server Operators
     KruLabsConnectMasterServerOperator,
@@ -731,7 +699,6 @@ classes = (
 
 def register():
     process_source_list([])
-    process_scene_list([])
     
     for cls in classes:
         bpy.utils.register_class(cls)

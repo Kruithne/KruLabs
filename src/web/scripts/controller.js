@@ -1,93 +1,94 @@
 import { document_ready } from './util.js';
-import { socket_init, register_socket_listener, send_packet, CLIENT_IDENTITY } from './socket.js';
 import { createApp } from './vue.js';
+import * as socket from './socket.js';
 
 (async () => {
-	register_socket_listener(handle_socket_message);
+	socket.register_socket_listener(handle_socket_message);
+	socket.register_connection_callback(handle_connect);
 
 	await document_ready();
-	await socket_init(CLIENT_IDENTITY.CONTROLLER);
+	socket.socket_init(socket.CLIENT_IDENTITY.CONTROLLER);
+
+	function handle_connect() {
+		socket.send_packet('CMSG_GET_PROJECT_STATE');
+		socket.send_packet('CMSG_GET_ACTIVE_CUE_STACK');
+	}
 
 	function handle_socket_message(data) {
-		switch (data.op) {
-			case 'SMSG_AUTHENTICATE': {
-				if (data.success)
-					console.log('authenticated');
-				else
-					console.error('authentication failed');
-				break;
-			}
-	
-			case 'SMSG_LOAD_MARKERS': {
-				app.markers = data.markers;
-				break;
-			}
-	
-			default: {
-				console.error('unhandled message:', data);
-			}
+		if (data.op === 'SMSG_LIVE_GO') {
+			app.is_live_go = true;
+			return
+		}
+
+		if (data.op === 'SMSG_LIVE_HOLD') {
+			app.is_live_go = false;
+			return;
+		}
+
+		if (data.op === 'SMSG_PROJECT_STATE') {
+			app.production_name = data.name;
+			app.scenes = data.scenes;
+			app.active_scene = data.active_scene;
+			app.is_live_go = data.is_live_go;
+			return;
+		}
+
+		if (data.op === 'SMSG_ACTIVE_SCENE') {
+			app.active_scene = data.scene;
+			return;
+		}
+
+		if (data.op === 'SMSG_ACTIVE_CUE_STACK') {
+			console.log(data);
+			app.cue_stack = data.cue_stack;
+			return;
+		}
+
+		if (data.op === 'SMSG_DATA_UPDATED' || data.op === 'SMSG_SCENE_CHANGED') {
+			socket.send_packet('CMSG_GET_PROJECT_STATE');
+			socket.send_packet('CMSG_GET_ACTIVE_CUE_STACK');
+			return;
 		}
 	}
 
 	const app = createApp({
 		data() {
 			return {
-				test: 'Hello, world!',
-				markers: []
+				page: 'MAIN',
+
+				is_live_go: false,
+				production_name: 'Live Production',
+				active_scene: 'SCENE_NONE',
+				scenes: [],
+				cue_stack: []
+			}
+		},
+
+		computed: {
+			active_scene_name() {
+				return this.active_scene === 'SCENE_NONE' ? 'No Scene' : this.active_scene;
 			}
 		},
 
 		methods: {
-			switch_scene_act1() {
-				socket_send({
-					op: 'CMSG_SWITCH_SCENE',
-					scene: 'ACT_1'
-				});
+			show_page(page) {
+				this.page = page;
 			},
 
-			switch_scene_act1_skip() {
-				socket_send({
-					op: 'CMSG_SWITCH_SCENE',
-					scene: 'ACT_1'
-				});
-
-				socket_send({
-					op: 'CMSG_SEEK',
-					position: 1991041
-				});
+			select_scene(scene) {
+				socket.send_packet('CMSG_SET_ACTIVE_SCENE', { scene });
 			},
 
-			switch_scene_act2() {
-				socket_send({
-					op: 'CMSG_SWITCH_SCENE',
-					scene: 'ACT_2'
-				});
+			live_go() {
+				socket.send_packet('CMSG_LIVE_GO');
 			},
 
-			switch_scene_diamond() {
-				socket_send({
-					op: 'CMSG_SWITCH_SCENE',
-					scene: 'DIAMOND'
-				})
+			live_hold() {
+				socket.send_packet('CMSG_LIVE_HOLD');
 			},
 
-			play() {
-				socket_send({
-					op: 'CMSG_PLAY'
-				});
-			},
-
-			pause() {
-				socket_send({
-					op: 'CMSG_PAUSE'
-				});
-			},
-
-			seek(ms) {
-				socket_send({
-					op: 'CMSG_SEEK',
-					position: ms
-				});
+			live_seek(ms) {
+				socket.send_packet('CMSG_LIVE_SEEK', { position: ms });
 			}
 		}
 	}).mount('#app');
