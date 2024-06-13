@@ -706,7 +706,7 @@ def register():
     bpy.types.Scene.krulabs_properties = bpy.props.PointerProperty(type=KruLabsProperties)
 
 def unregister():
-    ws_disconnect() # todo: clone this to a manual operation
+    ws_disconnect()
 
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
