@@ -390,7 +390,7 @@ function get_live_position() {
 							return warn_socket(ws, 'scene not found');
 
 						is_live_go = false;
-						live_position = get_live_position();
+						live_position = 0;
 						last_sync_time = null;
 
 						active_scene = scene_name;

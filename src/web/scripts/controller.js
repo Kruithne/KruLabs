@@ -76,6 +76,11 @@ import * as socket from './socket.js';
 		if (data.op === 'SMSG_DATA_UPDATED' || data.op === 'SMSG_SCENE_CHANGED') {
 			socket.send_packet('CMSG_GET_PROJECT_STATE');
 			socket.send_packet('CMSG_GET_ACTIVE_CUE_STACK');
+
+			if (data.op === 'SMSG_SCENE_CHANGED') {
+				app.is_live_go = false;
+				set_live_position(0);
+			}
 			return;
 		}
 	}
