@@ -61,6 +61,9 @@ function setup_zones(zones) {
 
 		$zone_element.style.zIndex = zone.channel;
 		$zone_element.style.transform = `rotate(${-zone.rotation}rad)`;
+
+		if (zone_tag === 'video')
+			$zone_element.loop = !!zone.loop;
 	}
 
 	for (const element of $zone_elements) {
@@ -109,8 +112,12 @@ function suspend_videos() {
 
 		if (data.op === 'SMSG_LIVE_SEEK') {
 			for (const $zone of $zone_elements) {
-				if ($zone.tagName.toLowerCase() === 'video')
-					$zone.currentTime = data.position / 1000;
+				if ($zone.tagName.toLowerCase() === 'video') {
+					if ($zone.loop)
+						$zone.currentTime = data.position / 1000 % $zone.duration;
+					else
+						$zone.currentTime = data.position / 1000;
+				}
 			}
 
 			return;

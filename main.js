@@ -33,6 +33,7 @@ const client_sockets = new Map();
 let active_scene = 'SCENE_NONE';
 let is_live_go = false;
 let live_position = 0;
+let last_sync_time = null;
 
 /**
  * @param {string} message
@@ -185,6 +186,16 @@ async function save_memory() {
 	}
 }
 
+/**
+ * @returns {number}
+ */
+function get_live_position() {
+	if (last_sync_time !== null)
+		return live_position + (Date.now() - last_sync_time);
+
+	return live_position;
+}
+
 (async function main() {
 	log_info(`KruLabs {v${package_json.version}}`);
 	
@@ -312,7 +323,8 @@ async function save_memory() {
 					if (op === 'CMSG_LIVE_GO') {
 						if (!is_live_go) {
 							is_live_go = true;
-							send_socket_message_all('SMSG_LIVE_GO');
+							last_sync_time = Date.now();
+							send_socket_message_all('SMSG_LIVE_GO', { position: get_live_position() });
 						}
 						return;
 					}
@@ -320,14 +332,19 @@ async function save_memory() {
 					if (op === 'CMSG_LIVE_HOLD') {
 						if (is_live_go) {
 							is_live_go = false;
-							send_socket_message_all('SMSG_LIVE_HOLD');
+
+							live_position = get_live_position();
+							last_sync_time = null;
+
+							send_socket_message_all('SMSG_LIVE_HOLD', { position: live_position });
 						}
 						return;
 					}
 
 					if (op === 'CMSG_LIVE_SEEK') {
 						live_position = data.position;
-						send_socket_message_all('SMSG_LIVE_SEEK', { position: live_position });
+						last_sync_time = Date.now();
+						send_socket_message_all('SMSG_LIVE_SEEK', { position: get_live_position() });
 						return;
 					}
 
@@ -336,7 +353,8 @@ async function save_memory() {
 							name: state_memory.project_name ?? 'Live Production',
 							scenes: (state_memory.scenes ?? []).map(scene => scene.name),
 							active_scene,
-							is_live_go
+							is_live_go,
+							live_position: get_live_position()
 						});
 						return;
 					}

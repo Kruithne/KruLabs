@@ -6,6 +6,8 @@ import * as socket from './socket.js';
 	socket.register_socket_listener(handle_socket_message);
 	socket.register_connection_callback(handle_connect);
 
+	requestAnimationFrame(anim_loop);
+
 	await document_ready();
 	socket.socket_init(socket.CLIENT_IDENTITY.CONTROLLER);
 
@@ -14,14 +16,40 @@ import * as socket from './socket.js';
 		socket.send_packet('CMSG_GET_ACTIVE_CUE_STACK');
 	}
 
+	let last_ts = null;
+	function anim_loop(ts) {
+		app.real_time = Date.now();
+
+		if (app.is_live_go && last_ts !== null) {
+			const delta_from_last_frame_in_ms = ts - last_ts;
+			app.free_time_live = app.free_time_live + delta_from_last_frame_in_ms;
+		}
+
+		last_ts = ts;
+
+		requestAnimationFrame(anim_loop);
+	}
+
+	function set_live_position(ms) {
+		app.live_position = ms;
+		app.free_time_live = 0;
+	}
+
 	function handle_socket_message(data) {
 		if (data.op === 'SMSG_LIVE_GO') {
 			app.is_live_go = true;
+			set_live_position(data.position);
 			return
 		}
 
 		if (data.op === 'SMSG_LIVE_HOLD') {
 			app.is_live_go = false;
+			set_live_position(data.position);
+			return;
+		}
+
+		if (data.op === 'SMSG_LIVE_SEEK') {
+			set_live_position(data.position);
 			return;
 		}
 
@@ -30,6 +58,8 @@ import * as socket from './socket.js';
 			app.scenes = data.scenes;
 			app.active_scene = data.active_scene;
 			app.is_live_go = data.is_live_go;
+			app.live_position = data.live_position;
+			app.free_time_live = 0;
 			return;
 		}
 
@@ -39,7 +69,6 @@ import * as socket from './socket.js';
 		}
 
 		if (data.op === 'SMSG_ACTIVE_CUE_STACK') {
-			console.log(data);
 			app.cue_stack = data.cue_stack;
 			return;
 		}
@@ -56,7 +85,10 @@ import * as socket from './socket.js';
 			return {
 				page: 'MAIN',
 
+				free_time_live: 0,
 				is_live_go: false,
+				real_time: Date.now(),
+				live_position: 0,
 				production_name: 'Live Production',
 				active_scene: 'SCENE_NONE',
 				scenes: [],
@@ -67,6 +99,28 @@ import * as socket from './socket.js';
 		computed: {
 			active_scene_name() {
 				return this.active_scene === 'SCENE_NONE' ? 'No Scene' : this.active_scene;
+			},
+
+			formatted_real_time() {
+				const date = new Date(this.real_time);
+
+				const hours = date.getHours().toString().padStart(2, '0');
+				const minutes = date.getMinutes().toString().padStart(2, '0');
+				const seconds = date.getSeconds().toString().padStart(2, '0');
+
+				return `${hours}:${minutes}:${seconds}`;
+			},
+
+			formatted_live_time() {
+				const total_time = this.live_position + this.free_time_live;
+
+				const hours = Math.floor(total_time / 3600000).toString().padStart(2, '0');
+				const minutes = Math.floor(total_time % 3600000 / 60000).toString().padStart(2, '0');
+				const seconds = Math.floor(total_time % 60000 / 1000).toString().padStart(2, '0');
+
+				const milliseconds = Math.min(Math.floor((total_time % 1000).toString().padStart(3, '0')), 999);
+
+				return `${hours}:${minutes}:${seconds}:${milliseconds}`;
 			}
 		},
 

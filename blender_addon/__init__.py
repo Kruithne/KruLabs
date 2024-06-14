@@ -28,6 +28,7 @@ WS_STATE_FAILED = 3
 STRIP_PROP_TYPE = 'KL_STRIP_TYPE'
 MARKER_PROP_TYPE = 'KL_MARKER_TYPE'
 ZONE_SOURCE_ID = 'KL_SRC_ID'
+ZONE_IS_LOOP = 'KL_ZONE_LOOP'
 
 SRC_NONE = ('SRC_NONE', 'No Source', '')
 SCENE_NONE = ('SCENE_NONE', 'No Active Scene', '')
@@ -185,6 +186,7 @@ def create_zone(name, channel, start, duration):
     zone.color = (0.152, 0, 0.650)
     zone[STRIP_PROP_TYPE] = 'ZONE'
     zone[ZONE_SOURCE_ID] = 'SRC_NONE'
+    zone[ZONE_IS_LOOP] = False;
 
     return zone
 
@@ -272,6 +274,7 @@ def process_downloaded_project(project):
                     new_zone.crop.max_x = zone['crop_max_x']
                     new_zone.crop.max_y = zone['crop_max_y']
                     new_zone[ZONE_SOURCE_ID] = zone['source']
+                    new_zone[ZONE_IS_LOOP] = zone['loop']
 
 def get_scene_zones(scene_strip):
     scene = bpy.context.scene
@@ -293,6 +296,9 @@ def apply_props(operator, properties):
 
 def get_zone_strip_source(strip):
     return ZONE_SOURCE_ID in strip and strip[ZONE_SOURCE_ID] or 'SRC_NONE'
+
+def get_zone_strip_loop(strip):
+    return ZONE_IS_LOOP in strip and strip[ZONE_IS_LOOP] or False
 
 def update_source_list_enum(self, context):
     scene = context.scene
@@ -406,6 +412,8 @@ class KruLabsZonesPanel(bpy.types.Panel):
             row = layout.row()
             row.prop(scene, 'krulabs_source_list', text='')
             row.operator(KruLabsUpdateSourceListOperator.bl_idname, text='', icon='FILE_REFRESH')
+            
+            layout.prop(active_strip, '["' + ZONE_IS_LOOP + '"]', text='Loop')
 
 class KruLabsDebugPanel(bpy.types.Panel):
     bl_label = 'Debug'
@@ -476,7 +484,8 @@ class KruLabsUploadProjectOperator(bpy.types.Operator):
                         'crop_min_y': zone.crop.min_y,
                         'crop_max_x': zone.crop.max_x,
                         'crop_max_y': zone.crop.max_y,
-                        'source': get_zone_strip_source(zone)
+                        'source': get_zone_strip_source(zone),
+                        'loop': get_zone_strip_loop(zone)
                     })
 
                 scenes_arr.append({

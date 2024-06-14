@@ -103,9 +103,49 @@ input[type="button"] {
 	background-attachment: fixed;
 }
 
-#header-title {
-}
-
 #header-scene-title {
 	text-align: center;
+}
+
+#header-section, #footer-section {
+	position: fixed;
+	width: 100%;
+}
+
+#header-section {
+	background-color: #232323;
+	background-image: url(../images/stripe_base.png);
+	background-blend-mode: multiply;
+	background-attachment: fixed;
+}
+
+#footer-section {
+	bottom: 0;
+	height: 100px;
+	display: grid;
+	
+	grid-template-columns: 1.5fr 1fr 1fr;
+}
+
+#footer-section > div {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	font-size: 1.9em;
+	background-color: #3d56af;
+	background-image: url(../images/stripe_base.png);
+	background-blend-mode: multiply;
+	background-attachment: fixed;
+	font-variant-numeric: tabular-nums;
+	font-family: monospace;
+}
+
+#footer-section > div.live {
+	background-color: #3daf3d;
+}
+
+#content-section {
+	overflow-y: auto;
+	padding-top: 125px;
+	padding-bottom: 120px;
 }
