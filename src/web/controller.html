@@ -22,12 +22,16 @@
 						<input type="button" value="SCENE" @click="show_page('SCENE_SELECT')">
 						<input v-if="is_live_go" type="button" value="HOLD" @click="live_hold" class="button-cancel">
 						<input v-else type="button" value="GO LIVE" @click="live_go">
+						<input type="button" value="CUE LOCK" :class="{ 'button-cancel': is_cue_lock }" @click="is_cue_lock = !is_cue_lock">
 					</div>
 				</div>
 				<div id="content-section">
 					<div v-if="page === 'MAIN'">
 						<div class="cue-stack">
-							<div class="cue" v-for="cue in cue_stack" @click="live_seek(cue.position)">{{ cue.name }}</div>
+							<div class="cue" v-for="cue in cue_stack" @click="live_seek(cue.position)" :class="{ live: is_cue_triggered(cue.position) }">
+								<div class="cue-title">{{ cue.name }}</div>
+								<div class="cue-time">{{ render_cue_time(cue.position) }}</div>
+							</div>
 						</div>
 					</div>
 					<div v-else-if="page === 'SCENE_SELECT'">

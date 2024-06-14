@@ -91,6 +91,17 @@ input[type="button"] {
 	background-image: url(../images/stripe_base.png);
 	background-blend-mode: multiply;
 	background-attachment: fixed;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.cue.live {
+	background-color: #37a11d;
+}
+
+.cue-time {
+	font-family: monospace;
 }
 
 #header {

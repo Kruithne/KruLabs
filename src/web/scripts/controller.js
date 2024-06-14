@@ -2,6 +2,15 @@ import { document_ready } from './util.js';
 import { createApp } from './vue.js';
 import * as socket from './socket.js';
 
+function format_timestamp(ts) {
+	const hours = Math.floor(ts / 3600000).toString().padStart(2, '0');
+	const minutes = Math.floor(ts % 3600000 / 60000).toString().padStart(2, '0');
+	const seconds = Math.floor(ts % 60000 / 1000).toString().padStart(2, '0');
+	const milliseconds = Math.floor(Math.min(ts % 1000), 999).toString().padStart(3, '0');
+
+	return `${hours}:${minutes}:${seconds}:${milliseconds}`;
+}
+
 (async () => {
 	socket.register_socket_listener(handle_socket_message);
 	socket.register_connection_callback(handle_connect);
@@ -69,7 +78,7 @@ import * as socket from './socket.js';
 		}
 
 		if (data.op === 'SMSG_ACTIVE_CUE_STACK') {
-			app.cue_stack = data.cue_stack;
+			app.cue_stack = data.cue_stack.sort((a, b) => a.position - b.position);
 			return;
 		}
 
@@ -91,6 +100,7 @@ import * as socket from './socket.js';
 				page: 'MAIN',
 
 				free_time_live: 0,
+				is_cue_lock: false,
 				is_live_go: false,
 				real_time: Date.now(),
 				live_position: 0,
@@ -117,18 +127,19 @@ import * as socket from './socket.js';
 			},
 
 			formatted_live_time() {
-				const total_time = this.live_position + this.free_time_live;
-
-				const hours = Math.floor(total_time / 3600000).toString().padStart(2, '0');
-				const minutes = Math.floor(total_time % 3600000 / 60000).toString().padStart(2, '0');
-				const seconds = Math.floor(total_time % 60000 / 1000).toString().padStart(2, '0');
-				const milliseconds = Math.floor(Math.min(total_time % 1000), 999).toString().padStart(3, '0');
-
-				return `${hours}:${minutes}:${seconds}:${milliseconds}`;
+				return format_timestamp(this.live_position + this.free_time_live);
 			}
 		},
 
 		methods: {
+			render_cue_time(ms) {
+				return format_timestamp(Math.max(ms - (this.live_position + this.free_time_live), 0));
+			},
+
+			is_cue_triggered(ms) {
+				return ms <= this.live_position + this.free_time_live;
+			},
+
 			show_page(page) {
 				this.page = page;
 			},
@@ -146,7 +157,8 @@ import * as socket from './socket.js';
 			},
 
 			live_seek(ms) {
-				socket.send_packet('CMSG_LIVE_SEEK', { position: ms });
+				if (!this.is_cue_lock)
+					socket.send_packet('CMSG_LIVE_SEEK', { position: ms });
 			}
 		}
 	}).mount('#app');
