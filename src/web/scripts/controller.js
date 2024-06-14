@@ -84,7 +84,6 @@ function format_timestamp(ts) {
 
 		if (data.op === 'SMSG_CUE_INDEX_CHANGED') {
 			app.cue_stack_index = data.cue_stack_index;
-			console.log(data);
 			return;
 		}
 
