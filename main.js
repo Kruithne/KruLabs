@@ -389,6 +389,9 @@ function get_live_position() {
 						if (scene_name !== 'SCENE_NONE' && !scenes.some(scene => scene.name === scene_name))
 							return warn_socket(ws, 'scene not found');
 
+						is_live_go = false;
+						live_position = get_live_position();
+						last_sync_time = null;
 
 						active_scene = scene_name;
 						send_socket_message_all('SMSG_SCENE_CHANGED', { scene: active_scene });
