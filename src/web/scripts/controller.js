@@ -48,7 +48,7 @@ import * as socket from './socket.js';
 			return;
 		}
 
-		if (data.op === 'SMSG_LIVE_SEEK') {
+		if (data.op === 'SMSG_LIVE_SEEK' || data.op === 'SMSG_LIVE_SYNC') {
 			set_live_position(data.position);
 			return;
 		}
@@ -122,8 +122,7 @@ import * as socket from './socket.js';
 				const hours = Math.floor(total_time / 3600000).toString().padStart(2, '0');
 				const minutes = Math.floor(total_time % 3600000 / 60000).toString().padStart(2, '0');
 				const seconds = Math.floor(total_time % 60000 / 1000).toString().padStart(2, '0');
-
-				const milliseconds = Math.min(Math.floor((total_time % 1000).toString().padStart(3, '0')), 999);
+				const milliseconds = Math.floor(Math.min(total_time % 1000), 999).toString().padStart(3, '0');
 
 				return `${hours}:${minutes}:${seconds}:${milliseconds}`;
 			}

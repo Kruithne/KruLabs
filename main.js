@@ -348,6 +348,13 @@ function get_live_position() {
 						return;
 					}
 
+					if (op === 'CMSG_LIVE_SYNC') {
+						live_position = data.position;
+						last_sync_time = Date.now();
+						send_socket_message_all('SMSG_LIVE_SYNC', { position: get_live_position() });
+						return;
+					}
+
 					if (op === 'CMSG_GET_PROJECT_STATE') {
 						send_socket_message(ws, 'SMSG_PROJECT_STATE', {
 							name: state_memory.project_name ?? 'Live Production',

@@ -3,6 +3,7 @@ import * as socket from './socket.js';
 
 let first_connection = true;
 const $zone_elements = [];
+const $sync_elements = [];
 
 const frame_width = 1920;
 const frame_height = 1080;
@@ -18,9 +19,18 @@ const ext_to_tag = {
 	'jpg': 'img'
 };
 
+function sync_loop() {
+	if (is_live_go && $sync_elements.length > 0) {
+		for (const $element of $sync_elements)
+			socket.send_packet('CMSG_LIVE_SYNC', { position: $element.currentTime * 1000 });
+	}
+}
+
 function setup_zones(zones) {
 	const $container = document.getElementById('container');
 	const $used_zones = [];
+
+	$sync_elements.length = 0;
 
 	for (const zone of zones) {
 		const zone_ext = zone.source.split('.').pop();
@@ -66,6 +76,9 @@ function setup_zones(zones) {
 
 		if (zone_tag === 'video')
 			$zone_element.loop = !!zone.loop;
+
+		if (zone.sync)
+			$sync_elements.push($zone_element);
 	}
 
 	for (const element of $zone_elements) {
@@ -101,6 +114,8 @@ function seek_sources(position) {
 
 	await document_ready();
 	socket.socket_init(socket.CLIENT_IDENTITY.PROJECTOR);
+
+	setInterval(sync_loop, 1000);
 
 	function handle_connect() {
 		if (first_connection) {
