@@ -10,6 +10,8 @@ const frame_height = 1080;
 const frame_center_x = frame_width / 2;
 const frame_center_y = frame_height / 2;
 
+let is_live_go = false;
+
 const ext_to_tag = {
 	'mp4': 'video',
 	'png': 'img',
@@ -82,6 +84,17 @@ function suspend_videos() {
 	}
 }
 
+function seek_sources(position) {
+	for (const $zone of $zone_elements) {
+		if ($zone.tagName.toLowerCase() === 'video') {
+			if ($zone.loop)
+				$zone.currentTime = position / 1000 % $zone.duration;
+			else
+				$zone.currentTime = position / 1000;
+		}
+	}
+}
+
 (async () => {
 	socket.register_socket_listener(handle_socket_message);
 	socket.register_connection_callback(handle_connect);
@@ -92,12 +105,15 @@ function suspend_videos() {
 	function handle_connect() {
 		if (first_connection) {
 			first_connection = false;
+			socket.send_packet('CMSG_GET_PROJECT_STATE');
 			socket.send_packet('CMSG_GET_ACTIVE_ZONES');
 		}
 	}
 
 	function handle_socket_message(data) {
 		if (data.op === 'SMSG_LIVE_GO') {
+			is_live_go = true;
+
 			for (const $zone of $zone_elements) {
 				if ($zone.tagName.toLowerCase() === 'video')
 					$zone.play();
@@ -106,24 +122,24 @@ function suspend_videos() {
 		}
 
 		if (data.op === 'SMSG_LIVE_HOLD') {
+			is_live_go = false;
+
 			suspend_videos();
 			return;
 		}
 
 		if (data.op === 'SMSG_LIVE_SEEK') {
-			for (const $zone of $zone_elements) {
-				if ($zone.tagName.toLowerCase() === 'video') {
-					if ($zone.loop)
-						$zone.currentTime = data.position / 1000 % $zone.duration;
-					else
-						$zone.currentTime = data.position / 1000;
-				}
-			}
-
+			seek_sources(data.position);
 			return;
 		}
 
+		if (data.op === 'SMSG_PROJECT_STATE') {
+			is_live_go = data.is_live_go;
+			seek_sources(data.live_position);
+		}
+
 		if (data.op === 'SMSG_SCENE_CHANGED') {
+			is_live_go = false;
 			suspend_videos();
 			socket.send_packet('CMSG_GET_ACTIVE_ZONES');
 			return;
