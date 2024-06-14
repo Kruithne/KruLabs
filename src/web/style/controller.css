@@ -96,6 +96,14 @@ input[type="button"] {
 	align-items: center;
 }
 
+.cue.hold {
+	background-color: #a1631d;
+}
+
+.cue.passed {
+	background-color: #1d5da1;
+}
+
 .cue.live {
 	background-color: #37a11d;
 }

@@ -29,6 +29,7 @@ STRIP_PROP_TYPE = 'KL_STRIP_TYPE'
 MARKER_PROP_TYPE = 'KL_MARKER_TYPE'
 ZONE_SOURCE_ID = 'KL_SRC_ID'
 ZONE_IS_LOOP = 'KL_ZONE_LOOP'
+ZONE_IS_SYNC = 'KL_ZONE_SYNC'
 
 SRC_NONE = ('SRC_NONE', 'No Source', '')
 SCENE_NONE = ('SCENE_NONE', 'No Active Scene', '')
@@ -187,6 +188,7 @@ def create_zone(name, channel, start, duration):
     zone[STRIP_PROP_TYPE] = 'ZONE'
     zone[ZONE_SOURCE_ID] = 'SRC_NONE'
     zone[ZONE_IS_LOOP] = False;
+    zone[ZONE_IS_SYNC] = False;
 
     return zone
 
@@ -275,6 +277,7 @@ def process_downloaded_project(project):
                     new_zone.crop.max_y = zone['crop_max_y']
                     new_zone[ZONE_SOURCE_ID] = zone['source']
                     new_zone[ZONE_IS_LOOP] = zone['loop']
+                    new_zone[ZONE_IS_SYNC] = zone['sync']
 
 def get_scene_zones(scene_strip):
     scene = bpy.context.scene
@@ -299,6 +302,9 @@ def get_zone_strip_source(strip):
 
 def get_zone_strip_loop(strip):
     return ZONE_IS_LOOP in strip and strip[ZONE_IS_LOOP] or False
+
+def get_zone_strip_sync(strip):
+    return ZONE_IS_SYNC in strip and strip[ZONE_IS_SYNC] or False
 
 def update_source_list_enum(self, context):
     scene = context.scene
@@ -386,6 +392,9 @@ class KruLabsMarkersPanel(bpy.types.Panel):
 
         row = layout.row()
         row.operator(KruLabsAddCueMarkerOperator.bl_idname, text='Add Cue')
+        row.operator(KruLabsAddHoldMarkerOperator.bl_idname, text='Add Hold')
+
+        row = layout.row()
         apply_props(row.operator(KruLabsDeleteMarkersOperator.bl_idname, text='Clear Scene'), {'marker_type': 'CUE', 'scene_only': True})
         row.operator(KruLabsDeleteMarkersOperator.bl_idname, text='Clear All').marker_type = 'CUE'
 
@@ -414,6 +423,7 @@ class KruLabsZonesPanel(bpy.types.Panel):
             row.operator(KruLabsUpdateSourceListOperator.bl_idname, text='', icon='FILE_REFRESH')
             
             layout.prop(active_strip, '["' + ZONE_IS_LOOP + '"]', text='Loop')
+            layout.prop(active_strip, '["' + ZONE_IS_SYNC + '"]', text='Sync')
 
 class KruLabsDebugPanel(bpy.types.Panel):
     bl_label = 'Debug'
@@ -485,7 +495,8 @@ class KruLabsUploadProjectOperator(bpy.types.Operator):
                         'crop_max_x': zone.crop.max_x,
                         'crop_max_y': zone.crop.max_y,
                         'source': get_zone_strip_source(zone),
-                        'loop': get_zone_strip_loop(zone)
+                        'loop': get_zone_strip_loop(zone),
+                        'sync': get_zone_strip_sync(zone)
                     })
 
                 scenes_arr.append({
@@ -514,6 +525,18 @@ class KruLabsDownloadProjectOperator(bpy.types.Operator):
             return operator_error(self, 'Not connected to server')
         
         ws_send_packet('CMSG_DOWNLOAD_PROJECT')
+        return {'FINISHED'}
+    
+class KruLabsAddHoldMarkerOperator(bpy.types.Operator):
+    bl_idname = 'sequencer.krulabs_add_hold_marker'
+    bl_label = 'KruLabs: Add Hold Marker'
+
+    def execute(self, context):
+        scene = context.scene
+        marker = scene.timeline_markers.new('HOLD', frame=scene.frame_current)
+        marker[MARKER_PROP_TYPE] = 'HOLD'
+        marker.select = True
+
         return {'FINISHED'}
     
 class KruLabsAddCueMarkerOperator(bpy.types.Operator):
@@ -695,6 +718,7 @@ classes = (
 
     # Markers Operators
     KruLabsAddCueMarkerOperator,
+    KruLabsAddHoldMarkerOperator,
     KruLabsDeleteMarkersOperator,
     KruLabsSelectSceneMarkersOperator,
 

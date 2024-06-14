@@ -78,7 +78,13 @@ function format_timestamp(ts) {
 		}
 
 		if (data.op === 'SMSG_ACTIVE_CUE_STACK') {
-			app.cue_stack = data.cue_stack.sort((a, b) => a.position - b.position);
+			app.cue_stack = data.cue_stack;
+			return;
+		}
+
+		if (data.op === 'SMSG_CUE_INDEX_CHANGED') {
+			app.cue_stack_index = data.cue_stack_index;
+			console.log(data);
 			return;
 		}
 
@@ -88,6 +94,7 @@ function format_timestamp(ts) {
 
 			if (data.op === 'SMSG_SCENE_CHANGED') {
 				app.is_live_go = false;
+				app.cue_stack_index = -1;
 				set_live_position(0);
 			}
 			return;
@@ -103,6 +110,7 @@ function format_timestamp(ts) {
 				is_cue_lock: false,
 				is_live_go: false,
 				real_time: Date.now(),
+				cue_stack_index: -1,
 				live_position: 0,
 				production_name: 'Live Production',
 				active_scene: 'SCENE_NONE',

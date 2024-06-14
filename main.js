@@ -35,6 +35,9 @@ let is_live_go = false;
 let live_position = 0;
 let last_sync_time = null;
 
+let active_cue_stack = [];
+let cue_stack_index = 0;
+
 /**
  * @param {string} message
  * @param {string} color
@@ -196,6 +199,39 @@ function get_live_position() {
 	return live_position;
 }
 
+function is_current_cue_passed() {
+	return active_cue_stack[cue_stack_index]?.position <= get_live_position();
+}
+
+function update_cue_stack() {
+	let index_changed = false;
+	while (cue_stack_index < active_cue_stack.length && is_current_cue_passed()) {
+		cue_stack_index++;
+		index_changed = true;
+	}
+
+	if (index_changed) {
+		send_socket_message_all('SMSG_CUE_INDEX_CHANGED', { cue_stack_index });
+
+		const triggered_cue = active_cue_stack[cue_stack_index - 1];
+		const trigger_type = triggered_cue?.type;
+		if (trigger_type === 'HOLD') {
+			live_hold();
+		}
+	}
+}
+
+function live_hold() {
+	if (is_live_go) {
+		is_live_go = false;
+
+		live_position = get_live_position();
+		last_sync_time = null;
+
+		send_socket_message_all('SMSG_LIVE_HOLD', { position: live_position });
+	}
+}
+
 (async function main() {
 	log_info(`KruLabs {v${package_json.version}}`);
 	
@@ -330,14 +366,7 @@ function get_live_position() {
 					}
 
 					if (op === 'CMSG_LIVE_HOLD') {
-						if (is_live_go) {
-							is_live_go = false;
-
-							live_position = get_live_position();
-							last_sync_time = null;
-
-							send_socket_message_all('SMSG_LIVE_HOLD', { position: live_position });
-						}
+						live_hold();
 						return;
 					}
 
@@ -345,6 +374,9 @@ function get_live_position() {
 						live_position = data.position;
 						last_sync_time = Date.now();
 						send_socket_message_all('SMSG_LIVE_SEEK', { position: get_live_position() });
+
+						cue_stack_index = 0;
+						update_cue_stack();
 						return;
 					}
 
@@ -399,14 +431,22 @@ function get_live_position() {
 						is_live_go = false;
 						live_position = 0;
 						last_sync_time = null;
+						cue_stack_index = 0;
 
 						active_scene = scene_name;
+						active_cue_stack = get_active_scene().markers ?? [];
+
 						send_socket_message_all('SMSG_SCENE_CHANGED', { scene: active_scene });
 						return;
 					}
 
 					if (op === 'CMSG_UPLOAD_PROJECT') {
 						state_memory = data.project;
+
+						for (const scene of state_memory.scenes)
+							scene.markers.sort((a, b) => a.position - b.position);
+
+						active_cue_stack = get_active_scene().markers ?? [];
 
 						send_socket_message_all('SMSG_DATA_UPDATED');
 						save_memory();
@@ -456,4 +496,9 @@ function get_live_position() {
 	log_info(`{projector} available at {http://localhost:${server.port}/projector}`);
 
 	print_ipv4_addresses();
+
+	setInterval(() => {
+		if (is_live_go)
+			update_cue_stack();
+	}, 50);
 })();

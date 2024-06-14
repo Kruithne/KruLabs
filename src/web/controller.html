@@ -28,7 +28,7 @@
 				<div id="content-section">
 					<div v-if="page === 'MAIN'">
 						<div class="cue-stack">
-							<div class="cue" v-for="cue in cue_stack" @click="live_seek(cue.position)" :class="{ live: is_cue_triggered(cue.position) }">
+							<div class="cue" v-for="(cue, index) in cue_stack" @click="live_seek(cue.position)" :class="{ passed: is_cue_triggered(cue.position), hold: cue.type == 'HOLD', live: cue_stack_index > index }">
 								<div class="cue-title">{{ cue.name }}</div>
 								<div class="cue-time">{{ render_cue_time(cue.position) }}</div>
 							</div>
