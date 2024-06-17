@@ -356,6 +356,11 @@ function live_hold() {
 					if (socket_identity === 0)
 						return;
 
+					if (op === 'CMSG_FADE_TO_HOLD') {
+						send_socket_message_all('SMSG_FADE_BEGIN');
+						return;
+					}
+
 					if (op === 'CMSG_LIVE_GO') {
 						if (!is_live_go) {
 							is_live_go = true;

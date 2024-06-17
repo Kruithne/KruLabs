@@ -12,6 +12,8 @@ const frame_center_x = frame_width / 2;
 const frame_center_y = frame_height / 2;
 
 let is_live_go = false;
+let is_fading = false;
+let volume = 1;
 
 const ext_to_tag = {
 	'mp4': 'video',
@@ -23,6 +25,26 @@ function sync_loop() {
 	if (is_live_go && $sync_elements.length > 0) {
 		for (const $element of $sync_elements)
 			socket.send_packet('CMSG_LIVE_SYNC', { position: $element.currentTime * 1000 });
+	}
+}
+
+function update_volume() {
+	if (is_fading) {
+		if (volume <= 0) {
+			is_fading = false;
+			socket.send_packet('CMSG_LIVE_HOLD');
+
+			suspend_videos();
+
+			volume = 1;
+		} else {
+			volume = Math.max(0, volume - 0.005);
+		}
+
+		for (const $zone of $zone_elements) {
+			if ($zone.tagName.toLowerCase() === 'video')
+				$zone.volume = volume;
+		}
 	}
 }
 
@@ -116,6 +138,7 @@ function seek_sources(position) {
 	socket.socket_init(socket.CLIENT_IDENTITY.PROJECTOR);
 
 	setInterval(sync_loop, 1000);
+	setInterval(update_volume, 10);
 
 	function handle_connect() {
 		if (first_connection) {
@@ -140,6 +163,11 @@ function seek_sources(position) {
 			is_live_go = false;
 
 			suspend_videos();
+			return;
+		}
+
+		if (data.op === 'SMSG_FADE_BEGIN') {
+			is_fading = true;
 			return;
 		}
 
