@@ -27,9 +27,12 @@ WS_STATE_FAILED = 3
 
 STRIP_PROP_TYPE = 'KL_STRIP_TYPE'
 MARKER_PROP_TYPE = 'KL_MARKER_TYPE'
+
 ZONE_SOURCE_ID = 'KL_SRC_ID'
 ZONE_IS_LOOP = 'KL_ZONE_LOOP'
 ZONE_IS_SYNC = 'KL_ZONE_SYNC'
+
+GOTO_CUE_ID = 'KL_GOTO_CUE'
 
 SRC_NONE = ('SRC_NONE', 'No Source', '')
 SCENE_NONE = ('SCENE_NONE', 'No Active Scene', '')
@@ -259,6 +262,9 @@ def process_downloaded_project(project):
 
                     new_marker = timeline_markers.new(marker['name'], frame=marker_frame)
                     new_marker[MARKER_PROP_TYPE] = marker['type']
+                    
+                    if marker['type'] == 'GOTO':
+                        new_marker[GOTO_CUE_ID] = marker['goto_cue']
 
             # create new zones
             if 'zones' in new_scene:
@@ -393,6 +399,7 @@ class KruLabsMarkersPanel(bpy.types.Panel):
         row = layout.row()
         row.operator(KruLabsAddCueMarkerOperator.bl_idname, text='Add Cue')
         row.operator(KruLabsAddHoldMarkerOperator.bl_idname, text='Add Hold')
+        row.operator(KruLabsAddGotoMarkerOperator.bl_idname, text='Add Goto')
 
         row = layout.row()
         apply_props(row.operator(KruLabsDeleteMarkersOperator.bl_idname, text='Clear Scene'), {'marker_type': 'CUE', 'scene_only': True})
@@ -474,11 +481,16 @@ class KruLabsUploadProjectOperator(bpy.types.Operator):
                 markers = []
                 for marker in scene.timeline_markers:
                     if marker.frame >= start_frame and marker.frame <= end_frame:
-                        markers.append({
+                        upload_marker = {
                             'name': marker.name,
                             'type': MARKER_PROP_TYPE in marker and marker[MARKER_PROP_TYPE] or 'UNKNOWN',
                             'position': (marker.frame - start_frame) * (1000 / fps)
-                        })
+                        }
+
+                        if upload_marker['type'] == 'GOTO':
+                            upload_marker['goto_cue'] = marker[GOTO_CUE_ID]
+
+                        markers.append(upload_marker)
 
                 zones = []
                 for zone in get_scene_zones(strip):
@@ -526,6 +538,24 @@ class KruLabsDownloadProjectOperator(bpy.types.Operator):
         
         ws_send_packet('CMSG_DOWNLOAD_PROJECT')
         return {'FINISHED'}
+    
+class KruLabsAddGotoMarkerOperator(bpy.types.Operator):
+    bl_idname = 'sequencer.krulabs_add_goto_marker'
+    bl_label = 'KruLabs: Add Goto Marker'
+
+    target_cue: bpy.props.FloatProperty(name = 'Target Cue', default=1.0) # type: ignore
+
+    def execute(self, context):
+        scene = context.scene
+        marker = scene.timeline_markers.new('GOTO ' + str(self.target_cue), frame=scene.frame_current)
+        marker[MARKER_PROP_TYPE] = 'GOTO'
+        marker[GOTO_CUE_ID] = self.target_cue
+        marker.select = True
+
+        return {'FINISHED'}
+    
+    def invoke(self, context, window):
+        return context.window_manager.invoke_props_dialog(self)
     
 class KruLabsAddHoldMarkerOperator(bpy.types.Operator):
     bl_idname = 'sequencer.krulabs_add_hold_marker'
@@ -719,6 +749,7 @@ classes = (
     # Markers Operators
     KruLabsAddCueMarkerOperator,
     KruLabsAddHoldMarkerOperator,
+    KruLabsAddGotoMarkerOperator,
     KruLabsDeleteMarkersOperator,
     KruLabsSelectSceneMarkersOperator,
 

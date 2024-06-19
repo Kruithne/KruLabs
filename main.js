@@ -217,8 +217,19 @@ function update_cue_stack() {
 		const trigger_type = triggered_cue?.type;
 		if (trigger_type === 'HOLD') {
 			live_hold();
+		} else if (trigger_type === 'GOTO') {
+			live_goto(triggered_cue.goto_cue);
 		}
 	}
+}
+
+function live_goto(target) {
+	const fp_target = parseFloat(target).toFixed(1);
+	const cue_prefix = `${fp_target} CUE`;
+	const target_cue = active_cue_stack?.find(cue => cue.type === 'CUE' && cue.name.startsWith(cue_prefix));
+	
+	if (target_cue)
+		live_seek(target_cue.position);
 }
 
 function live_hold() {
@@ -230,6 +241,15 @@ function live_hold() {
 
 		send_socket_message_all('SMSG_LIVE_HOLD', { position: live_position });
 	}
+}
+
+function live_seek(position) {
+	live_position = position;
+	last_sync_time = Date.now();
+	send_socket_message_all('SMSG_LIVE_SEEK', { position: get_live_position() });
+
+	cue_stack_index = 0;
+	update_cue_stack();
 }
 
 (async function main() {
@@ -376,12 +396,7 @@ function live_hold() {
 					}
 
 					if (op === 'CMSG_LIVE_SEEK') {
-						live_position = data.position;
-						last_sync_time = Date.now();
-						send_socket_message_all('SMSG_LIVE_SEEK', { position: get_live_position() });
-
-						cue_stack_index = 0;
-						update_cue_stack();
+						live_seek(data.position);
 						return;
 					}
 
@@ -439,7 +454,7 @@ function live_hold() {
 						cue_stack_index = 0;
 
 						active_scene = scene_name;
-						active_cue_stack = get_active_scene().markers ?? [];
+						active_cue_stack = get_active_scene()?.markers ?? [];
 
 						send_socket_message_all('SMSG_SCENE_CHANGED', { scene: active_scene });
 						return;
@@ -451,7 +466,7 @@ function live_hold() {
 						for (const scene of state_memory.scenes)
 							scene.markers.sort((a, b) => a.position - b.position);
 
-						active_cue_stack = get_active_scene().markers ?? [];
+						active_cue_stack = get_active_scene()?.markers ?? [];
 
 						send_socket_message_all('SMSG_DATA_UPDATED');
 						save_memory();
