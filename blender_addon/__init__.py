@@ -260,10 +260,12 @@ def process_downloaded_project(project):
                 for marker in new_scene['markers']:
                     marker_frame = int(scene_frame_start + (marker['position'] / (1000 / fps)))
 
+                    new_marker_type = marker['type']
+
                     new_marker = timeline_markers.new(marker['name'], frame=marker_frame)
-                    new_marker[MARKER_PROP_TYPE] = marker['type']
+                    new_marker[MARKER_PROP_TYPE] = new_marker_type
                     
-                    if marker['type'] == 'GOTO':
+                    if new_marker_type == 'GOTO' or new_marker_type == 'DEFER':
                         new_marker[GOTO_CUE_ID] = marker['goto_cue']
 
             # create new zones
@@ -400,6 +402,7 @@ class KruLabsMarkersPanel(bpy.types.Panel):
         row.operator(KruLabsAddCueMarkerOperator.bl_idname, text='Add Cue')
         row.operator(KruLabsAddHoldMarkerOperator.bl_idname, text='Add Hold')
         row.operator(KruLabsAddGotoMarkerOperator.bl_idname, text='Add Goto')
+        row.operator(KruLabsAddDeferMarkerOperator.bl_idname, text='Add Defer')
 
         row = layout.row()
         apply_props(row.operator(KruLabsDeleteMarkersOperator.bl_idname, text='Clear Scene'), {'marker_type': 'CUE', 'scene_only': True})
@@ -487,7 +490,8 @@ class KruLabsUploadProjectOperator(bpy.types.Operator):
                             'position': (marker.frame - start_frame) * (1000 / fps)
                         }
 
-                        if upload_marker['type'] == 'GOTO':
+                        upload_marker_type = upload_marker['type']
+                        if upload_marker_type == 'GOTO' or upload_marker_type == 'DEFER':
                             upload_marker['goto_cue'] = marker[GOTO_CUE_ID]
 
                         markers.append(upload_marker)
@@ -538,6 +542,24 @@ class KruLabsDownloadProjectOperator(bpy.types.Operator):
         
         ws_send_packet('CMSG_DOWNLOAD_PROJECT')
         return {'FINISHED'}
+    
+class KruLabsAddDeferMarkerOperator(bpy.types.Operator):
+    bl_idname = 'sequencer.krulabs_add_defer_marker'
+    bl_label = 'KruLabs: Add Defer marker'
+
+    target_cue: bpy.props.FloatProperty(name = 'Target Cue', default=1.0) # type: ignore
+
+    def execute(self, context):
+        scene = context.scene
+        marker = scene.timeline_markers.new('DEFER ' + str(self.target_cue), frame=scene.frame_current)
+        marker[MARKER_PROP_TYPE] = 'DEFER'
+        marker[GOTO_CUE_ID] = self.target_cue
+        marker.select = True
+
+        return {'FINISHED'}
+    
+    def invoke(self, context, window):
+        return context.window_manager.invoke_props_dialog(self)
     
 class KruLabsAddGotoMarkerOperator(bpy.types.Operator):
     bl_idname = 'sequencer.krulabs_add_goto_marker'
@@ -750,6 +772,7 @@ classes = (
     KruLabsAddCueMarkerOperator,
     KruLabsAddHoldMarkerOperator,
     KruLabsAddGotoMarkerOperator,
+    KruLabsAddDeferMarkerOperator,
     KruLabsDeleteMarkersOperator,
     KruLabsSelectSceneMarkersOperator,
 

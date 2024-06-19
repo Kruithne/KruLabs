@@ -219,6 +219,9 @@ function update_cue_stack() {
 			live_hold();
 		} else if (trigger_type === 'GOTO') {
 			live_goto(triggered_cue.goto_cue);
+		} else if (trigger_type === 'DEFER') {
+			live_hold();
+			live_goto(triggered_cue.goto_cue);
 		}
 	}
 }
