@@ -96,8 +96,10 @@ function setup_zones(zones) {
 		$zone_element.style.zIndex = zone.channel;
 		$zone_element.style.transform = `rotate(${-zone.rotation}rad)`;
 
-		if (zone_tag === 'video')
+		if (zone_tag === 'video') {
+			$zone_element.crossorigin = 'anonymous';
 			$zone_element.loop = !!zone.loop;
+		}
 
 		if (zone.sync)
 			$sync_elements.push($zone_element);
