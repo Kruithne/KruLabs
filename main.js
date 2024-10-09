@@ -458,7 +458,8 @@ function live_seek(position) {
 
 						log_info(`scene switch requested to {${scene_name}}`);
 
-						if (scene_name !== 'SCENE_NONE' && !scenes.some(scene => scene.name === scene_name))
+						const selected_scene = scenes.find(scene => scene.name === scene_name);
+						if (scene_name !== 'SCENE_NONE' && !selected_scene)
 							return warn_socket(ws, 'scene not found');
 
 						is_live_go = false;
@@ -469,7 +470,7 @@ function live_seek(position) {
 						active_scene = scene_name;
 						active_cue_stack = get_active_scene()?.markers ?? [];
 
-						send_socket_message_all('SMSG_SCENE_CHANGED', { scene: active_scene });
+						send_socket_message_all('SMSG_SCENE_CHANGED', { scene: active_scene, scene_volume: selected_scene.volume ?? 1 });
 						return;
 					}
 

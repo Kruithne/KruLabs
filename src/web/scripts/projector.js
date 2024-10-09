@@ -5,6 +5,8 @@ let first_connection = true;
 const $zone_elements = [];
 const $sync_elements = [];
 
+let $black_overlay = null;
+
 const frame_width = 1920;
 const frame_height = 1080;
 
@@ -121,6 +123,13 @@ function suspend_videos() {
 	}
 }
 
+function set_scene_volume(volume) {
+	for (const $zone of $zone_elements) {
+		if ($zone.tagName.toLowerCase() === 'video')
+			$zone.volume = volume;
+	}
+}
+
 function seek_sources(position) {
 	for (const $zone of $zone_elements) {
 		if ($zone.tagName.toLowerCase() === 'video') {
@@ -198,6 +207,7 @@ function seek_sources(position) {
 		if (data.op === 'SMSG_SCENE_CHANGED') {
 			is_live_go = false;
 			suspend_videos();
+			set_scene_volume(data.scene_volume ?? 1);
 			socket.send_packet('CMSG_GET_ACTIVE_ZONES');
 			return;
 		}
