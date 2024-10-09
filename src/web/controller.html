@@ -48,6 +48,9 @@
 				<div id="error-block" v-if="error_text.length > 0">
 					{{ error_text }}
 				</div>
+				<div id="seek-bar" @mousedown="begin_seeking($event)" @touchstart="begin_seeking_touch($event)">
+					<div id="seek-bar-handle" :style="{ left: (seek_bar_pos * 100) + '%' }"></div>
+				</div>
 				<div id="footer-section">
 					<div id="live-time" :class="{ live: is_live_go }">{{ formatted_live_time }}</div>
 					<div @click="toggle_timer()" :class="{ live: timer_active }">{{ formatted_timer_time }}</div>

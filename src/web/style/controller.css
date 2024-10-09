@@ -126,7 +126,7 @@ input[type="button"] {
 	text-align: center;
 }
 
-#header-section, #footer-section, #error-block {
+#header-section, #footer-section, #error-block, #seek-bar {
 	position: fixed;
 	width: 100%;
 }
@@ -166,11 +166,11 @@ input[type="button"] {
 #content-section {
 	overflow-y: auto;
 	padding-top: 125px;
-	padding-bottom: 120px;
+	padding-bottom: 180px;
 }
 
 #error-block {
-	bottom: 70px;
+	bottom: 145px;
 	height: 75px;
 	background-color: red;
 	display: flex;
@@ -179,4 +179,22 @@ input[type="button"] {
 	background-image: url(../images/stripe_base.png);
 	background-blend-mode: multiply;
 	background-attachment: fixed;
+}
+
+#seek-bar {
+	bottom: 70px;
+	height: 75px;
+	background-color: grey;
+	background-image: url(../images/stripe_base.png);
+	background-blend-mode: multiply;
+	background-attachment: fixed;
+}
+
+#seek-bar-handle {
+	position: absolute;
+	height: 100%;
+	width: 10px;
+	transform: translateX(-50%);
+	background: red;
+	cursor: pointer;
 }

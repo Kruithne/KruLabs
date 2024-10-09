@@ -31,6 +31,12 @@ function format_timestamp_short(ts) {
 	await document_ready();
 	socket.socket_init(socket.CLIENT_IDENTITY.CONTROLLER);
 
+	document.addEventListener('mousemove', event => app.on_mouse_move(event));
+	document.addEventListener('mouseup', event => app.on_mouse_up(event));
+
+	document.addEventListener('touchmove', event => app.on_touch_move(event));
+	document.addEventListener('touchend', event => app.on_mouse_up(event));
+
 	function handle_connect() {
 		socket.send_packet('CMSG_GET_PROJECT_STATE');
 		socket.send_packet('CMSG_GET_ACTIVE_CUE_STACK');
@@ -127,6 +133,11 @@ function format_timestamp_short(ts) {
 			return {
 				page: 'MAIN',
 
+				seek_drag_start_x: 0,
+				seek_dragging: false,
+				seek_position: 0,
+				seek_drag_pos: 0,
+
 				free_time_live: 0,
 				timer_time: 0,
 				timer_active: false,
@@ -169,10 +180,59 @@ function format_timestamp_short(ts) {
 					return '00:00';
 
 				return format_timestamp_short(this.real_time - this.timer_time);
+			},
+
+			seek_bar_pos() {
+				if (this.seek_dragging)
+					return this.seek_drag_pos;
+
+				const next_cue = this.cue_stack[this.cue_stack_index];
+				if (!next_cue)
+					return 1;
+
+				const live_position = this.live_position + this.free_time_live;
+				const previous_cue_position = this.cue_stack[this.cue_stack_index - 1]?.position ?? 0;
+				return (live_position - previous_cue_position) / (next_cue.position - previous_cue_position);
+
 			}
 		},
 
 		methods: {
+			begin_seeking(event) {
+				this.seek_drag_start_x = event.clientX;
+				this.seek_dragging = true;
+				this.seek_position = this.seek_bar_pos;
+			},
+
+			begin_seeking_touch(event) {
+				this.begin_seeking(event.touches[0]);
+			},
+
+			on_mouse_move(event) {
+				if (this.seek_dragging)
+					this.seek_drag_pos = Math.min(1, Math.max(0, this.seek_position + (event.clientX - this.seek_drag_start_x) / window.innerWidth));
+			},
+
+			on_touch_move(event) {
+				if (this.seek_dragging)
+					this.on_mouse_move(event.touches[0]);
+			},
+
+			on_mouse_up(event) {
+				this.seek_dragging = false;				
+
+				const next_cue = this.cue_stack[this.cue_stack_index];
+				if (!next_cue)
+					return;
+
+				const previous_cue_position = this.cue_stack[this.cue_stack_index - 1]?.position ?? 0;
+
+				const delta = next_cue.position - previous_cue_position;
+				const frame = delta * this.seek_drag_pos;
+
+				this.live_seek(previous_cue_position + frame);
+			},
+
 			toggle_timer() {
 				this.timer_active = !this.timer_active;
 				this.timer_time = this.timer_active ? Date.now() : 0;
