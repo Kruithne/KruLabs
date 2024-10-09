@@ -140,7 +140,7 @@ input[type="button"] {
 
 #footer-section {
 	bottom: 0;
-	height: 100px;
+	height: 70px;
 	display: grid;
 	
 	grid-template-columns: 1.5fr 1fr 1fr;
@@ -170,7 +170,7 @@ input[type="button"] {
 }
 
 #error-block {
-	bottom: 100px;
+	bottom: 70px;
 	height: 75px;
 	background-color: red;
 	display: flex;

@@ -121,6 +121,8 @@ function format_timestamp(ts) {
 				page: 'MAIN',
 
 				free_time_live: 0,
+				timer_time: 0,
+				timer_active: false,
 				is_cue_lock: false,
 				is_live_go: false,
 				is_fading: false,
@@ -153,10 +155,22 @@ function format_timestamp(ts) {
 
 			formatted_live_time() {
 				return format_timestamp(this.live_position + this.free_time_live);
+			},
+
+			formatted_timer_time() {
+				if (!this.timer_active)
+					return '00:00:00:00';
+
+				return format_timestamp(this.real_time - this.timer_time);
 			}
 		},
 
 		methods: {
+			toggle_timer() {
+				this.timer_active = !this.timer_active;
+				this.timer_time = this.timer_active ? Date.now() : 0;
+			},
+
 			fade_to_hold() {
 				this.is_fading = true;
 				socket.send_packet('CMSG_FADE_TO_HOLD');
