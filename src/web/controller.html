@@ -50,7 +50,7 @@
 				</div>
 				<div id="footer-section">
 					<div id="live-time" :class="{ live: is_live_go }">{{ formatted_live_time }}</div>
-					<div @click="toggle_timer()">{{ formatted_timer_time }}</div>
+					<div @click="toggle_timer()" :class="{ live: timer_active }">{{ formatted_timer_time }}</div>
 					<div>{{ formatted_real_time }}</div>
 				</div>
 			</div>
