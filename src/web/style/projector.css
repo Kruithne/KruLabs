@@ -27,3 +27,16 @@ img.zone {
 	opacity: 0;
 	background: black;
 }
+
+#test-screen {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	z-index: 19;
+	opacity: 0;
+	background-image: url(../images/test_screen.png);
+	background-repeat: no-repeat;
+	background-size: cover;
+}

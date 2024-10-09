@@ -6,6 +6,7 @@ const $zone_elements = [];
 const $sync_elements = [];
 
 let $black_overlay = null;
+let $test_screen = null;
 
 const frame_width = 1920;
 const frame_height = 1080;
@@ -104,6 +105,8 @@ function setup_zones(zones) {
 			$zone_element.loop = !!zone.loop;
 		}
 
+		$zone_element.volume = zone.volume ?? 1
+
 		if (zone.sync)
 			$sync_elements.push($zone_element);
 	}
@@ -121,13 +124,6 @@ function suspend_videos() {
 	for (const $zone of $zone_elements) {
 		if ($zone.tagName.toLowerCase() === 'video')
 			$zone.pause();
-	}
-}
-
-function set_scene_volume(volume) {
-	for (const $zone of $zone_elements) {
-		if ($zone.tagName.toLowerCase() === 'video')
-			$zone.volume = volume;
 	}
 }
 
@@ -153,6 +149,7 @@ function seek_sources(position) {
 	setInterval(update_volume, 10);
 
 	$black_overlay = document.getElementById('black-overlay');
+	$test_screen = document.getElementById('test-screen');
 
 	document.addEventListener('click', () => has_interacted = true, { once: true });
 
@@ -213,9 +210,10 @@ function seek_sources(position) {
 		}
 
 		if (data.op === 'SMSG_SCENE_CHANGED') {
+			$test_screen.style.opacity = data.scene === 'TEST_SCREEN' ? 1 : 0;
+
 			is_live_go = false;
 			suspend_videos();
-			set_scene_volume(data.scene_volume ?? 1);
 			socket.send_packet('CMSG_GET_ACTIVE_ZONES');
 			return;
 		}
