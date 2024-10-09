@@ -15,6 +15,13 @@ function format_timestamp(ts) {
 	return `${hours}:${minutes}:${seconds}:${milliseconds}`;
 }
 
+function format_timestamp_short(ts) {
+	const minutes = Math.floor(ts % 3600000 / 60000).toString().padStart(2, '0');
+	const seconds = Math.floor(ts % 60000 / 1000).toString().padStart(2, '0');
+
+	return `${minutes}:${seconds}`;
+}
+
 (async () => {
 	socket.register_socket_listener(handle_socket_message);
 	socket.register_connection_callback(handle_connect);
@@ -159,9 +166,9 @@ function format_timestamp(ts) {
 
 			formatted_timer_time() {
 				if (!this.timer_active)
-					return '00:00:00:00';
+					return '00:00';
 
-				return format_timestamp(this.real_time - this.timer_time);
+				return format_timestamp_short(this.real_time - this.timer_time);
 			}
 		},
 
