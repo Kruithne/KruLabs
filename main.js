@@ -384,6 +384,16 @@ function live_seek(position) {
 						return;
 					}
 
+					if (op === 'CMSG_FADE_IN') {
+						send_socket_message_all('SMSG_FADE_IN');
+						return;
+					}
+
+					if (op === 'CMSG_FADE_OUT') {
+						send_socket_message_all('SMSG_FADE_OUT');
+						return;
+					}
+
 					if (op === 'CMSG_LIVE_GO') {
 						if (!is_live_go) {
 							is_live_go = true;

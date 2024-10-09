@@ -24,6 +24,8 @@
 						<input v-else type="button" value="GO LIVE" @click="live_go">
 						<input type="button" value="CUE LOCK" :class="{ 'button-cancel': is_cue_lock }" @click="is_cue_lock = !is_cue_lock">
 						<input type="button" value="FADE TO HOLD" @click="fade_to_hold" :class="{ 'button-cancel': is_live_go && is_fading }">
+						<input type="button" value="FADE IN" @click="fade_in">
+						<input type="button" value="FADE OUT" @click="fade_out">
 					</div>
 				</div>
 				<div id="content-section">

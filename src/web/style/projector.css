@@ -15,3 +15,15 @@
 img.zone {
 	object-fit: contain;
 }
+
+#black-overlay {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	z-index: 20;
+	transition: opacity 3s;
+	opacity: 0;
+	background: black;
+}

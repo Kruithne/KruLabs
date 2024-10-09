@@ -142,6 +142,8 @@ function seek_sources(position) {
 	setInterval(sync_loop, 1000);
 	setInterval(update_volume, 10);
 
+	$black_overlay = document.getElementById('black-overlay');
+
 	function handle_connect() {
 		if (first_connection) {
 			first_connection = false;
@@ -170,6 +172,16 @@ function seek_sources(position) {
 
 		if (data.op === 'SMSG_FADE_BEGIN') {
 			is_fading = true;
+			return;
+		}
+
+		if (data.op === 'SMSG_FADE_IN') {
+			$black_overlay.style.opacity = 0;
+			return;
+		}
+
+		if (data.op === 'SMSG_FADE_OUT') {
+			$black_overlay.style.opacity = 1;
 			return;
 		}
 

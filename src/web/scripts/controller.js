@@ -54,6 +54,7 @@ function format_timestamp(ts) {
 		if (data.op === 'SMSG_LIVE_HOLD') {
 			app.is_live_go = false;
 			app.is_fading = false;
+			app.is_fading_to_black = false;
 			set_live_position(data.position);
 			return;
 		}
@@ -110,6 +111,7 @@ function format_timestamp(ts) {
 				is_cue_lock: false,
 				is_live_go: false,
 				is_fading: false,
+				is_fading_to_black: false,
 				real_time: Date.now(),
 				cue_stack_index: -1,
 				live_position: 0,
@@ -144,6 +146,14 @@ function format_timestamp(ts) {
 			fade_to_hold() {
 				this.is_fading = true;
 				socket.send_packet('CMSG_FADE_TO_HOLD');
+			},
+
+			fade_in() {
+				socket.send_packet('CMSG_FADE_IN');
+			},
+
+			fade_out() {
+				socket.send_packet('CMSG_FADE_OUT');
 			},
 
 			render_cue_time(ms) {
