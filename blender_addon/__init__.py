@@ -31,6 +31,7 @@ MARKER_PROP_TYPE = 'KL_MARKER_TYPE'
 ZONE_SOURCE_ID = 'KL_SRC_ID'
 ZONE_IS_LOOP = 'KL_ZONE_LOOP'
 ZONE_IS_SYNC = 'KL_ZONE_SYNC'
+ZONE_VOLUME = 'KL_ZONE_VOLUME'
 
 GOTO_CUE_ID = 'KL_GOTO_CUE'
 
@@ -190,8 +191,9 @@ def create_zone(name, channel, start, duration):
     zone.color = (0.152, 0, 0.650)
     zone[STRIP_PROP_TYPE] = 'ZONE'
     zone[ZONE_SOURCE_ID] = 'SRC_NONE'
-    zone[ZONE_IS_LOOP] = False;
-    zone[ZONE_IS_SYNC] = False;
+    zone[ZONE_IS_LOOP] = False
+    zone[ZONE_IS_SYNC] = False
+    zone[ZONE_VOLUME] = 1.0
 
     return zone
 
@@ -286,6 +288,7 @@ def process_downloaded_project(project):
                     new_zone[ZONE_SOURCE_ID] = zone['source']
                     new_zone[ZONE_IS_LOOP] = zone['loop']
                     new_zone[ZONE_IS_SYNC] = zone['sync']
+                    new_zone[ZONE_VOLUME] = zone['volume']
 
 def get_scene_zones(scene_strip):
     scene = bpy.context.scene
@@ -313,6 +316,9 @@ def get_zone_strip_loop(strip):
 
 def get_zone_strip_sync(strip):
     return ZONE_IS_SYNC in strip and strip[ZONE_IS_SYNC] or False
+
+def get_zone_strip_volume(strip):
+    return ZONE_VOLUME in strip and strip[ZONE_VOLUME] or 1.0
 
 def update_source_list_enum(self, context):
     scene = context.scene
@@ -432,6 +438,7 @@ class KruLabsZonesPanel(bpy.types.Panel):
             row.prop(scene, 'krulabs_source_list', text='')
             row.operator(KruLabsUpdateSourceListOperator.bl_idname, text='', icon='FILE_REFRESH')
             
+            layout.prop(active_strip, '["' + ZONE_VOLUME + '"]', text='Volume')
             layout.prop(active_strip, '["' + ZONE_IS_LOOP + '"]', text='Loop')
             layout.prop(active_strip, '["' + ZONE_IS_SYNC + '"]', text='Sync')
 
@@ -512,7 +519,8 @@ class KruLabsUploadProjectOperator(bpy.types.Operator):
                         'crop_max_y': zone.crop.max_y,
                         'source': get_zone_strip_source(zone),
                         'loop': get_zone_strip_loop(zone),
-                        'sync': get_zone_strip_sync(zone)
+                        'sync': get_zone_strip_sync(zone),
+                        'volume': get_zone_strip_volume(zone)
                     })
 
                 scenes_arr.append({
