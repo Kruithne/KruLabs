@@ -2,6 +2,10 @@ import { document_ready } from './util.js';
 import { createApp } from './vue.js';
 import * as socket from './socket.js';
 
+const ERROR_TIMEOUT = 5 * 1000;
+
+let error_text_timeout = -1;
+
 function format_timestamp(ts) {
 	const hours = Math.floor(ts / 3600000).toString().padStart(2, '0');
 	const minutes = Math.floor(ts % 3600000 / 60000).toString().padStart(2, '0');
@@ -100,6 +104,15 @@ function format_timestamp(ts) {
 			}
 			return;
 		}
+
+		if (data.op === 'SMSG_ERROR') {
+			app.error_text = data.error_text;
+
+			clearTimeout(error_text_timeout);
+			error_text_timeout = setTimeout(() => app.error_text = '', ERROR_TIMEOUT);
+
+			return;
+		}
 	}
 
 	const app = createApp({
@@ -117,6 +130,7 @@ function format_timestamp(ts) {
 				live_position: 0,
 				production_name: 'Live Production',
 				active_scene: 'SCENE_NONE',
+				error_text: '',
 				scenes: [],
 				cue_stack: []
 			}

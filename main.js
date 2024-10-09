@@ -403,6 +403,11 @@ function live_seek(position) {
 						return;
 					}
 
+					if (op === 'CMSG_ABORT') {
+						live_hold();
+						send_socket_message_all('SMSG_ERROR', { error_text: data.reason });
+					}
+
 					if (op === 'CMSG_LIVE_HOLD') {
 						live_hold();
 						return;

@@ -126,7 +126,7 @@ input[type="button"] {
 	text-align: center;
 }
 
-#header-section, #footer-section {
+#header-section, #footer-section, #error-block {
 	position: fixed;
 	width: 100%;
 }
@@ -167,4 +167,16 @@ input[type="button"] {
 	overflow-y: auto;
 	padding-top: 125px;
 	padding-bottom: 120px;
+}
+
+#error-block {
+	bottom: 100px;
+	height: 75px;
+	background-color: red;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background-image: url(../images/stripe_base.png);
+	background-blend-mode: multiply;
+	background-attachment: fixed;
 }

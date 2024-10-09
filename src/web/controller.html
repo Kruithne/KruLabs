@@ -44,6 +44,9 @@
 						</div>
 					</div>
 				</div>
+				<div id="error-block" v-if="error_text.length > 0">
+					{{ error_text }}
+				</div>
 				<div id="footer-section">
 					<div id="live-time" :class="{ live: is_live_go }">{{ formatted_live_time }}</div>
 					<div>00:00</div>

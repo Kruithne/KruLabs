@@ -13,6 +13,7 @@ const frame_height = 1080;
 const frame_center_x = frame_width / 2;
 const frame_center_y = frame_height / 2;
 
+let has_interacted = false;
 let is_live_go = false;
 let is_fading = false;
 let volume = 1;
@@ -153,6 +154,8 @@ function seek_sources(position) {
 
 	$black_overlay = document.getElementById('black-overlay');
 
+	document.addEventListener('click', () => has_interacted = true, { once: true });
+
 	function handle_connect() {
 		if (first_connection) {
 			first_connection = false;
@@ -163,6 +166,11 @@ function seek_sources(position) {
 
 	function handle_socket_message(data) {
 		if (data.op === 'SMSG_LIVE_GO') {
+			if (!has_interacted) {
+				socket.send_packet('CMSG_ABORT', { reason: 'Projection context requires initialization' });
+				return;
+			}
+
 			is_live_go = true;
 
 			for (const $zone of $zone_elements) {
