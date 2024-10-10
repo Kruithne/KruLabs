@@ -3,6 +3,7 @@ import node_os from 'node:os';
 import node_http from 'node:http';
 import node_path from 'node:path';
 import node_fs from 'node:fs';
+import * as osc from 'node-osc';
 
 const ANSI_RED = '\x1b[31m';
 const ANSI_GREEN = '\x1b[32m';
@@ -37,6 +38,8 @@ let last_sync_time = null;
 
 let active_cue_stack = [];
 let cue_stack_index = 0;
+
+let etc_client = null;
 
 /**
  * @param {string} message
@@ -222,6 +225,8 @@ function update_cue_stack() {
 		} else if (trigger_type === 'DEFER') {
 			live_hold();
 			live_goto(triggered_cue.goto_cue);
+		} else if (trigger_type === 'LX') {
+			live_lx_cue(triggered_cue.goto_cue);
 		}
 	}
 }
@@ -233,6 +238,17 @@ function live_goto(target) {
 	
 	if (target_cue)
 		live_seek(target_cue.position);
+}
+
+function live_lx_cue(target) {
+	const fp_target = parseFloat(target).toFixed(1);
+
+	if (etc_client) {
+		const etc_cue = '/etc/cue/' + fp_target + '/fire';
+
+		log_info('LX ' + etc_cue);
+		etc_client.send(etc_cue);
+	}
 }
 
 function live_hold() {
@@ -253,6 +269,25 @@ function live_seek(position) {
 
 	cue_stack_index = 0;
 	update_cue_stack();
+}
+
+function etc_update_state() {
+	const etc = state_memory.etc;
+	if (etc?.enabled) {
+		if (etc_client === null) {
+			try {
+				etc_client = new osc.Client(etc.host, etc.port);
+				log_ok(`connected to ETC device on {${etc.host}}:{${etc.port}}`);
+			} catch (e) {
+				log_error('connection to ETC device {failed}: ' + e.message);
+			}
+		}
+	} else {
+		if (etc_client !== null) {
+			etc_client.close();
+			etc_client = null;
+		}
+	}
 }
 
 (async function main() {
@@ -284,6 +319,8 @@ function live_seek(position) {
 		try {
 			state_memory = await state_file.json();
 			log_ok(`loaded internal state memory [{${Math.ceil(state_file.size / 1024)}kb}]`);
+
+			etc_update_state();
 		} catch (e) {
 			log_error(`failed to load internal state memory from {${STATE_MEMORY_FILE}}; data loss may occur`);
 		}
@@ -491,6 +528,8 @@ function live_seek(position) {
 
 						send_socket_message_all('SMSG_DATA_UPDATED');
 						save_memory();
+
+						etc_update_state();
 						return;
 					}
 
