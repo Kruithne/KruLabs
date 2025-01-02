@@ -138,6 +138,10 @@ input[type="button"] {
 	background-attachment: fixed;
 }
 
+#header-section input[type="button"] {
+	padding: 15px;
+}
+
 #footer-section {
 	bottom: 0;
 	height: 70px;
@@ -165,7 +169,7 @@ input[type="button"] {
 
 #content-section {
 	overflow-y: auto;
-	padding-top: 125px;
+	padding-top: 140px;
 	padding-bottom: 180px;
 }
 
