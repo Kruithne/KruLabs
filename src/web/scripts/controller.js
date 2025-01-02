@@ -219,7 +219,10 @@ function format_timestamp_short(ts) {
 			},
 
 			on_mouse_up(event) {
-				this.seek_dragging = false;				
+				if (!this.seek_dragging)
+					return;
+
+				this.seek_dragging = false;
 
 				const next_cue = this.cue_stack[this.cue_stack_index];
 				if (!next_cue)
