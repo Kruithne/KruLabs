@@ -17,6 +17,7 @@ const frame_center_y = frame_height / 2;
 let has_interacted = false;
 let is_live_go = false;
 let is_fading = false;
+let fade_speed = 0.005;
 let volume = 1;
 
 const ext_to_tag = {
@@ -42,7 +43,7 @@ function update_volume() {
 
 			volume = 1;
 		} else {
-			volume = Math.max(0, volume - 0.005);
+			volume = Math.max(0, volume - fade_speed);
 		}
 
 		for (const $zone of $zone_elements) {
@@ -185,6 +186,13 @@ function seek_sources(position) {
 		}
 
 		if (data.op === 'SMSG_FADE_BEGIN') {
+			fade_speed = 0.005;
+			is_fading = true;
+			return;
+		}
+
+		if (data.op === 'SMSG_FADE_BEGIN_QUICK') {
+			fade_speed = 0.00875;
 			is_fading = true;
 			return;
 		}

@@ -384,6 +384,11 @@ function live_seek(position) {
 						return;
 					}
 
+					if (op === 'CMSG_FADE_TO_HOLD_QUICK') {
+						send_socket_message_all('SMSG_FADE_BEGIN_QUICK');
+						return;
+					}
+
 					if (op === 'CMSG_FADE_IN') {
 						send_socket_message_all('SMSG_FADE_IN');
 						return;

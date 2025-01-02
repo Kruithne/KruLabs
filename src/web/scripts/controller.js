@@ -31,11 +31,11 @@ function format_timestamp_short(ts) {
 	await document_ready();
 	socket.socket_init(socket.CLIENT_IDENTITY.CONTROLLER);
 
-	document.addEventListener('mousemove', event => app.on_mouse_move(event));
-	document.addEventListener('mouseup', event => app.on_mouse_up(event));
+	//document.addEventListener('mousemove', event => app.on_mouse_move(event));
+	//document.addEventListener('mouseup', event => app.on_mouse_up(event));
 
-	document.addEventListener('touchmove', event => app.on_touch_move(event));
-	document.addEventListener('touchend', event => app.on_mouse_up(event));
+	//document.addEventListener('touchmove', event => app.on_touch_move(event));
+	//document.addEventListener('touchend', event => app.on_mouse_up(event));
 
 	function handle_connect() {
 		socket.send_packet('CMSG_GET_PROJECT_STATE');
@@ -199,13 +199,13 @@ function format_timestamp_short(ts) {
 
 		methods: {
 			begin_seeking(event) {
-				this.seek_drag_start_x = event.clientX;
-				this.seek_dragging = true;
-				this.seek_position = this.seek_bar_pos;
+				//this.seek_drag_start_x = event.clientX;
+				//this.seek_dragging = true;
+				//this.seek_position = this.seek_bar_pos;
 			},
 
 			begin_seeking_touch(event) {
-				this.begin_seeking(event.touches[0]);
+				//this.begin_seeking(event.touches[0]);
 			},
 
 			on_mouse_move(event) {
@@ -241,6 +241,11 @@ function format_timestamp_short(ts) {
 			fade_to_hold() {
 				this.is_fading = true;
 				socket.send_packet('CMSG_FADE_TO_HOLD');
+			},
+
+			fade_to_hold_quick() {
+				this.is_fading = true;
+				socket.send_packet('CMSG_FADE_TO_HOLD_QUICK');
 			},
 
 			fade_in() {
