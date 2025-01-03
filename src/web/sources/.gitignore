@@ -1,5 +1,4 @@
-# This directory is used for sources for the projection system.
-# This includes video, audio and images that should be available to the sources system.
+# This directory is used for media sources (video, audio, images) uploaded to the system.
 
 *
 !.gitignore

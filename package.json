@@ -1,7 +1,7 @@
 {
 	"name": "krulabs",
 	"type": "module",
-	"version": "0.0.1",
+	"version": "2.0.0",
 	"scripts": {
 		"krulabs": "bun ./main.js"
 	},

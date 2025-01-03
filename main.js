@@ -38,6 +38,8 @@ let last_sync_time = null;
 let active_cue_stack = [];
 let cue_stack_index = 0;
 
+// MARK:log
+
 /**
  * @param {string} message
  * @param {string} color
