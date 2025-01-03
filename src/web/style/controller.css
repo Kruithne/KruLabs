@@ -36,26 +36,27 @@ body {
 }
 
 /* MARK: :inputs */
-.btn {
+input[type="button"] {
 	border: 1px solid var(--primary-color);
 	color: var(--primary-color);
 	padding: 5px 7px;
 	cursor: pointer;
 	display: inline-block;
+	background: transparent;
 }
 
-.btn.alert {
+input[type="button"].alert {
 	border-color: var(--alert-color);
 	color: var(--alert-color);	
 }
 
-.btn:hover:not(.enabled) {
+input[type="button"]:hover:not(.enabled) {
 	background-color: var(--hover-color);
 	color: var(--invert-color);
 	border-color: var(--hover-color);
 }
 
-.btn.enabled {
+input[type="button"].enabled {
 	background-color: var(--primary-color);
 	color: var(--invert-color);
 }
