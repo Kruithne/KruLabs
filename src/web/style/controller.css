@@ -158,7 +158,6 @@ input[type="text"][readonly] {
 
 .listbox {
 	border: 1px solid var(--primary-color);
-	max-height: 700px;
 	overflow-y: scroll;
 }
 

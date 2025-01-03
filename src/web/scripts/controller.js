@@ -3,7 +3,7 @@ import * as socket from './socket.js';
 
 // MARK: :state
 let modal_confirm_resolver = null;
-let app = null;
+let app_state = null;
 
 const reactive_state = {
 	data() {
@@ -293,9 +293,9 @@ const reactive_state = {
 
 // MARK: :modal
 async function show_confirm_modal(title, message) {
-	app.modal_message = message;
-	app.modal_title = title;
-	app.modal_is_active = true;
+	app_state.modal_message = message;
+	app_state.modal_title = title;
+	app_state.modal_is_active = true;
 	
 	return new Promise(res => {
 		modal_confirm_resolver = res;
@@ -324,12 +324,66 @@ function hash_object(obj) {
 	return hash >>> 0;
 }
 
+// MARK: :listbox
+function update_listbox_height($el) {
+	$el.style.height = 0;
+
+	const parent = $el.parentElement;
+	const parent_style = getComputedStyle(parent, null);
+
+	const padding_top = parseFloat(parent_style.getPropertyValue('padding-top'));
+	const padding_bottom = parseFloat(parent_style.getPropertyValue('padding-bottom'));
+
+	const parent_rect = parent.getBoundingClientRect();
+	let available_height = parent_rect.height - padding_top - padding_bottom;
+
+	for (const child of parent.children) {
+		if (child === $el)
+			continue;
+
+		const child_rect = child.getBoundingClientRect();
+		const child_style = getComputedStyle(child, null);
+
+		const child_margin_bottom = parseFloat(child_style.getPropertyValue('margin-top'));
+		const child_margin_top = parseFloat(child_style.getPropertyValue('margin-bottom'));
+
+		available_height -= child_rect.height + child_margin_bottom + child_margin_top;
+	}
+
+	$el.style.height = available_height + 'px';
+}
+
+const listbox_component = {
+	props: ['items'],
+	template: `
+		<div class="listbox">
+			<slot v-for="item in items" :item="item"></slot>
+		</div>
+	`,
+	data() {
+		return {
+			observer: null
+		};
+	},
+	mounted() {
+		update_listbox_height(this.$el);
+		
+		this.observer = new ResizeObserver(() => update_listbox_height(this.$el));
+		this.observer.observe(this.$el.parentElement);
+	},
+	unmounted() {
+		this.observer?.disconnect();
+	}
+};
+
 // MARK: :init
 (async () => {
 	await document_ready();
 	
-	app = createApp(reactive_state).mount('#app');
+	const app = createApp(reactive_state);
+	app.component('listbox-component', listbox_component);
+	app_state = app.mount('#app');
 	
-	socket.on_state_change(state => app.socket_state = state);
+	socket.on_state_change(state => app_state.socket_state = state);
 	socket.init();
 })();

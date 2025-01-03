@@ -44,12 +44,14 @@
 								<div>
 									<h1>AVAILABLE PROJECTS</h1>
 									<div class="spacer"></div>
-									<div class="listbox">
-										<div v-for="project in available_projects_sorted" :class="{ selected: selected_project_id === project.id }" @click="selected_project_id = project.id">
-											<span>{{ project.name }}</span>
-											<span>{{ format_datetime(project.last_saved) }}</span>
-										</div>
-									</div>
+									<listbox-component :items="available_projects_sorted">
+										<template v-slot="{ item }">
+											<div :class="{ selected: selected_project_id === item.id }" @click="selected_project_id = item.id">
+												<span>{{ item.name }}</span>
+												<span>{{ format_datetime(item.last_saved) }}</span>
+											</div>
+										</template>
+									</listbox-component>
 									<div class="spacer"></div>
 									<div class="button-tray">
 										<input type="button" value="LOAD" @click="load_selected_project"/>
