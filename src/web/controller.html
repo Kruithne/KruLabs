@@ -24,14 +24,17 @@
 				</div>
 				<div id="main-grid">
 					<div id="main-grid-nav">
-						<span>> KruLabs v2 :: Show Name Here</span>
+						<span>> KruLabs v2 :: {{ project.name }}</span>
 						<div id="main-grid-nav-buttons">
 							<div class="btn" v-for="page in nav_pages" :class="{ enabled: nav_page === page }" @click="nav_page = page">{{ page.toUpperCase() }}</div>
 						</div>
 					</div>
 					<div id="main-grid-content">
 						<template v-if="nav_page === 'project'">
-							<div class="btn" @click="delete_world">DELETE THE WORLD</div>
+							<label>
+								Project Name:
+								<input type="text" v-model="project.name"/>
+							</label>
 						</template>
 						<template v-if="nav_page === 'tracks'">
 							TRACKS PANEL

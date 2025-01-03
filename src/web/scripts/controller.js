@@ -10,9 +10,13 @@ const reactive_state = {
 	data() {
 		return {
 			nav_pages: ['project', 'tracks', 'cues', 'zones', 'config'],
-			nav_page: '',
+			nav_page: 'project',
 
 			socket_state: 0x0,
+
+			project: {
+				name: 'Bill & Fred\'s Excellent Adventure'
+			},
 
 			modal_title: '',
 			modal_message: '',

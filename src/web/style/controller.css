@@ -11,6 +11,10 @@ body {
 	overflow: hidden;
 }
 
+*:focus {
+	outline: 0;
+}
+
 /* MARK: :overlay */
 .overlay {
 	position: absolute;
@@ -31,7 +35,7 @@ body {
 	font-size: 1.2em;
 }
 
-/* MARK: :buttons */
+/* MARK: :inputs */
 .btn {
 	border: 1px solid var(--primary-color);
 	color: var(--primary-color);
@@ -54,6 +58,20 @@ body {
 .btn.enabled {
 	background-color: var(--primary-color);
 	color: var(--invert-color);
+}
+
+input[type="text"] {
+	padding: 5px;
+	border: 1px solid var(--primary-color);
+	background: var(--primary-color);
+	color: var(--invert-color);
+	width: 500px;
+}
+
+input[type="text"]:focus {
+	border-style: dashed;
+	color: var(--primary-color);
+	background: transparent;
 }
 
 /* MARK: :main */
