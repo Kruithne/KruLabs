@@ -37,7 +37,7 @@ const reactive_state = {
 
 	methods: {
 		async delete_world() {
-			const result = await confirm_modal('CONFIRM WORLD DELETION', 'Are you sure you want to delete this project? This action cannot be reversed.');
+			const result = await show_confirm_modal('CONFIRM WORLD DELETION', 'Are you sure you want to delete this project? This action cannot be reversed.');
 			console.log(result);
 		},
 
@@ -54,7 +54,7 @@ const reactive_state = {
 };
 
 // MARK: :modal
-async function confirm_modal(title, message) {
+async function show_confirm_modal(title, message) {
 	app.modal_message = message;
 	app.modal_title = title;
 	app.modal_is_active = true;
