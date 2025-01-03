@@ -8,10 +8,19 @@
 	</head>
 	<body>
 		<div id="app">
-			<div id="loading" v-if="false" class="overlay">
-				<span>INITIALIZING KRULABS V2</span>
+			<div v-if="false" class="overlay">
+				<span>
+					<span class="loader"></span>
+					INITIALIZING KRULABS V2
+				</span>
 			</div>
 			<div v-cloak>
+				<div v-if="loading_message.length > 0" class="overlay">
+					<span>
+						<span class="loader"></span>
+						{{ loading_message }}
+					</span>
+				</div>
 				<div id="modal-overlay" class="overlay" v-if="modal_is_active">
 					<div class="modal">
 						<div class="modal-title">{{ modal_title }}</div>
@@ -24,17 +33,43 @@
 				</div>
 				<div id="main-grid">
 					<div id="main-grid-nav">
-						<span>> KruLabs v2 :: {{ project.name }}</span>
+						<span>> KruLabs v2 :: {{ project_state.name }}</span>
 						<div id="main-grid-nav-buttons">
 							<input type="button" v-for="page in nav_pages" :class="{ enabled: nav_page === page }" @click="nav_page = page" :value="page.toUpperCase()"/>
 						</div>
 					</div>
 					<div id="main-grid-content">
 						<template v-if="nav_page === 'project'">
-							<label>
-								Project Name:
-								<input type="text" v-model="project.name"/>
-							</label>
+							<div class="panel-split">
+								<div>
+									<h1>AVAILABLE PROJECTS</h1>
+									<div class="spacer"></div>
+									<div class="listbox">
+										<div v-for="project in available_projects_sorted" :class="{ selected: selected_project_id === project.id }" @click="selected_project_id = project.id">
+											<span>{{ project.name }}</span>
+											<span>{{ format_datetime(project.last_saved) }}</span>
+										</div>
+									</div>
+									<div class="spacer"></div>
+									<div class="button-tray">
+										<input type="button" value="LOAD" @click="load_selected_project"/>
+										<input type="button" value="SAVE" @click="save_selected_project"/>
+										<input type="button" value="DELETE" @click="delete_selected_project"/>
+									</div>
+								</div>
+								<div>
+									<div class="form">
+										<label>
+											PROJECT NAME:
+											<input type="text" v-model="project_state.name"/>
+										</label>
+										<label>
+											LAST SAVED:
+											<input type="text" :value="format_datetime(project_state.last_saved)" readonly/>
+										</label>
+									</div>
+								</div>
+							</div>
 						</template>
 						<template v-if="nav_page === 'tracks'">
 							TRACKS PANEL

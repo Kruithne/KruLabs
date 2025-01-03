@@ -15,6 +15,22 @@ body {
 	outline: 0;
 }
 
+* {
+	box-sizing: border-box;
+	scrollbar-color: var(--primary-color) transparent;
+}
+
+/*
+	MARK: :generic
+*/
+h1 {
+	margin: 0;
+}
+
+.spacer {
+	height: 10px;
+}
+
 /*
 	MARK: :overlay
 */
@@ -33,13 +49,70 @@ body {
 
 .overlay > span {
 	border: 1px solid var(--primary-color);
-	padding: 10px;
+	background: var(--invert-color);
+	padding: 20px;
 	font-size: 1.2em;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 10px;
 }
+
+.loader {
+	width: 24px;
+	height: 24px;
+	border: 1px solid var(--primary-color);
+	border-radius: 50%;
+	display: inline-block;
+	position: relative;
+	box-sizing: border-box;
+	animation: rotation 1s linear infinite;
+}
+
+.loader::after {
+	content: '';  
+	box-sizing: border-box;
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	width: 20px;
+	height: 20px;
+	border-radius: 50%;
+	border: 1px solid;
+	border-color: var(--hover-color) transparent;
+}
+
+@keyframes rotation {
+	0% {
+		transform: rotate(0deg);
+	}
+	100% {
+		transform: rotate(360deg);
+	}
+} 
 
 /*
 	MARK: :inputs
 */
+.form {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+label {
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+}
+
+.button-tray {
+	display: flex;
+	gap: 10px;
+	margin-bottom: 10px;
+}
+
 input[type="button"] {
 	border: 1px solid var(--primary-color);
 	color: var(--primary-color);
@@ -70,13 +143,49 @@ input[type="text"] {
 	border: 1px solid var(--primary-color);
 	background: var(--primary-color);
 	color: var(--invert-color);
-	width: 500px;
+	width: 100%;
 }
 
-input[type="text"]:focus {
+input[type="text"]:focus:not([readonly]) {
 	border-style: dashed;
 	color: var(--primary-color);
 	background: transparent;
+}
+
+input[type="text"][readonly] {
+	cursor: default;
+}
+
+.listbox {
+	border: 1px solid var(--primary-color);
+	max-height: 700px;
+	overflow-y: scroll;
+}
+
+.listbox span {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.listbox > div {
+	display: flex;
+	justify-content: space-between;
+	padding: 5px 10px;
+}
+
+.listbox > div:hover:not(.selected) {
+	color: var(--invert-color);
+	background-color: var(--hover-color);
+	cursor: pointer;
+}
+
+.listbox > div.selected {
+	background-color: var(--primary-color);
+}
+
+.listbox > div.selected span {
+	color: var(--invert-color);
 }
 
 /*
@@ -130,7 +239,6 @@ input[type="text"]:focus {
 
 #main-grid-content {
 	height: 100%;
-	padding: 20px;
 }
 
 /*
@@ -139,6 +247,7 @@ input[type="text"]:focus {
 .modal {
 	border: 1px solid var(--alert-color);
 	width: 600px;
+	background: var(--invert-color);
 }
 
 .modal-title {
@@ -158,4 +267,26 @@ input[type="text"]:focus {
 	display: flex;
 	flex-direction: row-reverse;
 	gap: 10px;
+}
+
+/*
+	MARK: :panel
+*/
+.panel-split {
+	display: grid;
+	grid-template-columns: 50% 50%;
+	height: 100%;
+}
+
+.panel-split > div {
+	padding: 20px;
+	border-right: 1px solid var(--primary-color);
+}
+
+.panel-split > div:last-child {
+	border-right: none;
+}
+
+.test {
+	border: 1px solid red;
 }

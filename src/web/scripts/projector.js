@@ -1,4 +1,3 @@
-import { document_ready } from './util.js';
 import * as socket from './socket.js';
 
 let first_connection = true;
@@ -137,6 +136,11 @@ function seek_sources(position) {
 				$zone.currentTime = position / 1000;
 		}
 	}
+}
+
+async function document_ready() {
+	if (document.readyState === 'loading')
+		await new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve), { once: true });
 }
 
 (async () => {
