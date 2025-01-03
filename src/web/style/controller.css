@@ -1,6 +1,7 @@
 body {
 	background: radial-gradient(circle, #22160a 0%, #0f0a02 100%);
 	background-attachment: fixed;
+	overflow: hidden;
 }
 
 .overlay {
@@ -20,4 +21,73 @@ body {
 	border: 1px solid orange;
 	padding: 10px;
 	font-size: 1.2em;
+}
+
+.btn {
+	border: 1px solid orange;
+	color: orange;
+	padding: 5px 7px;
+	cursor: pointer;
+}
+
+.btn:hover:not(.enabled) {
+	background-color: white;
+	color: black;
+	border-color: white;
+}
+
+.btn.enabled {
+	background-color: orange;
+	color: black;
+}
+
+#main-grid {
+	display: flex;
+	justify-content: space-between;
+	flex-direction: column;
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+}
+
+#main-grid-nav {
+	border-bottom: 1px solid orange;
+	padding: 10px;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+#main-grid-nav-buttons {
+	display: flex;
+	gap: 5px;
+}
+
+#main-grid-status {
+	border-top: 1px solid orange;
+	display: flex;
+	justify-content: space-evenly;
+}
+
+#main-grid-status > div {
+	border-right: 1px solid orange;
+	padding: 5px 10px;
+	display: flex;
+	justify-content: center;
+}
+
+#main-grid-status > div:last-child {
+	width: 100%;
+	border-right: none;
+}
+
+#main-grid-status-socket-state {
+	width: 180px;
+}
+
+#main-grid-content {
+	height: 100%;
+	padding: 20px;
 }

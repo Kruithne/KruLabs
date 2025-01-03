@@ -6,6 +6,8 @@ import * as socket from './socket.js';
 const reactive_state = {
 	data() {
 		return {
+			nav_pages: ['project', 'tracks', 'cues', 'zones', 'config'],
+			nav_page: '',
 			socket_state: 0x0
 		}
 	},
@@ -16,7 +18,7 @@ const reactive_state = {
 				return 'Disconnected';
 
 			if (this.socket_state === socket.SOCKET_STATE_CONNECTING)
-				return 'Connecting...';
+				return 'Connecting';
 
 			if (this.socket_state === socket.SOCKET_STATE_CONNECTED)
 				return 'Connected';

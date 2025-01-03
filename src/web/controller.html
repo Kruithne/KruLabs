@@ -12,7 +12,35 @@
 				<span>INITIALIZING KRULABS V2</span>
 			</div>
 			<div v-cloak>
-				App loaded! {{ socket_state_text }}
+				<div id="main-grid">
+					<div id="main-grid-nav">
+						<span>> KruLabs v2 :: Show Name Here</span>
+						<div id="main-grid-nav-buttons">
+							<div class="btn" v-for="page in nav_pages" :class="{ enabled: nav_page === page }" @click="nav_page = page">{{ page.toUpperCase() }}</div>
+						</div>
+					</div>
+					<div id="main-grid-content">
+						<template v-if="nav_page === 'project'">
+							PROJECT PANEL
+						</template>
+						<template v-if="nav_page === 'tracks'">
+							TRACKS PANEL
+						</template>
+						<template v-if="nav_page === 'cues'">
+							CUES PANEL
+						</template>
+						<template v-if="nav_page === 'zones'">
+							ZONES PANEL
+						</template>
+						<template v-if="nav_page === 'config'">
+							CONFIG PANEL
+						</template>
+					</div>
+					<div id="main-grid-status">
+						<div id="main-grid-status-socket-state">{{ socket_state_text }}</div>
+						<div>Foo</div>
+					</div>
+				</div>
 			</div>
 		</div>
 	</body>
