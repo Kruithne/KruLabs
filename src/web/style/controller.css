@@ -15,7 +15,9 @@ body {
 	outline: 0;
 }
 
-/* MARK: :overlay */
+/*
+	MARK: :overlay
+*/
 .overlay {
 	position: absolute;
 	top: 0;
@@ -35,7 +37,9 @@ body {
 	font-size: 1.2em;
 }
 
-/* MARK: :inputs */
+/*
+	MARK: :inputs
+*/
 input[type="button"] {
 	border: 1px solid var(--primary-color);
 	color: var(--primary-color);
@@ -75,7 +79,9 @@ input[type="text"]:focus {
 	background: transparent;
 }
 
-/* MARK: :main */
+/*
+	MARK: :main
+*/
 #main-grid {
 	display: flex;
 	justify-content: space-between;
@@ -127,7 +133,9 @@ input[type="text"]:focus {
 	padding: 20px;
 }
 
-/* MARK: :modal */
+/*
+	MARK: :modal
+*/
 .modal {
 	border: 1px solid var(--alert-color);
 	width: 600px;
