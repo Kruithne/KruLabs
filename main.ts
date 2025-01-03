@@ -64,6 +64,12 @@ function http_response(status: number): Response {
 	return new Response(node_http.STATUS_CODES[status], { status });
 }
 
+/** Handles an error within the HTTP sserver. */
+function http_error_handler(error: Error): Response {
+	log_warn(`Unhandled ${error.name} in http_request_handler (${error.message})`);
+	return http_response(500);
+}
+
 /** Handles an incoming Request and returns a Response. */
 async function http_request_handler(req: Request): Promise<Response|undefined> {
 	const url = new URL(req.url);
@@ -170,6 +176,7 @@ const web_server = Bun.serve({
 	port: CLI_ARGS.port as number,
 	development: false,
 	fetch: http_request_handler,
+	error: http_error_handler,
 	websocket: websocket_handlers
 });
 
