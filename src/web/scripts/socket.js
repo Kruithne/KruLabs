@@ -1,28 +1,21 @@
+// MARK: :constants
+const RECONNECT_TIME = 2000;
+
+export const SOCKET_STATE_DISCONNECTED = 0x0;
+export const SOCKET_STATE_CONNECTED = 0x1;
+export const SOCKET_STATE_CONNECTING = 0x2;
+
+// MARK: :state
 let ws;
 let is_socket_open = false;
-let client_identity = 0;
+let socket_state = SOCKET_STATE_DISCONNECTED;
 
-const event_listeners = [];
-const connect_callbacks = [];
-const disconnect_callbacks = [];
+const state_change_listeners = [];
 
-export const CLIENT_IDENTITY = {
-	BLENDER: 1 << 1,
-	CONTROLLER: 1 << 2,
-	PROJECTOR: 1 << 3
-};
+export function init() {
+	set_socket_state(SOCKET_STATE_CONNECTING);
 
-/**
- * @param {number} identity
- * @param {number} key
- */
-export function socket_init(identity) {
-	client_identity = identity;
-	open_socket();
-}
-
-function open_socket() {
-	ws = new WebSocket(`ws://${location.host}/pipe`);
+	ws = new WebSocket(`ws://${location.host}/api/exchange`);
 	
 	ws.addEventListener('close', handle_socket_close);
 	ws.addEventListener('error', console.error);
@@ -30,46 +23,39 @@ function open_socket() {
 	ws.addEventListener('open', handle_socket_open);
 }
 
-export function send_packet(op, data) {
+export function send_op(op, data) {
+	// todo: support binary
 	if (is_socket_open)
 		ws.send(JSON.stringify({ op, ...data }));
 }
 
-export function register_socket_listener(callback) {
-	event_listeners.push(callback);
+export function on_state_change(callback) {
+	callback(socket_state);
+	state_change_listeners.push(callback);
 }
 
-export function register_connection_callback(callback) {
-	connect_callbacks.push(callback);
-}
-
-export function register_disconnect_callback(callback) {
-	disconnect_callbacks.push(callback);
+function set_socket_state(state) {
+	socket_state = state;
+	for (const callback of state_change_listeners)
+		callback(state);
 }
 
 function handle_socket_close() {
 	is_socket_open = false;
-	console.log('socket closed, attempting reconnection in 2 seconds');
+	set_socket_state(SOCKET_STATE_DISCONNECTED);
 
-	for (const listener of disconnect_callbacks)
-		listener();
 
-	setTimeout(open_socket, 2000);
+	console.log('socket closed, attempting reconnection in %d ms', RECONNECT_TIME);
+	setTimeout(init, RECONNECT_TIME);
 }
 
 function handle_socket_message(event) {
 	const data = JSON.parse(event.data);
-
-	if (data.op === 'SMSG_IDENTITY') {
-		for (const listener of connect_callbacks)
-			listener();
-	}
-
-	for (const listener of event_listeners)
-		listener(data);
 }
 
 function handle_socket_open() {
 	is_socket_open = true;
-	send_packet('CMSG_IDENTITY', { identity: client_identity });
+	set_socket_state(SOCKET_STATE_CONNECTED);
+
+	// todo: send REGISTER_EVENTS
 }

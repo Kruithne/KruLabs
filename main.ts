@@ -49,12 +49,12 @@ const websocket_handlers: WebSocketHandler = {
 	},
 	
 	open(ws: ServerWebSocket) {
-		log_info(`websocket connection established with {${ws.remoteAddress}}`);
+		log_info(`exchange client {${ws.remoteAddress}} connected`, PREFIX_WEBSOCKET);
 		// todo: add this client to websocket maps.
 	},
 
 	close(ws: ServerWebSocket, code: number, reason: string) {
-		log_info(`client websocket disconnected {${code}} {${reason}}`);
+		log_info(`exchange client disconnected {${code}} {${reason}}`, PREFIX_WEBSOCKET);
 		// todo: remove this client from websocket maps.
 	}
 }
