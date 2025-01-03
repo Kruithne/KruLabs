@@ -10,6 +10,8 @@ import type { WebSocketHandler, ServerWebSocket } from 'bun';
 const PREFIX_WEBSOCKET = 'WEBSOCKET';
 const PREFIX_HTTP = 'HTTP';
 
+const HTTP_SERVE_DIRECTORY = './src/web';
+
 // MARK: :types
 type CLIValue = string | boolean | number;
 
@@ -83,7 +85,7 @@ async function http_request_handler(req: Request): Promise<Response|undefined> {
 	if (node_path.extname(pathname) === '')
 		pathname += '.html';
 
-	const file_path = node_path.join('./src/web', pathname);
+	const file_path = node_path.join(HTTP_SERVE_DIRECTORY, pathname);
 
 	const file = Bun.file(file_path);
 	if (!await file.exists()) {
