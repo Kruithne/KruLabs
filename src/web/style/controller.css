@@ -1,9 +1,17 @@
+:root {
+	--primary-color: orange;
+	--hover-color: white;
+	--invert-color: black;
+	--alert-color: #ff2a2a;
+}
+
 body {
 	background: radial-gradient(circle, #22160a 0%, #0f0a02 100%);
 	background-attachment: fixed;
 	overflow: hidden;
 }
 
+/* MARK: :overlay */
 .overlay {
 	position: absolute;
 	top: 0;
@@ -18,30 +26,37 @@ body {
 }
 
 .overlay > span {
-	border: 1px solid orange;
+	border: 1px solid var(--primary-color);
 	padding: 10px;
 	font-size: 1.2em;
 }
 
+/* MARK: :buttons */
 .btn {
-	border: 1px solid orange;
-	color: orange;
+	border: 1px solid var(--primary-color);
+	color: var(--primary-color);
 	padding: 5px 7px;
 	cursor: pointer;
 	display: inline-block;
 }
 
+.btn.alert {
+	border-color: var(--alert-color);
+	color: var(--alert-color);	
+}
+
 .btn:hover:not(.enabled) {
-	background-color: white;
-	color: black;
-	border-color: white;
+	background-color: var(--hover-color);
+	color: var(--invert-color);
+	border-color: var(--hover-color);
 }
 
 .btn.enabled {
-	background-color: orange;
-	color: black;
+	background-color: var(--primary-color);
+	color: var(--invert-color);
 }
 
+/* MARK: :main */
 #main-grid {
 	display: flex;
 	justify-content: space-between;
@@ -54,7 +69,7 @@ body {
 }
 
 #main-grid-nav {
-	border-bottom: 1px solid orange;
+	border-bottom: 1px solid var(--primary-color);
 	padding: 10px;
 	display: flex;
 	align-items: center;
@@ -67,13 +82,13 @@ body {
 }
 
 #main-grid-status {
-	border-top: 1px solid orange;
+	border-top: 1px solid var(--primary-color);
 	display: flex;
 	justify-content: space-evenly;
 }
 
 #main-grid-status > div {
-	border-right: 1px solid orange;
+	border-right: 1px solid var(--primary-color);
 	padding: 5px 10px;
 	display: flex;
 	justify-content: center;
@@ -91,4 +106,29 @@ body {
 #main-grid-content {
 	height: 100%;
 	padding: 20px;
+}
+
+/* MARK: :modal */
+.modal {
+	border: 1px solid var(--alert-color);
+	width: 600px;
+}
+
+.modal-title {
+	background: var(--alert-color);
+	color: var(--invert-color);
+	padding: 10px;
+}
+
+.modal-message {
+	padding: 20px;
+	padding-bottom: 10px;
+	color: var(--alert-color);
+}
+
+.modal-buttons {
+	padding: 10px;
+	display: flex;
+	flex-direction: row-reverse;
+	gap: 10px;
 }

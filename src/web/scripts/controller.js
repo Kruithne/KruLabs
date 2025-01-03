@@ -3,12 +3,20 @@ import { createApp } from './vue.js';
 import * as socket from './socket.js';
 
 // MARK: :state
+let modal_confirm_resolver = null;
+let app = null;
+
 const reactive_state = {
 	data() {
 		return {
 			nav_pages: ['project', 'tracks', 'cues', 'zones', 'config'],
 			nav_page: '',
-			socket_state: 0x0
+
+			socket_state: 0x0,
+
+			modal_title: '',
+			modal_message: '',
+			modal_is_active: false,
 		}
 	},
 
@@ -28,9 +36,33 @@ const reactive_state = {
 	},
 
 	methods: {
-		
+		async delete_world() {
+			const result = await confirm_modal('CONFIRM WORLD DELETION', 'Are you sure you want to delete this project? This action cannot be reversed.');
+			console.log(result);
+		},
+
+		modal_confirm() {
+			this.modal_is_active = false;
+			modal_confirm_resolver?.(true);
+		},
+
+		modal_cancel() {
+			this.modal_is_active = false;
+			modal_confirm_resolver?.(false);
+		}
 	}
 };
+
+// MARK: :modal
+async function confirm_modal(title, message) {
+	app.modal_message = message;
+	app.modal_title = title;
+	app.modal_is_active = true;
+
+	return new Promise(res => {
+		modal_confirm_resolver = res;
+	});
+}
 
 // MARK: :general
 function format_timestamp(ts) {
@@ -53,7 +85,7 @@ function format_timestamp_short(ts) {
 (async () => {
 	await document_ready();
 
-	const app = createApp(reactive_state).mount('#app');
+	app = createApp(reactive_state).mount('#app');
 
 	socket.on_state_change(state => app.socket_state = state);
 	socket.init();

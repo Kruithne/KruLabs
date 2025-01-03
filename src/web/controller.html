@@ -12,6 +12,16 @@
 				<span>INITIALIZING KRULABS V2</span>
 			</div>
 			<div v-cloak>
+				<div id="modal-overlay" class="overlay" v-if="modal_is_active">
+					<div class="modal">
+						<div class="modal-title">{{ modal_title }}</div>
+						<div class="modal-message">{{ modal_message }}</div>
+						<div class="modal-buttons">
+							<div class="btn alert" @click="modal_cancel">CANCEL</div>
+							<div class="btn alert" @click="modal_confirm">CONFIRM</div>
+						</div>
+					</div>
+				</div>
 				<div id="main-grid">
 					<div id="main-grid-nav">
 						<span>> KruLabs v2 :: Show Name Here</span>
@@ -21,7 +31,7 @@
 					</div>
 					<div id="main-grid-content">
 						<template v-if="nav_page === 'project'">
-							PROJECT PANEL
+							<div class="btn" @click="delete_world">DELETE THE WORLD</div>
 						</template>
 						<template v-if="nav_page === 'tracks'">
 							TRACKS PANEL
