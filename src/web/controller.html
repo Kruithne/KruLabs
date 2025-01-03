@@ -8,8 +8,8 @@
 	</head>
 	<body>
 		<div id="app">
-			<div id="loading" v-if="false">
-				LOADING
+			<div id="loading" v-if="false" class="overlay">
+				<span>INITIALIZING KRULABS V2</span>
 			</div>
 			<div v-cloak>
 				App loaded! {{ socket_state_text }}

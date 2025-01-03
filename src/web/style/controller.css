@@ -1,0 +1,22 @@
+body {
+	background: radial-gradient(circle, #22160a 0%, #0f0a02 100%);
+	background-attachment: fixed;
+}
+
+.overlay {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background-color: rgba(0, 0, 0, 0.8);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.overlay > span {
+	border: 1px solid orange;
+	padding: 10px;
+	font-size: 1.2em;
+}

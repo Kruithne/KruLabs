@@ -14,6 +14,10 @@
 	font-size: 20px;
 }
 
+body {
+	user-select: none;
+}
+
 [v-cloak] {
 	display: none;
 }
