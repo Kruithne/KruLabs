@@ -101,7 +101,7 @@ const websocket_handlers: WebSocketHandler = {
 		const packet_id = payload.id;
 		const packet_name = get_packet_name(packet_id);
 
-		log_verbose(`RECV {${packet_name}}[${packet_id}] from {${ws.remoteAddress}}`, PREFIX_WEBSOCKET);
+		log_verbose(`RECV {${packet_name}} [{${packet_id}}] from {${ws.remoteAddress}}`, PREFIX_WEBSOCKET);
 
 		const data = payload.data;
 		try {
@@ -111,7 +111,7 @@ const websocket_handlers: WebSocketHandler = {
 			}
 		} catch (e) {
 			const err = e as Error;
-			log_warn(`${err.name} processing ${packet_name}[${packet_id}] from ${ws.remoteAddress}: ${err.message}`);
+			log_warn(`${err.name} processing ${packet_name} [${packet_id}] from ${ws.remoteAddress}: ${err.message}`);
 		}
 	},
 	
@@ -193,7 +193,7 @@ function assert_typed_array(arr: any, elem_type: string, key: string) {
 
 	for (let i = 0, n = arr.length; i < n; i++) {
 		if (typeof arr[i] !== elem_type)
-			throw new Error(`"${key}" element [${i}] expected number`);
+			throw new Error(`"${key}" index [${i}] expected ${elem_type}`);
 	}
 }
 
