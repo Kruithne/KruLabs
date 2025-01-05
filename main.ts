@@ -18,8 +18,9 @@ const TYPE_STRING = 'string';
 
 // MARK: :types
 type CLIValue = string | boolean | number;
-
 type Unbox<T> = T extends Array<infer U> ? U : T;
+type ClientSocketData = { sck_id: string };
+type ClientSocket = ServerWebSocket<ClientSocketData>;
 
 // MARK: :state
 const CLI_ARGS = {
@@ -27,8 +28,10 @@ const CLI_ARGS = {
 	verbose: false
 } as Record<string, CLIValue>;
 
-const socket_packet_listeners = new Map<number, ServerWebSocket[]>();
-const socket_clients = new Set<ServerWebSocket>();
+const socket_packet_listeners = new Map<number, ClientSocket[]>();
+const socket_clients = new Set<ClientSocket>();
+
+let next_client_id = 1;
 
 // MARK: :prototype
 declare global {
@@ -68,17 +71,17 @@ function log_warn(message: string) {
 }
 
 // MARK: :packets
-function register_packet_listener(ws: ServerWebSocket, packets: number[]) {
+function register_packet_listener(ws: ClientSocket, packets: number[]) {
 	for (const packet_id of packets)
 		socket_packet_listeners.get_set_arr(packet_id, ws);
 
 	if (CLI_ARGS.verbose) {
 		const packet_names = packets.map(e => '{' + get_packet_name(e) + '}').join(',');
-		log_verbose(`{${ws.remoteAddress}} registered for packets [${packet_names}]`);
+		log_verbose(`{${ws.data.sck_id}} registered for packets [${packet_names}]`);
 	}
 }
 
-function remove_listeners(ws: ServerWebSocket) {
+function remove_listeners(ws: ClientSocket) {
 	let removed = 0;
 	for (const listener_array of socket_packet_listeners.values()) {
 		const index = listener_array.indexOf(ws);
@@ -88,12 +91,19 @@ function remove_listeners(ws: ServerWebSocket) {
 		}
 	}
 	
-	log_verbose(`Removed {${removed}} listeners from client {${ws.remoteAddress}}`);
+	log_verbose(`Removed {${removed}} listeners from client {${ws.data.sck_id}}`);
+}
+
+function generate_socket_id() {
+	if (next_client_id === Number.MAX_SAFE_INTEGER)
+		next_client_id = 1;
+
+	return 'SCK-' + (next_client_id++);
 }
 
 // MARK: :websocket
-const websocket_handlers: WebSocketHandler = {
-	message(ws: ServerWebSocket, message: string | Buffer) {
+const websocket_handlers: WebSocketHandler<ClientSocketData> = {
+	message(ws: ClientSocket, message: string | Buffer) {
 		// todo: support different payload types
 		const payload = JSON.parse(message as string); // todo: gracefully handle error
 
@@ -101,7 +111,7 @@ const websocket_handlers: WebSocketHandler = {
 		const packet_id = payload.id;
 		const packet_name = get_packet_name(packet_id);
 
-		log_verbose(`RECV {${packet_name}} [{${packet_id}}] from {${ws.remoteAddress}}`, PREFIX_WEBSOCKET);
+		log_verbose(`RECV {${packet_name}} [{${packet_id}}] from {${ws.data.sck_id}}`, PREFIX_WEBSOCKET);
 
 		const data = payload.data;
 		try {
@@ -111,17 +121,18 @@ const websocket_handlers: WebSocketHandler = {
 			}
 		} catch (e) {
 			const err = e as Error;
-			log_warn(`${err.name} processing ${packet_name} [${packet_id}] from ${ws.remoteAddress}: ${err.message}`);
+			log_warn(`${err.name} processing ${packet_name} [${packet_id}] from ${ws.data.sck_id}: ${err.message}`);
 		}
 	},
 	
-	open(ws: ServerWebSocket) {
-		log_info(`client {${ws.remoteAddress}} connected`, PREFIX_WEBSOCKET);
+	open(ws: ClientSocket) {
+		ws.data = { sck_id: generate_socket_id() };
+		log_info(`socket {${ws.data.sck_id}} connected from {${ws.remoteAddress}}`, PREFIX_WEBSOCKET);
 		socket_clients.add(ws);
 	},
 
-	close(ws: ServerWebSocket, code: number, reason: string) {
-		log_info(`client disconnected {${code}} {${reason}}`, PREFIX_WEBSOCKET);
+	close(ws: ClientSocket, code: number, reason: string) {
+		log_info(`socket {${ws.data.sck_id}} disconnected {${code}} {${reason}}`, PREFIX_WEBSOCKET);
 		socket_clients.delete(ws);
 		remove_listeners(ws);
 	}
