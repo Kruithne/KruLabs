@@ -23,6 +23,8 @@ export const packet = {
 	TEST: 0x7
 };
 
+export const PACKET_UNK = 'UNKNOWN';
+
 let packet_name_cache = null;
 export function get_packet_name(id) {
 	if (packet_name_cache === null) {
@@ -34,5 +36,5 @@ export function get_packet_name(id) {
 	if (packet_name_cache.has(id))
 		return packet_name_cache.get(id);
 
-	return 'UNKNOWN';
+	return PACKET_UNK;
 }

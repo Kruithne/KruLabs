@@ -3,7 +3,7 @@ import node_os from 'node:os';
 import node_http from 'node:http';
 import node_path from 'node:path';
 import node_fs from 'node:fs';
-import { packet, get_packet_name } from './src/web/scripts/packet.js';
+import { packet, get_packet_name, PACKET_UNK } from './src/web/scripts/packet.js';
 
 import type { WebSocketHandler, ServerWebSocket } from 'bun';
 
@@ -113,15 +113,16 @@ function generate_socket_id() {
 const websocket_handlers: WebSocketHandler<ClientSocketData> = {
 	message(ws: ClientSocket, message: string | Buffer) {
 		// todo: support different payload types
-		let packet_name = 'UNKNOWN';
+		let packet_name = PACKET_UNK;
 		let packet_id = 0;
 
 		try {
 			const payload = JSON.parse(message as string);
-
-			// todo: handle unknown packet ID?
 			packet_id = payload.id;
 			packet_name = get_packet_name(packet_id);
+
+			if (packet_name === PACKET_UNK)
+				throw new Error('Unknown packet ID ' + packet_id);
 
 			log_verbose(`RECV {${packet_name}} [{${packet_id}}] from {${ws.data.sck_id}}`, PREFIX_WEBSOCKET);
 
