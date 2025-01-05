@@ -7,6 +7,16 @@ export const SOCKET_STATE_DISCONNECTED = 0x0;
 export const SOCKET_STATE_CONNECTED = 0x1;
 export const SOCKET_STATE_CONNECTING = 0x2;
 
+// MARK: :prototype
+Map.prototype.get_set_arr = function(key, value) {
+	let arr = this.get(key);
+	if (arr)
+		arr.push(value);
+	else
+		this.set(key, [value]);
+	return arr;
+}
+
 // MARK: :state
 let ws;
 let is_socket_open = false;
@@ -19,6 +29,7 @@ let dispatching_register_ids = [];
 let dispatching_packets = [];
 
 const packet_listeners = new Map();
+const packet_promises = new Map();
 const global_packet_listeners = [];
 
 const registered_packet_ids = [];
@@ -35,17 +46,23 @@ export function init() {
 }
 
 export async function expect(packet_id, timeout = 0) {
-	// todo
+	register_packet(packet_id);
+	return new Promise((resolve, reject) => {
+		if (timeout > 0) {
+			const rejection_timer = setTimeout(reject, timeout);
+			packet_promises.get_set_arr(packet_id, data => {
+				clearTimeout(rejection_timer);
+				resolve(data);
+			});
+		} else {
+			packet_promises.get_set_arr(packet_id, resolve);
+		}
+	});
 }
 
 export function listen(packet_id, callback) {
 	register_packet(packet_id);
-
-	const listeners = packet_listeners.get(packet_id);
-	if (listeners)
-		listeners.push(callback);
-	else
-		packet_listeners.set(packet_id, [callback]);
+	packet_listeners.get_set_arr(packet_id, callback);
 }
 
 export function send(packet_id, data) {
@@ -129,7 +146,11 @@ function handle_socket_message(event) {
 			callback(payload.data);
 	}
 
-	// todo: handle one-shot listeners
+	const promises = packet_promises.get(payload.id);
+	if (promises) {
+		for (const callback of promises)
+			callback(payload.data);
+	}
 }
 
 function handle_socket_open() {
