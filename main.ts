@@ -105,16 +105,20 @@ function generate_socket_id() {
 const websocket_handlers: WebSocketHandler<ClientSocketData> = {
 	message(ws: ClientSocket, message: string | Buffer) {
 		// todo: support different payload types
-		const payload = JSON.parse(message as string); // todo: gracefully handle error
+		let packet_name = 'UNKNOWN';
+		let packet_id = 0;
 
-		// todo: handle unknown packet ID?
-		const packet_id = payload.id;
-		const packet_name = get_packet_name(packet_id);
-
-		log_verbose(`RECV {${packet_name}} [{${packet_id}}] from {${ws.data.sck_id}}`, PREFIX_WEBSOCKET);
-
-		const data = payload.data;
 		try {
+			const payload = JSON.parse(message as string);
+
+			// todo: handle unknown packet ID?
+			packet_id = payload.id;
+			packet_name = get_packet_name(packet_id);
+
+			log_verbose(`RECV {${packet_name}} [{${packet_id}}] from {${ws.data.sck_id}}`, PREFIX_WEBSOCKET);
+
+			const data = payload.data;
+
 			if (packet_id === packet.REQ_REGISTER) {
 				assert_typed_array(data.packets, TYPE_NUMBER, 'packets');
 				register_packet_listener(ws, data.packets);
