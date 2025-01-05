@@ -392,12 +392,4 @@ const listbox_component = {
 	
 	socket.on_state_change(state => app_state.socket_state = state);
 	socket.init();
-
-	socket.listen_all((packet_id, data) => {
-		console.log({ packet_id, data });
-	});
-
-	socket.listen(packet.TEST, (data) => {
-		console.log({ data });
-	});
 })();
