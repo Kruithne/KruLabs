@@ -102,6 +102,15 @@ function remove_listeners(ws: ClientSocket) {
 	log_verbose(`Removed {${removed}} listeners from client {${ws.data.sck_id}}`);
 }
 
+function send_packet_all(packet_id: number, data: any) {
+	const listeners = socket_packet_listeners.get(packet_id);
+	if (listeners && listeners.length > 0) {
+		const payload = JSON.stringify({ id: packet_id, data });
+		for (const socket of listeners)
+			socket.sendText(payload);
+	}
+}
+
 function generate_socket_id() {
 	if (next_client_id === Number.MAX_SAFE_INTEGER)
 		next_client_id = 1;
