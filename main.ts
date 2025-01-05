@@ -106,8 +106,12 @@ function send_packet_all(packet_id: number, data: any) {
 	const listeners = socket_packet_listeners.get(packet_id);
 	if (listeners && listeners.length > 0) {
 		const payload = JSON.stringify({ id: packet_id, data });
-		for (const socket of listeners)
+		const payload_size = Buffer.byteLength(payload);
+
+		for (const socket of listeners) {
 			socket.sendText(payload);
+			log_verbose(`SEND {${get_packet_name(packet_id)}} [{${packet_id}}] to {${socket.data.sck_id}} size {${format_file_size(payload_size)}}`, PREFIX_WEBSOCKET);
+		}
 	}
 }
 
