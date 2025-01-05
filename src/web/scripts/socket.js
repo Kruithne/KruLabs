@@ -140,17 +140,8 @@ function handle_socket_message(event) {
 	for (const callback of global_packet_listeners)
 		callback(payload.id, payload.data);
 
-	const listeners = packet_listeners.get(payload.id);
-	if (listeners) {
-		for (const callback of listeners)
-			callback(payload.data);
-	}
-
-	const promises = packet_promises.get(payload.id);
-	if (promises) {
-		for (const callback of promises)
-			callback(payload.data);
-	}
+	packet_listeners.get(payload.id)?.forEach(callback => callback(payload.data));
+	packet_promises.get(payload.id)?.forEach(callback => callback(payload.data));
 }
 
 function handle_socket_open() {
