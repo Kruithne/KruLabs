@@ -3,6 +3,7 @@ import node_os from 'node:os';
 import node_http from 'node:http';
 import node_path from 'node:path';
 import node_fs from 'node:fs';
+import { packet, get_packet_name } from './src/web/scripts/packet.js';
 
 import type { WebSocketHandler, ServerWebSocket } from 'bun';
 
@@ -12,14 +13,38 @@ const PREFIX_HTTP = 'HTTP';
 
 const HTTP_SERVE_DIRECTORY = './src/web';
 
+const TYPE_NUMBER = 'number';
+const TYPE_STRING = 'string';
+
 // MARK: :types
 type CLIValue = string | boolean | number;
+
+type Unbox<T> = T extends Array<infer U> ? U : T;
 
 // MARK: :state
 const CLI_ARGS = {
 	port: 19531,
 	verbose: false
 } as Record<string, CLIValue>;
+
+const socket_packet_listeners = new Map<number, ServerWebSocket[]>();
+const socket_clients = new Set<ServerWebSocket>();
+
+// MARK: :prototype
+declare global {
+	interface Map<K,V> {
+		get_set_arr(key: K, value: Unbox<V>): V[];
+	}
+}
+
+Map.prototype.get_set_arr = function(key: any, value: any) {
+	let arr = this.get(key);
+	if (arr)
+		arr.push(value);
+	else
+		this.set(key, [value]);
+	return arr;
+}
 
 // MARK: :log
 
@@ -42,20 +67,63 @@ function log_warn(message: string) {
 	process.stdout.write('\x1b[93mWARNING: \x1b[31m' + message + '\x1b[0m\n');
 }
 
+// MARK: :packets
+function register_packet_listener(ws: ServerWebSocket, packets: number[]) {
+	for (const packet_id of packets)
+		socket_packet_listeners.get_set_arr(packet_id, ws);
+
+	if (CLI_ARGS.verbose) {
+		const packet_names = packets.map(e => '{' + get_packet_name(e) + '}').join(',');
+		log_verbose(`{${ws.remoteAddress}} registered for packets [${packet_names}]`);
+	}
+}
+
+function remove_listeners(ws: ServerWebSocket) {
+	let removed = 0;
+	for (const listener_array of socket_packet_listeners.values()) {
+		const index = listener_array.indexOf(ws);
+		if (index !== -1) {
+			listener_array.splice(index, 1);
+			removed++;
+		}
+	}
+	
+	log_verbose(`Removed {${removed}} listeners from client {${ws.remoteAddress}}`);
+}
+
 // MARK: :websocket
 const websocket_handlers: WebSocketHandler = {
 	message(ws: ServerWebSocket, message: string | Buffer) {
+		// todo: support different payload types
+		const payload = JSON.parse(message as string); // todo: gracefully handle error
 
+		// todo: handle unknown packet ID?
+		const packet_id = payload.id;
+		const packet_name = get_packet_name(packet_id);
+
+		log_verbose(`RECV {${packet_name}}[${packet_id}] from {${ws.remoteAddress}}`, PREFIX_WEBSOCKET);
+
+		const data = payload.data;
+		try {
+			if (packet_id === packet.REQ_REGISTER) {
+				assert_typed_array(data.packets, TYPE_NUMBER, 'packets');
+				register_packet_listener(ws, data.packets);
+			}
+		} catch (e) {
+			const err = e as Error;
+			log_warn(`${err.name} processing ${packet_name}[${packet_id}] from ${ws.remoteAddress}: ${err.message}`);
+		}
 	},
 	
 	open(ws: ServerWebSocket) {
-		log_info(`exchange client {${ws.remoteAddress}} connected`, PREFIX_WEBSOCKET);
-		// todo: add this client to websocket maps.
+		log_info(`client {${ws.remoteAddress}} connected`, PREFIX_WEBSOCKET);
+		socket_clients.add(ws);
 	},
 
 	close(ws: ServerWebSocket, code: number, reason: string) {
-		log_info(`exchange client disconnected {${code}} {${reason}}`, PREFIX_WEBSOCKET);
-		// todo: remove this client from websocket maps.
+		log_info(`client disconnected {${code}} {${reason}}`, PREFIX_WEBSOCKET);
+		socket_clients.delete(ws);
+		remove_listeners(ws);
 	}
 }
 
@@ -77,7 +145,7 @@ async function http_request_handler(req: Request): Promise<Response|undefined> {
 	const url = new URL(req.url);
 	let pathname = url.pathname;
 
-	if (pathname === '/api/exchange') {
+	if (pathname === '/api/pipe') {
 		web_server.upgrade(req);
 		return;
 	}
@@ -116,6 +184,17 @@ async function http_request_handler(req: Request): Promise<Response|undefined> {
 
 	log_verbose(`{200} OK {${pathname}}`, PREFIX_HTTP);
 	return new Response(file, { status: 200 });
+}
+
+// MARK: :assert
+function assert_typed_array(arr: any, elem_type: string, key: string) {
+	if (!Array.isArray(arr))
+		throw new Error(`"${key}" expected array`);
+
+	for (let i = 0, n = arr.length; i < n; i++) {
+		if (typeof arr[i] !== elem_type)
+			throw new Error(`"${key}" element [${i}] expected number`);
+	}
 }
 
 // MARK: :general
@@ -183,6 +262,8 @@ const web_server = Bun.serve({
 });
 
 log_info(`KruLabs {v${package_json.version}} server initiated on port {${web_server.port}}`);
+
 if (CLI_ARGS.verbose)
 	log_warn('Verbose logging enabled (--verbose)');
+
 print_service_links('controller', 'remote', 'projector');

@@ -1,3 +1,5 @@
+import { packet } from './packet.js';
+
 // MARK: :constants
 const RECONNECT_TIME = 2000;
 
@@ -12,10 +14,19 @@ let socket_state = SOCKET_STATE_DISCONNECTED;
 
 const state_change_listeners = [];
 
+let is_dispatching = false;
+let dispatching_register_ids = [];
+let dispatching_packets = [];
+
+const packet_listeners = new Map();
+const global_packet_listeners = [];
+
+const registered_packet_ids = [];
+
 export function init() {
 	set_socket_state(SOCKET_STATE_CONNECTING);
 
-	ws = new WebSocket(`ws://${location.host}/api/exchange`);
+	ws = new WebSocket(`ws://${location.host}/api/pipe`);
 	
 	ws.addEventListener('close', handle_socket_close);
 	ws.addEventListener('error', console.error);
@@ -23,10 +34,67 @@ export function init() {
 	ws.addEventListener('open', handle_socket_open);
 }
 
-export function send_op(op, data) {
-	// todo: support binary
+export async function expect(packet_id, timeout = 0) {
+	// todo
+}
+
+export function listen(packet_id, callback) {
+	register_packet(packet_id);
+
+	const listeners = packet_listeners.get(packet_id);
+	if (listeners)
+		listeners.push(callback);
+	else
+		packet_listeners.set(packet_id, [callback]);
+}
+
+export function send(packet_id, data) {
+	// todo: handle different payload types.
+	dispatching_packets.push({ id: packet_id, data });
+	queue_dispatch();
+}
+
+export function listen_all(callback) {
+	global_packet_listeners.push(callback);
+}
+
+function send_packet_raw(payload) {
 	if (is_socket_open)
-		ws.send(JSON.stringify({ op, ...data }));
+		ws.send(JSON.stringify(payload));
+}
+
+export function register_packet(packet_id) {
+	if (!registered_packet_ids.includes(packet_id)) {
+		if (is_socket_open) {
+			if (!dispatching_register_ids.includes(packet_id))
+				dispatching_register_ids.push(packet_id);
+
+			queue_dispatch();
+		}
+
+		registered_packet_ids.push(packet_id);
+	}
+}
+
+function queue_dispatch() {
+	if (!is_dispatching) {
+		is_dispatching = true;
+		queueMicrotask(process_dispatch);
+	}
+}
+
+function process_dispatch() {
+	// dispatch register events first
+	send(packet.REQ_REGISTER, { packets: dispatching_register_ids });
+	dispatching_register_ids = [];
+
+	// dispatch packets
+	for (const dispatch_packet of dispatching_packets)
+		send_packet_raw(dispatch_packet);
+
+	dispatching_packets = [];
+
+	is_dispatching = false;
 }
 
 export function on_state_change(callback) {
@@ -50,12 +118,26 @@ function handle_socket_close() {
 }
 
 function handle_socket_message(event) {
-	const data = JSON.parse(event.data);
+	const payload = JSON.parse(event.data); // todo: convert to binary
+
+	for (const callback of global_packet_listeners)
+		callback(payload.id, payload.data);
+
+	const listeners = packet_listeners.get(payload.id);
+	if (listeners) {
+		for (const callback of listeners)
+			callback(payload.data);
+	}
+
+	// todo: handle one-shot listeners
 }
 
 function handle_socket_open() {
 	is_socket_open = true;
 	set_socket_state(SOCKET_STATE_CONNECTED);
 
-	// todo: send REGISTER_EVENTS
+	if (registered_packet_ids.length > 0) {
+		dispatching_register_ids.push(...registered_packet_ids);
+		queue_dispatch();
+	}
 }

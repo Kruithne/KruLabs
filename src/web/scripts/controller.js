@@ -1,5 +1,6 @@
 import { createApp } from './vue.js';
 import * as socket from './socket.js';
+import { packet } from './packet.js';
 
 // MARK: :state
 let modal_confirm_resolver = null;
@@ -282,7 +283,12 @@ const reactive_state = {
 
 			const user_confirm = await show_confirm_modal('CONFIRM PROJECT DELETION', `Are you sure you want to delete the project '${project.name}'? This action cannot be reversed.`);
 			if (user_confirm) {
+				this.show_loading_message('DELETING PROJECT');
+
 				// todo: send deletion to server
+				await new Promise(res => setTimeout(res, 3000)); // placeholder
+
+				this.hide_loading_message();
 
 				this.selected_project_id = null;
 				this.available_projects.splice(this.available_projects.indexOf(project), 1);
@@ -386,4 +392,12 @@ const listbox_component = {
 	
 	socket.on_state_change(state => app_state.socket_state = state);
 	socket.init();
+
+	socket.listen_all((packet_id, data) => {
+		console.log({ packet_id, data });
+	});
+
+	socket.listen(packet.TEST, (data) => {
+		console.log({ data });
+	});
 })();
