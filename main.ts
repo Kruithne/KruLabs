@@ -16,6 +16,14 @@ const HTTP_SERVE_DIRECTORY = './src/web';
 const TYPE_NUMBER = 'number';
 const TYPE_STRING = 'string';
 
+// MARK: :errors
+class AssertionError extends Error {
+	constructor(message: string, key: string) {
+		super('"' + key + '" ' + message);
+		this.name = 'AssertionError';
+	}
+}
+
 // MARK: :types
 type CLIValue = string | boolean | number;
 type Unbox<T> = T extends Array<infer U> ? U : T;
@@ -204,11 +212,11 @@ async function http_request_handler(req: Request): Promise<Response|undefined> {
 // MARK: :assert
 function assert_typed_array(arr: any, elem_type: string, key: string) {
 	if (!Array.isArray(arr))
-		throw new Error(`"${key}" expected array`);
+		throw new AssertionError(`expected array`, key);
 
 	for (let i = 0, n = arr.length; i < n; i++) {
 		if (typeof arr[i] !== elem_type)
-			throw new Error(`"${key}" index [${i}] expected ${elem_type}`);
+			throw new AssertionError(`index [${i}] expected ${elem_type}`, key);
 	}
 }
 
