@@ -87,6 +87,10 @@ const reactive_state = {
 			return this.available_projects.find(p => p.id === id);
 		},
 
+		update_project_hash() {
+			this.project_last_save_hash = hash_object(this.project_state);
+		},
+
 		async load_selected_project() {
 			const project_id = this.selected_project_id;
 
@@ -106,7 +110,7 @@ const reactive_state = {
 
 			if (res.success) {
 				this.project_state = res.state;
-				this.project_last_save_hash = hash_object(this.project_state);
+				this.update_project_hash();
 			} else {
 				show_info_modal('CANNOT LOAD PROJECT', 'The system was unable to load the specified project.');
 			}
@@ -122,7 +126,7 @@ const reactive_state = {
 
 			if (res.success) {
 				this.selected_project_id = res.id;
-				this.project_last_save_hash = hash_object(this.project_state);
+				this.update_project_hash();
 				socket.send_empty(PACKET.REQ_PROJECT_LIST);
 			} else {
 				show_info_modal('PROJECT NOT SAVED', 'The system was unable to save the specified project.');
@@ -260,6 +264,8 @@ const listbox_component = {
 	const app = createApp(reactive_state);
 	app.component('listbox-component', listbox_component);
 	app_state = app.mount('#app');
+
+	app_state.update_project_hash();
 	
 	socket.on_state_change(state => app_state.socket_state = state);
 	socket.init();
