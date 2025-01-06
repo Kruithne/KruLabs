@@ -32,8 +32,13 @@
 						<div class="modal-title">{{ modal_title }}</div>
 						<div class="modal-message">{{ modal_message }}</div>
 						<div class="modal-buttons">
-							<input type="button" class="alert" @click="modal_cancel" value="CANCEL"/>
-							<input type="button" class="alert" @click="modal_confirm" value="CONFIRM"/>
+							<template v-if="modal_type === 'CONFIRM'">
+								<input type="button" class="alert" @click="modal_cancel" value="CANCEL"/>
+								<input type="button" class="alert" @click="modal_confirm" value="CONFIRM"/>
+							</template>
+							<template v-else-if="modal_type === 'OK'">
+								<input type="button" class="alert" @click="modal_cancel" value="OK"/>
+							</template>
 						</div>
 					</div>
 				</div>

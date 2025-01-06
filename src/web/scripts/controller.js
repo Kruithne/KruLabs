@@ -193,6 +193,7 @@ const reactive_state = {
 			
 			modal_title: '',
 			modal_message: '',
+			modal_type: 'NONE',
 			modal_is_active: false,
 		}
 	},
@@ -299,10 +300,19 @@ const reactive_state = {
 
 // MARK: :modal
 async function show_confirm_modal(title, message) {
+	show_modal(title, message, 'CONFIRM');
+}
+
+async function show_info_modal(title, message) {
+	show_modal(title, message, 'OK');
+}
+
+async function show_modal(title, message, type) {
 	app_state.modal_message = message;
 	app_state.modal_title = title;
 	app_state.modal_is_active = true;
-	
+	app_state.modal_type = type;
+
 	return new Promise(res => {
 		modal_confirm_resolver = res;
 	});
