@@ -169,6 +169,10 @@ const reactive_state = {
 				socket.send_object(PACKET.REQ_DELETE_PROJECT, { id: project_id });
 				await socket.expect(PACKET.ACK_DELETE_PROJECT, PROJECT_MANAGEMENT_TIMEOUT);
 
+				const local_project = localStorage.getItem('last_project_id');
+				if (local_project === project_id)
+					localStorage.deleteItem('last_project_id');
+
 				socket.send_empty(PACKET.REQ_PROJECT_LIST);
 
 				this.hide_loading_message();
