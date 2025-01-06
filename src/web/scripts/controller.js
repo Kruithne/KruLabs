@@ -1,6 +1,6 @@
 import { createApp } from './vue.js';
 import * as socket from './socket.js';
-import { packet } from './packet.js';
+import { PACKET } from './packet.js';
 
 // MARK: :state
 let modal_confirm_resolver = null;

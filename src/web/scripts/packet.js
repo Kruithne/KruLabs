@@ -1,4 +1,4 @@
-export const packet = {
+export const PACKET = {
 	/** [CLIENT -> SERVER] Register client to receive events. **/
 	REQ_REGISTER: 0x0,
 
@@ -25,12 +25,19 @@ export const packet = {
 
 export const PACKET_UNK = 'UNKNOWN';
 
+export const PACKET_TYPE = Object.freeze({
+	NONE: 0x0,
+	STRING: 0x1,
+	OBJECT: 0x2,
+	BINARY: 0x3
+});
+
 let packet_name_cache = null;
 export function get_packet_name(id) {
 	if (packet_name_cache === null) {
 		packet_name_cache = new Map();
-		for (let key in packet)
-			packet_name_cache.set(packet[key], key);
+		for (let key in PACKET)
+			packet_name_cache.set(PACKET[key], key);
 	}
 
 	if (packet_name_cache.has(id))
@@ -38,3 +45,54 @@ export function get_packet_name(id) {
 
 	return PACKET_UNK;
 }
+
+export function build_packet(packet_id, packet_type, data) {
+	let size = 2;
+	let payload = null;
+
+	if (data !== null) {
+		if (packet_type === PACKET_TYPE.STRING || packet_type === PACKET_TYPE.OBJECT) {
+			const str = packet_type === PACKET_TYPE.OBJECT ? JSON.stringify(data) : data;
+			const encoder = new TextEncoder();
+
+			payload = encoder.encode(str);
+			size += payload.length;
+		} else if (packet_type === PACKET_TYPE.BINARY) {
+			payload = data;
+			size += data.byteLength;
+		}
+	}
+
+	const buffer = new ArrayBuffer(size);
+	const view = new DataView(buffer);
+
+	// pack packet_id to 13-bit (MAX 8191) and type to 3-bit (MAX 7)
+	view.setUint16(0, (packet_id << 3) | packet_type);
+
+	if (payload)
+		new Uint8Array(buffer).set(payload, 2);
+
+	return buffer;
+}
+
+export function parse_packet(buffer) {
+	const view = new DataView(buffer);
+	const packed = view.getUint16(0);
+	const packet_id = packed >> 3;
+	const packet_type = packed & 0b111;
+
+	const parsed = { id: packet_id, data: null };
+	
+	if (buffer.byteLength <= 2 || packet_type === PACKET_TYPE.NONE) 
+		return parsed;
+
+	const data = new Uint8Array(buffer.slice(2));
+	if (packet_type === PACKET_TYPE.STRING)
+		parsed.data = new TextDecoder().decode(data);
+	else if (packet_type === PACKET_TYPE.OBJECT)
+		parsed.data = JSON.parse(new TextDecoder().decode(data));
+	else
+		parsed.data = data;
+		
+	return parsed;
+ }

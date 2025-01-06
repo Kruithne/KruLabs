@@ -3,7 +3,7 @@ import node_os from 'node:os';
 import node_http from 'node:http';
 import node_path from 'node:path';
 import node_fs from 'node:fs';
-import { packet, get_packet_name, PACKET_UNK } from './src/web/scripts/packet.js';
+import { PACKET, get_packet_name, build_packet, parse_packet, PACKET_TYPE, PACKET_UNK } from './src/web/scripts/packet.js';
 
 import type { WebSocketHandler, ServerWebSocket } from 'bun';
 
@@ -15,6 +15,9 @@ const HTTP_SERVE_DIRECTORY = './src/web';
 
 const TYPE_NUMBER = 'number';
 const TYPE_STRING = 'string';
+const TYPE_OBJECT = 'object';
+
+const ARRAY_EMPTY = Object.freeze([]);
 
 // MARK: :errors
 class AssertionError extends Error {
@@ -27,8 +30,13 @@ class AssertionError extends Error {
 // MARK: :types
 type CLIValue = string | boolean | number;
 type Unbox<T> = T extends Array<infer U> ? U : T;
+
 type ClientSocketData = { sck_id: string };
 type ClientSocket = ServerWebSocket<ClientSocketData>;
+
+type PacketTarget = ClientSocket | Iterable<ClientSocket>;
+type PacketDataType = null | object | string;
+type Packet = { id: number, data: null|object|string };
 
 // MARK: :state
 const CLI_ARGS = {
@@ -102,17 +110,42 @@ function remove_listeners(ws: ClientSocket) {
 	log_verbose(`Removed {${removed}} listeners from client {${ws.data.sck_id}}`);
 }
 
-function send_packet_all(packet_id: number, data: any) {
-	const listeners = socket_packet_listeners.get(packet_id);
-	if (listeners && listeners.length > 0) {
-		const payload = JSON.stringify({ id: packet_id, data });
-		const payload_size = Buffer.byteLength(payload);
-
-		for (const socket of listeners) {
-			socket.sendText(payload);
-			log_verbose(`SEND {${get_packet_name(packet_id)}} [{${packet_id}}] to {${socket.data.sck_id}} size {${format_file_size(payload_size)}}`, PREFIX_WEBSOCKET);
-		}
+function send_packet(ws: PacketTarget|null, packet_id: number, packet_type: number, data: PacketDataType) {
+	const packet = build_packet(packet_id, packet_type, data);
+	const targets = ws === null ? get_listening_clients(packet_id) : Array.isArray(ws) ? ws : [ws];
+	
+	for (const socket of targets) {
+		socket.sendBinary(packet);
+		log_verbose(`SEND {${get_packet_name(packet_id)}} [{${packet_id}}] to {${socket.data.sck_id}} size {${format_file_size(packet.byteLength)}}`, PREFIX_WEBSOCKET);
 	}
+}
+
+function send_string(packet_id: number, str: string, ws: PacketTarget|null = null) {
+	send_packet(ws, packet_id, PACKET_TYPE.STRING, str);
+}
+
+function send_object(packet_id: number, obj: object, ws: PacketTarget|null = null) {
+	send_packet(ws, packet_id, PACKET_TYPE.OBJECT, obj);
+}
+
+function send_binary( packet_id: number, data: ArrayBuffer, ws: PacketTarget|null = null) {
+	send_packet(ws, packet_id, PACKET_TYPE.BINARY, data);
+}
+
+function send_empty(packet_id: number, ws: PacketTarget|null = null) {
+	send_packet(ws, packet_id, PACKET_TYPE.NONE, null);
+}
+
+function get_listening_clients(packet_id: number) {
+	const listeners = socket_packet_listeners.get(packet_id);
+	if (listeners && listeners.length > 0)
+		return listeners;
+
+	return ARRAY_EMPTY;
+}
+
+function get_all_clients() {
+	return socket_clients;
 }
 
 function generate_socket_id() {
@@ -124,25 +157,28 @@ function generate_socket_id() {
 
 // MARK: :websocket
 const websocket_handlers: WebSocketHandler<ClientSocketData> = {
-	message(ws: ClientSocket, message: string | Buffer) {
-		// todo: support different payload types
+	message(ws: ClientSocket, message: string|Buffer) {
 		let packet_name = PACKET_UNK;
 		let packet_id = 0;
 
 		try {
-			const payload = JSON.parse(message as string);
-			packet_id = payload.id;
-			packet_name = get_packet_name(packet_id);
+			if (!(message instanceof ArrayBuffer))
+				throw new Error('Socket sent non-binary payload');
+
+			const packet = parse_packet(message) as Packet;
+			const packet_id = packet.id;
+			const packet_name = get_packet_name(packet_id);
 
 			if (packet_name === PACKET_UNK)
 				throw new Error('Unknown packet ID ' + packet_id);
 
 			log_verbose(`RECV {${packet_name}} [{${packet_id}}] from {${ws.data.sck_id}}`, PREFIX_WEBSOCKET);
 
-			const data = payload.data;
-
-			if (packet_id === packet.REQ_REGISTER) {
+			const data = packet.data as Record<string, any>;
+			if (packet_id === PACKET.REQ_REGISTER) {
+				assert_object(data, 'payload');
 				assert_typed_array(data.packets, TYPE_NUMBER, 'packets');
+
 				register_packet_listener(ws, data.packets);
 			}
 		} catch (e) {
@@ -153,6 +189,7 @@ const websocket_handlers: WebSocketHandler<ClientSocketData> = {
 	
 	open(ws: ClientSocket) {
 		ws.data = { sck_id: generate_socket_id() };
+		ws.binaryType = 'arraybuffer';
 		log_info(`socket {${ws.data.sck_id}} connected from {${ws.remoteAddress}}`, PREFIX_WEBSOCKET);
 		socket_clients.add(ws);
 	},
@@ -232,6 +269,13 @@ function assert_typed_array(arr: any, elem_type: string, key: string) {
 		if (typeof arr[i] !== elem_type)
 			throw new AssertionError(`index [${i}] expected ${elem_type}`, key);
 	}
+}
+
+function assert_object(obj: any, key: string): obj is object {
+	if (typeof obj !== TYPE_OBJECT)
+		throw new AssertionError('expected object', key);
+
+	return true;
 }
 
 // MARK: :general

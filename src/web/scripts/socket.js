@@ -1,4 +1,4 @@
-import { packet } from './packet.js';
+import { PACKET, build_packet, parse_packet, PACKET_TYPE } from './packet.js';
 
 // MARK: :constants
 const RECONNECT_TIME = 2000;
@@ -65,19 +65,34 @@ export function listen(packet_id, callback) {
 	packet_listeners.get_set_arr(packet_id, callback);
 }
 
-export function send(packet_id, data) {
-	// todo: handle different payload types.
-	dispatching_packets.push({ id: packet_id, data });
-	queue_dispatch();
-}
-
 export function listen_all(callback) {
 	global_packet_listeners.push(callback);
 }
 
-function send_packet_raw(payload) {
-	if (is_socket_open)
-		ws.send(JSON.stringify(payload));
+export function send_empty(packet_id) {
+	queue_packet(build_packet(packet_id, PACKET_TYPE.NONE, null));
+}
+
+export function send_string(packet_id, str) {
+	queue_packet(build_packet(packet_id, PACKET_TYPE.STRING, str));
+}
+
+export function send_object(packet_id, obj) {
+	queue_packet(build_packet(packet_id, PACKET_TYPE.OBJECT, obj));
+}
+
+export function send_binary(packet_id, data) {
+	queue_packet(build_packet(packet_id, PACKET_TYPE.BINARY, data));
+}
+
+function queue_packet(packet) {
+	dispatching_packets.push(packet);
+	queue_dispatch();
+}
+
+function send_raw(packet) {
+	console.log(packet);
+	ws.send(packet);
 }
 
 export function register_packet(packet_id) {
@@ -101,14 +116,16 @@ function queue_dispatch() {
 }
 
 function process_dispatch() {
-	// dispatch register events first
-	send(packet.REQ_REGISTER, { packets: dispatching_register_ids });
+	if (is_socket_open) {
+		// dispatch register events first
+		send_raw(build_packet(PACKET.REQ_REGISTER, PACKET_TYPE.OBJECT, { packets: dispatching_register_ids }));
+
+		// dispatch packets
+		for (const dispatch_packet of dispatching_packets)
+			send_raw(dispatch_packet);
+	}
+
 	dispatching_register_ids = [];
-
-	// dispatch packets
-	for (const dispatch_packet of dispatching_packets)
-		send_packet_raw(dispatch_packet);
-
 	dispatching_packets = [];
 
 	is_dispatching = false;
@@ -134,14 +151,18 @@ function handle_socket_close() {
 	setTimeout(init, RECONNECT_TIME);
 }
 
-function handle_socket_message(event) {
-	const payload = JSON.parse(event.data); // todo: convert to binary
+async function handle_socket_message(event) {
+	let data = event.data;
+	if (data instanceof Blob)
+		data = await data.arrayBuffer();
+
+	const packet = parse_packet(data);
 
 	for (const callback of global_packet_listeners)
-		callback(payload.id, payload.data);
+		callback(packet.id, packet.data);
 
-	packet_listeners.get(payload.id)?.forEach(callback => callback(payload.data));
-	packet_promises.get(payload.id)?.forEach(callback => callback(payload.data));
+	packet_listeners.get(packet.id)?.forEach(callback => callback(packet.data));
+	packet_promises.get(packet.id)?.forEach(callback => callback(packet.data));
 }
 
 function handle_socket_open() {
