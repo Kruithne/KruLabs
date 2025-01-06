@@ -119,6 +119,8 @@ const reactive_state = {
 			this.hide_loading_message();
 
 			// todo: update the save time of this project.
+			socket.send_empty(PACKET.REQ_PROJECT_LIST);
+			this.selected_project_id = res.id;
 
 			if (res.success) {
 				this.project_last_save_hash = hash_object(this.project_state);
