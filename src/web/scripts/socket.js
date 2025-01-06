@@ -22,15 +22,11 @@ let ws;
 let is_socket_open = false;
 let socket_state = SOCKET_STATE_DISCONNECTED;
 
-const state_change_listeners = [];
-
 let is_dispatching = false;
 let dispatching_register_ids = [];
 let dispatching_packets = [];
 
-const packet_listeners = new Map();
-const packet_promises = new Map();
-const global_packet_listeners = [];
+const event_listeners = new Map();
 
 const registered_packet_ids = [];
 
@@ -50,23 +46,49 @@ export async function expect(packet_id, timeout = 0) {
 	return new Promise((resolve, reject) => {
 		if (timeout > 0) {
 			const rejection_timer = setTimeout(reject, timeout);
-			packet_promises.get_set_arr(packet_id, data => {
+
+			once(packet_id, data => {
 				clearTimeout(rejection_timer);
 				resolve(data);
 			});
 		} else {
-			packet_promises.get_set_arr(packet_id, resolve);
+			once(packet_id, resolve);
 		}
 	});
 }
 
-export function listen(packet_id, callback) {
-	register_packet(packet_id);
-	packet_listeners.get_set_arr(packet_id, callback);
+export function on(event, callback) {
+	event_listeners.get_set_arr(event, callback);
+
+	// register packets with server to receive them
+	if (typeof event === 'number')
+		register_packet(event);
 }
 
-export function listen_all(callback) {
-	global_packet_listeners.push(callback);
+export function off(event, callback) {
+	const listeners = event_listeners.get(event);
+	if (listeners !== undefined) {
+		const index = listeners.indexOf(callback);
+		if (index !== -1)
+			listeners.splice(index, 1);
+	}
+}
+
+export function once(event, callback) {
+	const once_fn = data => {
+		off(event, callback);
+		callback(data);
+	};
+
+	on(event, once_fn);
+}
+
+function emit(event, data) {
+	const listeners = event_listeners.get(event);
+	if (listeners) {
+		for (const callback of listeners)
+			callback(data);
+	}
 }
 
 export function send_empty(packet_id) {
@@ -131,15 +153,12 @@ function process_dispatch() {
 	is_dispatching = false;
 }
 
-export function on_state_change(callback) {
-	callback(socket_state);
-	state_change_listeners.push(callback);
-}
-
 function set_socket_state(state) {
 	socket_state = state;
-	for (const callback of state_change_listeners)
-		callback(state);
+	emit('statechange', state);
+
+	if (state === SOCKET_STATE_CONNECTED)
+		emit('connected');
 }
 
 function handle_socket_close() {
@@ -158,11 +177,8 @@ async function handle_socket_message(event) {
 
 	const packet = parse_packet(data);
 
-	for (const callback of global_packet_listeners)
-		callback(packet.id, packet.data);
-
-	packet_listeners.get(packet.id)?.forEach(callback => callback(packet.data));
-	packet_promises.get(packet.id)?.forEach(callback => callback(packet.data));
+	emit(packet.id, packet.data);
+	emit('*', packet.data);
 }
 
 function handle_socket_open() {

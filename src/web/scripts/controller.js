@@ -91,6 +91,18 @@ const reactive_state = {
 			this.project_last_save_hash = hash_object(this.project_state);
 		},
 
+		local_save_project_id() {
+			localStorage.setItem('last_project_id', this.selected_project_id);
+		},
+
+		local_load_project_id() {
+			const project_id = localStorage.getItem('last_project_id');
+			if (project_id !== null) {
+				this.selected_project_id = project_id;
+				this.load_selected_project();
+			}
+		},
+
 		async load_selected_project() {
 			const project_id = this.selected_project_id;
 
@@ -111,6 +123,7 @@ const reactive_state = {
 			if (res.success) {
 				this.project_state = res.state;
 				this.update_project_hash();
+				this.local_save_project_id();
 			} else {
 				show_info_modal('CANNOT LOAD PROJECT', 'The system was unable to load the specified project.');
 			}
@@ -127,6 +140,8 @@ const reactive_state = {
 			if (res.success) {
 				this.selected_project_id = res.id;
 				this.update_project_hash();
+				this.local_save_project_id();
+
 				socket.send_empty(PACKET.REQ_PROJECT_LIST);
 			} else {
 				show_info_modal('PROJECT NOT SAVED', 'The system was unable to save the specified project.');
@@ -267,10 +282,9 @@ const listbox_component = {
 
 	app_state.update_project_hash();
 	
-	socket.on_state_change(state => app_state.socket_state = state);
-	socket.init();
+	socket.on('statechange', state => app_state.socket_state = state);
+	socket.on(PACKET.ACK_PROJECT_LIST, data => app_state.available_projects = data.projects);
+	socket.once('connected', () => app_state.local_load_project_id());
 
-	socket.listen(PACKET.ACK_PROJECT_LIST, data => {
-		app_state.available_projects = data.projects;
-	});
+	socket.init();
 })();
