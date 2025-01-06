@@ -110,16 +110,37 @@ const reactive_state = {
 		},
 
 		async save_selected_project() {
+			if (this.selected_project_id === null)
+				return;
+
 			const project_id = this.selected_project_id;
 			this.show_loading_message('SAVING PROJECT');
 
 			socket.send_object(PACKET.REQ_SAVE_PROJECT, { id: project_id, state: this.project_state });
 			const res = await socket.expect(PACKET.ACK_SAVE_PROJECT, 10000);
+			this.selected_project_id = res.id;
 
 			this.hide_loading_message();
 
 			socket.send_empty(PACKET.REQ_PROJECT_LIST);
+
+			if (res.success) {
+				this.project_last_save_hash = hash_object(this.project_state);
+			} else {
+				show_info_modal('PROJECT NOT SAVED', 'The system was unable to save the specified project.');
+			}
+		},
+
+		async save_new_project() {
+			this.show_loading_message('SAVING PROJECT');
+
+			socket.send_object(PACKET.REQ_SAVE_PROJECT, { state: this.project_state });
+			const res = await socket.expect(PACKET.ACK_SAVE_PROJECT, 10000);
 			this.selected_project_id = res.id;
+
+			this.hide_loading_message();
+
+			socket.send_empty(PACKET.REQ_PROJECT_LIST);
 
 			if (res.success) {
 				this.project_last_save_hash = hash_object(this.project_state);
