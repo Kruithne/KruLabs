@@ -15,10 +15,13 @@ const HTTP_SERVE_DIRECTORY = './src/web';
 
 const PROJECT_STATE_DIRECTORY = './state';
 const PROJECT_STATE_EXT = '.json';
+const PROJECT_STATE_INDEX = node_path.join(PROJECT_STATE_DIRECTORY, 'index.json');
 
 const TYPE_NUMBER = 'number';
 const TYPE_STRING = 'string';
 const TYPE_OBJECT = 'object';
+
+const CHAR_TAB = '\t';
 
 const ARRAY_EMPTY = Object.freeze([]);
 
@@ -87,6 +90,38 @@ function log_verbose(message: string, prefix = 'DEBUG') {
 /** Prints a warning message (no formatting) to stdout. */
 function log_warn(message: string) {
 	process.stdout.write('\x1b[93mWARNING: \x1b[31m' + message + '\x1b[0m\n');
+}
+
+// MARK: :projects
+async function load_project_index() {
+	const index_file = Bun.file(PROJECT_STATE_INDEX);
+
+	if (await index_file.exists())
+		return await index_file.json();
+
+	return {};
+}
+
+async function save_project_index(index: any) {
+	await Bun.write(PROJECT_STATE_INDEX, JSON.stringify(index, null, CHAR_TAB));
+}
+
+async function update_project_index(project_id: string, project_name: string) {
+	const index = await load_project_index();
+	index[project_id] = { name: project_name, last_saved: Date.now() };
+	await save_project_index(index);
+
+	log_verbose(`{${project_id}} updated in project index`);
+}
+
+async function delete_project_index_entry(project_id: string) {
+	const index = await load_project_index();
+	if (project_id in index) {
+		delete index[project_id];
+		await save_project_index(index);
+
+		log_verbose(`{${project_id}} deleted from project index`);
+	}
 }
 
 // MARK: :packets
@@ -162,7 +197,7 @@ async function handle_packet(ws: ClientSocket, packet_id: number, packet_data: a
 	if (packet_id === PACKET.REQ_REGISTER) {
 		const packets = validate_typed_array<number>(packet_data?.packets, TYPE_NUMBER, 'packets');
 		register_packet_listener(ws, packets);
-	} else 	if (packet_id === PACKET.REQ_SAVE_PROJECT) {
+	} else if (packet_id === PACKET.REQ_SAVE_PROJECT) {
 		try {
 			const project_state = validate_object(packet_data?.state, 'state');
 			let project_id = packet_data?.id ?? null;
@@ -171,9 +206,11 @@ async function handle_packet(ws: ClientSocket, packet_id: number, packet_data: a
 				project_id = Bun.randomUUIDv7();
 
 			const file_path = get_project_state_file(project_id);
-			const bytes = await Bun.write(file_path, JSON.stringify(project_state));
+			const bytes = await Bun.write(file_path, JSON.stringify(project_state, null, CHAR_TAB));
 
 			const project_name = project_state.name ?? 'Unknown Project';
+			await update_project_index(project_id, project_name);
+
 			log_info(`Saved project {${project_id}} ({${project_name}}) with {${format_file_size(bytes)}}`);
 
 			send_object(PACKET.ACK_SAVE_PROJECT, {
@@ -202,25 +239,16 @@ async function handle_packet(ws: ClientSocket, packet_id: number, packet_data: a
 		const project_file_path = get_project_state_file(project_id);
 
 		await node_fs.unlink(project_file_path);
+		await delete_project_index_entry(project_id);
+
 		send_empty(PACKET.ACK_DELETE_PROJECT, ws);
 	} else if (packet_id === PACKET.REQ_PROJECT_LIST) {
+		const index = await load_project_index();
 		const project_list = [];
-		const files = await node_fs.readdir(PROJECT_STATE_DIRECTORY);
 
-		for (const file of files) {
-			if (!file.endsWith(PROJECT_STATE_EXT))
-				continue;
-
-			const file_path = node_path.join(PROJECT_STATE_DIRECTORY, file);
-			const file_stat = await node_fs.stat(file_path);
-
-			if (!file_stat.isFile())
-				continue;
-
-			const json = await Bun.file(file_path).json();
-
-			const project_id = node_path.basename(file, PROJECT_STATE_EXT);
-			project_list.push({ id: project_id, name: json.name, last_saved: file_stat.mtimeMs });
+		for (const [id, value] of Object.entries(index)) {
+			const entry = value as Record<string, any>;
+			project_list.push({ id, name: entry.name, last_saved: entry.last_saved });
 		}
 
 		send_object(PACKET.ACK_PROJECT_LIST, { projects: project_list });
