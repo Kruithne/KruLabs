@@ -91,7 +91,6 @@ function queue_packet(packet) {
 }
 
 function send_raw(packet) {
-	console.log(packet);
 	ws.send(packet);
 }
 
