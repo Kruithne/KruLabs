@@ -2,6 +2,9 @@ import { createApp } from './vue.js';
 import * as socket from './socket.js';
 import { PACKET } from './packet.js';
 
+// MARK: :constants
+const PROJECT_MANAGEMENT_TIMEOUT = 10000;
+
 // MARK: :state
 let modal_confirm_resolver = null;
 let app_state = null;
@@ -97,7 +100,7 @@ const reactive_state = {
 			this.show_loading_message('LOADING PROJECT');
 
 			socket.send_object(PACKET.REQ_LOAD_PROJECT, { id: project_id });
-			const res = await socket.expect(PACKET.ACK_LOAD_PROJECT, 10000);
+			const res = await socket.expect(PACKET.ACK_LOAD_PROJECT, PROJECT_MANAGEMENT_TIMEOUT);
 
 			this.hide_loading_message();
 
@@ -109,18 +112,14 @@ const reactive_state = {
 			}
 		},
 
-		async save_selected_project() {
-			if (this.selected_project_id === null)
-				return;
-
-			const project_id = this.selected_project_id;
+		async save_project(project_id = null) {
 			this.show_loading_message('SAVING PROJECT');
 
 			socket.send_object(PACKET.REQ_SAVE_PROJECT, { id: project_id, state: this.project_state });
-			const res = await socket.expect(PACKET.ACK_SAVE_PROJECT, 10000);
+			const res = await socket.expect(PACKET.ACK_SAVE_PROJECT, PROJECT_MANAGEMENT_TIMEOUT);
 
 			this.hide_loading_message();
-			
+
 			if (res.success) {
 				this.selected_project_id = res.id;
 				this.project_last_save_hash = hash_object(this.project_state);
@@ -130,21 +129,11 @@ const reactive_state = {
 			}
 		},
 
-		async save_new_project() {
-			this.show_loading_message('SAVING PROJECT');
+		async save_selected_project() {
+			if (this.selected_project_id === null)
+				return;
 
-			socket.send_object(PACKET.REQ_SAVE_PROJECT, { state: this.project_state });
-			const res = await socket.expect(PACKET.ACK_SAVE_PROJECT, 10000);
-			
-			this.hide_loading_message();
-			
-			if (res.success) {
-				this.selected_project_id = res.id;
-				this.project_last_save_hash = hash_object(this.project_state);
-				socket.send_empty(PACKET.REQ_PROJECT_LIST);
-			} else {
-				show_info_modal('PROJECT NOT SAVED', 'The system was unable to save the specified project.');
-			}
+			await this.save_project(this.selected_project_id);
 		},
 
 		async delete_selected_project() {
@@ -159,7 +148,7 @@ const reactive_state = {
 				this.show_loading_message('DELETING PROJECT');
 
 				socket.send_object(PACKET.REQ_DELETE_PROJECT, { id: project_id });
-				await socket.expect(PACKET.ACK_DELETE_PROJECT, 10000);
+				await socket.expect(PACKET.ACK_DELETE_PROJECT, PROJECT_MANAGEMENT_TIMEOUT);
 
 				socket.send_empty(PACKET.REQ_PROJECT_LIST);
 
