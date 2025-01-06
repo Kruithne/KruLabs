@@ -117,7 +117,8 @@ function queue_dispatch() {
 function process_dispatch() {
 	if (is_socket_open) {
 		// dispatch register events first
-		send_raw(build_packet(PACKET.REQ_REGISTER, PACKET_TYPE.OBJECT, { packets: dispatching_register_ids }));
+		if (dispatching_register_ids.length > 0)
+			send_raw(build_packet(PACKET.REQ_REGISTER, PACKET_TYPE.OBJECT, { packets: dispatching_register_ids }));
 
 		// dispatch packets
 		for (const dispatch_packet of dispatching_packets)
