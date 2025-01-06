@@ -139,13 +139,13 @@ const reactive_state = {
 			if (user_confirm) {
 				this.show_loading_message('DELETING PROJECT');
 
-				// todo: send deletion to server
-				await new Promise(res => setTimeout(res, 3000)); // placeholder
+				socket.send_object(PACKET.REQ_DELETE_PROJECT, { id: project_id });
+				await socket.expect(PACKET.ACK_DELETE_PROJECT, 10000);
+
+				socket.send_empty(PACKET.REQ_PROJECT_LIST);
 
 				this.hide_loading_message();
-
 				this.selected_project_id = null;
-				this.available_projects.splice(this.available_projects.indexOf(project), 1);
 			}
 		}
 	}
