@@ -118,14 +118,13 @@ const reactive_state = {
 
 			socket.send_object(PACKET.REQ_SAVE_PROJECT, { id: project_id, state: this.project_state });
 			const res = await socket.expect(PACKET.ACK_SAVE_PROJECT, 10000);
-			this.selected_project_id = res.id;
 
 			this.hide_loading_message();
-
-			socket.send_empty(PACKET.REQ_PROJECT_LIST);
-
+			
 			if (res.success) {
+				this.selected_project_id = res.id;
 				this.project_last_save_hash = hash_object(this.project_state);
+				socket.send_empty(PACKET.REQ_PROJECT_LIST);
 			} else {
 				show_info_modal('PROJECT NOT SAVED', 'The system was unable to save the specified project.');
 			}
@@ -136,14 +135,13 @@ const reactive_state = {
 
 			socket.send_object(PACKET.REQ_SAVE_PROJECT, { state: this.project_state });
 			const res = await socket.expect(PACKET.ACK_SAVE_PROJECT, 10000);
-			this.selected_project_id = res.id;
-
+			
 			this.hide_loading_message();
-
-			socket.send_empty(PACKET.REQ_PROJECT_LIST);
-
+			
 			if (res.success) {
+				this.selected_project_id = res.id;
 				this.project_last_save_hash = hash_object(this.project_state);
+				socket.send_empty(PACKET.REQ_PROJECT_LIST);
 			} else {
 				show_info_modal('PROJECT NOT SAVED', 'The system was unable to save the specified project.');
 			}
