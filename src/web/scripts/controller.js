@@ -153,11 +153,11 @@ const reactive_state = {
 
 // MARK: :modal
 async function show_confirm_modal(title, message) {
-	show_modal(title, message, 'CONFIRM');
+	return show_modal(title, message, 'CONFIRM');
 }
 
 async function show_info_modal(title, message) {
-	show_modal(title, message, 'OK');
+	return show_modal(title, message, 'OK');
 }
 
 async function show_modal(title, message, type) {
