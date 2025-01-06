@@ -4,6 +4,7 @@ import { PACKET } from './packet.js';
 
 // MARK: :constants
 const PROJECT_MANAGEMENT_TIMEOUT = 10000;
+const LSK_LAST_PROJECT_ID = 'last_project_id';
 
 // MARK: :state
 let modal_confirm_resolver = null;
@@ -92,11 +93,11 @@ const reactive_state = {
 		},
 
 		local_save_project_id() {
-			localStorage.setItem('last_project_id', this.selected_project_id);
+			localStorage.setItem(LSK_LAST_PROJECT_ID, this.selected_project_id);
 		},
 
 		local_load_project_id() {
-			const project_id = localStorage.getItem('last_project_id');
+			const project_id = localStorage.getItem(LSK_LAST_PROJECT_ID);
 			if (project_id !== null) {
 				this.selected_project_id = project_id;
 				this.load_selected_project();
@@ -169,9 +170,9 @@ const reactive_state = {
 				socket.send_object(PACKET.REQ_DELETE_PROJECT, { id: project_id });
 				await socket.expect(PACKET.ACK_DELETE_PROJECT, PROJECT_MANAGEMENT_TIMEOUT);
 
-				const local_project = localStorage.getItem('last_project_id');
+				const local_project = localStorage.getItem(LSK_LAST_PROJECT_ID);
 				if (local_project === project_id)
-					localStorage.deleteItem('last_project_id');
+					localStorage.deleteItem(LSK_LAST_PROJECT_ID);
 
 				socket.send_empty(PACKET.REQ_PROJECT_LIST);
 
