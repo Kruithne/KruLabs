@@ -20,7 +20,11 @@ export const PACKET = {
 	/** [SERVER -> CLIENT] Response to REQ_DELETE_PROJECT containing deletion status */
 	ACK_DELETE_PROJECT: 0x6,
 
-	TEST: 0x7
+	/** [CLIENT -> SERVER] Request project list. Expects ACK_PROJECT_LIST. */
+	REQ_PROJECT_LIST: 0x7,
+
+	/** [SERVER -> CLIENT] Response to REQ_PROJECT_LIST containing available projects. */
+	ACK_PROJECT_LIST: 0x8,
 };
 
 export const PACKET_UNK = 'UNKNOWN';

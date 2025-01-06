@@ -1,8 +1,8 @@
 import package_json from './package.json';
 import node_os from 'node:os';
 import node_http from 'node:http';
-import node_path from 'node:path';
-import node_fs from 'node:fs';
+import node_path, { format } from 'node:path';
+import node_fs from 'node:fs/promises';
 import { PACKET, get_packet_name, build_packet, parse_packet, PACKET_TYPE, PACKET_UNK } from './src/web/scripts/packet.js';
 
 import type { WebSocketHandler, ServerWebSocket } from 'bun';
@@ -12,6 +12,9 @@ const PREFIX_WEBSOCKET = 'WEBSOCKET';
 const PREFIX_HTTP = 'HTTP';
 
 const HTTP_SERVE_DIRECTORY = './src/web';
+
+const PROJECT_STATE_DIRECTORY = './state';
+const PROJECT_STATE_EXT = '.json';
 
 const TYPE_NUMBER = 'number';
 const TYPE_STRING = 'string';
@@ -155,9 +158,78 @@ function generate_socket_id() {
 	return 'SCK-' + (next_client_id++);
 }
 
+async function handle_packet(ws: ClientSocket, packet_id: number, packet_data: any) {
+	if (packet_id === PACKET.REQ_REGISTER) {
+		const packets = validate_typed_array<number>(packet_data?.packets, TYPE_NUMBER, 'packets');
+		register_packet_listener(ws, packets);
+	} else 	if (packet_id === PACKET.REQ_SAVE_PROJECT) {
+		try {
+			const project_state = validate_object(packet_data?.state, 'state');
+			let project_id = packet_data?.id ?? null;
+
+			if (typeof project_id !== TYPE_STRING)
+				project_id = Bun.randomUUIDv7();
+
+			const file_path = get_project_state_file(project_id);
+			const bytes = await Bun.write(file_path, JSON.stringify(project_state));
+
+			const project_name = project_state.name ?? 'Unknown Project';
+			log_info(`Saved project {${project_id}} ({${project_name}}) with {${format_file_size(bytes)}}`);
+
+			send_object(PACKET.ACK_SAVE_PROJECT, {
+				id: project_id,
+				success: true
+			}, ws);
+		} catch (e) {
+			// this error is caught and re-thrown so we can inform the client here to prevent potential data-loss
+			// other operations can simply fail to respond, but saving needs extra safety guarantees
+			send_object(PACKET.ACK_SAVE_PROJECT, { success: false }, ws);
+			throw e;
+		}
+	} else if (packet_id === PACKET.REQ_LOAD_PROJECT) {
+		const project_id = validate_string(packet_data?.id, 'id');
+		const project_file = Bun.file(get_project_state_file(project_id));
+		
+		try {
+			const project_state = await project_file.json();
+			send_object(PACKET.ACK_LOAD_PROJECT, { success: true, state: project_state }, ws);
+		} catch (e) {
+			send_object(PACKET.ACK_LOAD_PROJECT, { success: false }, ws);
+			throw e;
+		}
+	} else if (packet_id === PACKET.REQ_DELETE_PROJECT) {
+		const project_id = validate_string(packet_data?.id, 'id');
+		const project_file_path = get_project_state_file(project_id);
+
+		await node_fs.unlink(project_file_path);
+		send_empty(PACKET.ACK_DELETE_PROJECT, ws);
+	} else if (packet_id === PACKET.REQ_PROJECT_LIST) {
+		const project_list = [];
+		const files = await node_fs.readdir(PROJECT_STATE_DIRECTORY);
+
+		for (const file of files) {
+			if (!file.endsWith(PROJECT_STATE_EXT))
+				continue;
+
+			const file_path = node_path.join(PROJECT_STATE_DIRECTORY, file);
+			const file_stat = await node_fs.stat(file_path);
+
+			if (!file_stat.isFile())
+				continue;
+
+			const json = await Bun.file(file_path).json();
+
+			const project_id = node_path.basename(file, PROJECT_STATE_EXT);
+			project_list.push({ id: project_id, name: json.name, last_saved: file_stat.mtimeMs });
+		}
+
+		send_object(PACKET.ACK_PROJECT_LIST, { projects: project_list });
+	}
+}
+
 // MARK: :websocket
 const websocket_handlers: WebSocketHandler<ClientSocketData> = {
-	message(ws: ClientSocket, message: string|Buffer) {
+	async message(ws: ClientSocket, message: string|Buffer) {
 		let packet_name = PACKET_UNK;
 		let packet_id = 0;
 
@@ -173,14 +245,7 @@ const websocket_handlers: WebSocketHandler<ClientSocketData> = {
 				throw new Error('Unknown packet ID ' + packet_id);
 
 			log_verbose(`RECV {${packet_name}} [{${packet_id}}] from {${ws.data.sck_id}}`, PREFIX_WEBSOCKET);
-
-			const data = packet.data as Record<string, any>;
-			if (packet_id === PACKET.REQ_REGISTER) {
-				assert_object(data, 'payload');
-				assert_typed_array(data.packets, TYPE_NUMBER, 'packets');
-
-				register_packet_listener(ws, data.packets);
-			}
+			await handle_packet(ws, packet_id, packet.data);
 		} catch (e) {
 			const err = e as Error;
 			log_warn(`${err.name} processing ${packet_name} [${packet_id}] from ${ws.data.sck_id}: ${err.message}`);
@@ -261,7 +326,7 @@ async function http_request_handler(req: Request): Promise<Response|undefined> {
 }
 
 // MARK: :assert
-function assert_typed_array(arr: any, elem_type: string, key: string) {
+function validate_typed_array<T>(arr: any, elem_type: string, key: string): Array<T> {
 	if (!Array.isArray(arr))
 		throw new AssertionError(`expected array`, key);
 
@@ -269,13 +334,22 @@ function assert_typed_array(arr: any, elem_type: string, key: string) {
 		if (typeof arr[i] !== elem_type)
 			throw new AssertionError(`index [${i}] expected ${elem_type}`, key);
 	}
+
+	return arr as Array<T>;
 }
 
-function assert_object(obj: any, key: string): obj is object {
-	if (typeof obj !== TYPE_OBJECT)
+function validate_object(obj: any, key: string): Record<string, any> {
+	if (obj === null || typeof obj !== TYPE_OBJECT)
 		throw new AssertionError('expected object', key);
 
-	return true;
+	return obj;
+}
+
+function validate_string(str: any, key: string): string {
+	if (typeof str !== TYPE_STRING)
+		throw new AssertionError('expected string', key);
+
+	return str;
 }
 
 // MARK: :general
@@ -298,6 +372,10 @@ function format_file_size(size: number): string {
 		return `${(size / 1024).toFixed(1)}kb`;
 
 	return `${(size / 1048576).toFixed(1)}mb`;
+ }
+
+ function get_project_state_file(project_id: string): string {
+	return node_path.join(PROJECT_STATE_DIRECTORY, project_id + PROJECT_STATE_EXT);
  }
 
 // MARK: :init

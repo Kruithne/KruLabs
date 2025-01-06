@@ -10,183 +10,16 @@ const reactive_state = {
 	data() {
 		return {
 			nav_pages: ['project', 'tracks', 'cues', 'zones', 'config'],
-			nav_page: 'project',
+			nav_page: '',
 			
 			socket_state: 0x0,
 			
 			project_last_save_hash: 0,
 			selected_project_id: null,
-			available_projects: [
-				{
-					"name": "Timeless",
-					"last_saved": 1704597600000,
-					"id": "550e8400-e29b-41d4-a716-446655440000"
-				},
-				{
-					"name": "ICONIC",
-					"last_saved": 1704297600000,
-					"id": "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
-				},
-				{
-					"name": "Tonight...",
-					"last_saved": 1704297600000,
-					"id": "7ba7b810-9dad-11d1-80b4-00c04fd430c9"
-				},
-				{
-					"name": "Bill & Fred' Excellent Adventure",
-					"last_saved": 1704297600000,
-					"id": "8ba7b810-9dad-11d1-80b4-00c04fd430c0"
-				},
-				{
-					"name": "A Festive Christmas Spectacular",
-					"last_saved": 1704297600000,
-					"id": "9ba7b810-9dad-11d1-80b4-00c04fd430c1"
-				},
-				{
-					"name": "Starlight Chronicles",
-					"last_saved": 1704297600000,
-					"id": "aba7b810-9dad-11d1-80b4-00c04fd430c2"
-				},
-				{
-					"name": "Aslyum",
-					"last_saved": 1704297600000,
-					"id": "bba7b810-9dad-11d1-80b4-00c04fd430c3"
-				},
-				{
-					"name": "Hospital",
-					"last_saved": 1704297600000,
-					"id": "cba7b810-9dad-11d1-80b4-00c04fd430c4"
-				},
-				{
-					"name": "Nutcracker",
-					"last_saved": 1704297600000,
-					"id": "dba7b810-9dad-11d1-80b4-00c04fd430c5"
-				},
-				{
-					"name": "Art Attack",
-					"last_saved": 1804297600000,
-					"id": "eba7b810-9dad-11d1-80b4-00c04fd430c6"
-				},
-				{
-					"name": "Begin Again",
-					"last_saved": 1704297600000,
-					"id": "fba7b810-9dad-11d1-80b4-00c04fd430c7"
-				},
-				{
-					"name": "Timeless",
-					"last_saved": 1704297600000,
-					"id": "0ca7b810-9dad-11d1-80b4-00c04fd430d0"
-				},
-				{
-					"name": "ICONIC",
-					"last_saved": 1704297600000,
-					"id": "1ca7b810-9dad-11d1-80b4-00c04fd430d1"
-				},
-				{
-					"name": "Tonight...",
-					"last_saved": 1704297600000,
-					"id": "2ca7b810-9dad-11d1-80b4-00c04fd430d2"
-				},
-				{
-					"name": "Bill & Fred' Excellent Adventure",
-					"last_saved": 1704297600000,
-					"id": "3ca7b810-9dad-11d1-80b4-00c04fd430d3"
-				},
-				{
-					"name": "A Festive Christmas Spectacular",
-					"last_saved": 1704297600000,
-					"id": "4ca7b810-9dad-11d1-80b4-00c04fd430d4"
-				},
-				{
-					"name": "Starlight Chronicles",
-					"last_saved": 1704297600000,
-					"id": "5ca7b810-9dad-11d1-80b4-00c04fd430d5"
-				},
-				{
-					"name": "Aslyum",
-					"last_saved": 1704297600000,
-					"id": "6ca7b810-9dad-11d1-80b4-00c04fd430d6"
-				},
-				{
-					"name": "Hospital",
-					"last_saved": 1704297600000,
-					"id": "7ca7b810-9dad-11d1-80b4-00c04fd430d7"
-				},
-				{
-					"name": "Nutcracker",
-					"last_saved": 1704297600000,
-					"id": "8ca7b810-9dad-11d1-80b4-00c04fd430d8"
-				},
-				{
-					"name": "Art Attack",
-					"last_saved": 1704297600000,
-					"id": "9ca7b810-9dad-11d1-80b4-00c04fd430d9"
-				},
-				{
-					"name": "Begin Again",
-					"last_saved": 1704297600000,
-					"id": "aca7b810-9dad-11d1-80b4-00c04fd430da"
-				},
-				{
-					"name": "Timeless",
-					"last_saved": 1704297600000,
-					"id": "bca7b810-9dad-11d1-80b4-00c04fd430db"
-				},
-				{
-					"name": "ICONIC",
-					"last_saved": 1704297600000,
-					"id": "cca7b810-9dad-11d1-80b4-00c04fd430dc"
-				},
-				{
-					"name": "Tonight...",
-					"last_saved": 1704297600000,
-					"id": "dca7b810-9dad-11d1-80b4-00c04fd430dd"
-				},
-				{
-					"name": "Bill & Fred' Excellent Adventure",
-					"last_saved": 1704297600000,
-					"id": "eca7b810-9dad-11d1-80b4-00c04fd430de"
-				},
-				{
-					"name": "A Festive Christmas Spectacular",
-					"last_saved": 1704297600000,
-					"id": "fca7b810-9dad-11d1-80b4-00c04fd430df"
-				},
-				{
-					"name": "Starlight Chronicles",
-					"last_saved": 1704297600000,
-					"id": "0da7b810-9dad-11d1-80b4-00c04fd430e0"
-				},
-				{
-					"name": "Aslyum",
-					"last_saved": 1704297600000,
-					"id": "1da7b810-9dad-11d1-80b4-00c04fd430e1"
-				},
-				{
-					"name": "Hospital",
-					"last_saved": 1704297600000,
-					"id": "2da7b810-9dad-11d1-80b4-00c04fd430e2"
-				},
-				{
-					"name": "Nutcracker",
-					"last_saved": 1704297600000,
-					"id": "3da7b810-9dad-11d1-80b4-00c04fd430e3"
-				},
-				{
-					"name": "Art Attack",
-					"last_saved": 1704297600000,
-					"id": "4da7b810-9dad-11d1-80b4-00c04fd430e4"
-				},
-				{
-					"name": "Begin Again",
-					"last_saved": 1704297600000,
-					"id": "5da7b810-9dad-11d1-80b4-00c04fd430e5"
-				}
-			],
+			available_projects: [],
 			
 			project_state: {
-				name: 'Untitled Project',
-				last_saved: Date.now()
+				name: 'Untitled Project'
 			},
 			
 			loading_message: '',
@@ -195,6 +28,13 @@ const reactive_state = {
 			modal_message: '',
 			modal_type: 'NONE',
 			modal_is_active: false,
+		}
+	},
+
+	watch: {
+		nav_page(new_page) {
+			if (new_page === 'project')
+				socket.send_empty(PACKET.REQ_PROJECT_LIST);
 		}
 	},
 	
@@ -256,23 +96,35 @@ const reactive_state = {
 
 			this.show_loading_message('LOADING PROJECT');
 
-			// todo: pull save data from server
-			await new Promise(res => setTimeout(res, 3000)); // placeholder
+			socket.send_object(PACKET.REQ_LOAD_PROJECT, { id: project_id });
+			const res = await socket.expect(PACKET.ACK_LOAD_PROJECT, 10000);
 
 			this.hide_loading_message();
 
-			// todo: update the save hash with the new data pulled from server.
+			if (res.success) {
+				this.project_state = res.state;
+				this.project_last_save_hash = hash_object(this.project_state);
+			} else {
+				show_info_modal('CANNOT LOAD PROJECT', 'The system was unable to load the specified project.');
+			}
 		},
 
 		async save_selected_project() {
 			const project_id = this.selected_project_id;
 			this.show_loading_message('SAVING PROJECT');
 
-			// todo: send serialized state to the server.
-			await new Promise(res => setTimeout(res, 3000)); // placeholder
+			socket.send_object(PACKET.REQ_SAVE_PROJECT, { id: project_id, state: this.project_state });
+			const res = await socket.expect(PACKET.ACK_SAVE_PROJECT, 10000);
 
 			this.hide_loading_message();
-			this.project_last_save_hash = hash_object(this.project_state);
+
+			// todo: update the save time of this project.
+
+			if (res.success) {
+				this.project_last_save_hash = hash_object(this.project_state);
+			} else {
+				show_info_modal('PROJECT NOT SAVED', 'The system was unable to save the specified project.');
+			}
 		},
 
 		async delete_selected_project() {
@@ -402,4 +254,8 @@ const listbox_component = {
 	
 	socket.on_state_change(state => app_state.socket_state = state);
 	socket.init();
+
+	socket.listen(PACKET.ACK_PROJECT_LIST, data => {
+		app_state.available_projects = data.projects;
+	});
 })();

@@ -1,8 +1,5 @@
 # bun modules
 node_modules
 
-# internal state memory
-internal_state.json
-
 # todo/scratch
 TODO
