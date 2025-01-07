@@ -104,16 +104,30 @@
 									</div>
 								</div>
 								<div>
-									<h1>CUES</h1>
-									<div class="spacer"></div>
-									<listbox-component :items="cue_stack_sorted">
-										<template v-slot="{ item }">
-											<div :class="{ selected: selected_cue === item }" @click="selected_cue = item">
-												<span>{{ item.name }}</span>
-												<span>{{ format_timespan(item.time) }}</span>
-											</div>
-										</template>
-									</listbox-component>
+									<template v-if="is_editing_track">
+										<div class="form">
+											<label>
+												TRACK NAME:
+												<input type="text" v-model="selected_track.name"/>
+											</label>
+											<label>
+												TRACK DURATION:
+												<time-input :value="selected_track.duration" @updated="selected_track.duration = $event"></time-input>
+											</label>
+										</div>
+									</template>
+									<template v-else>
+										<h1>CUES</h1>
+										<div class="spacer"></div>
+										<listbox-component :items="cue_stack_sorted">
+											<template v-slot="{ item }">
+												<div :class="{ selected: selected_cue === item }" @click="selected_cue = item">
+													<span>{{ item.name }}</span>
+													<span>{{ format_timespan(item.time) }}</span>
+												</div>
+											</template>
+										</listbox-component>
+									</template>
 								</div>
 							</div>
 						</template>

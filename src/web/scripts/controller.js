@@ -53,6 +53,8 @@ const reactive_state = {
 			selected_track: null,
 			selected_cue: null,
 
+			is_editing_track: false,
+
 			local_time: Date.now(),
 			
 			loading_message: '',
@@ -66,6 +68,9 @@ const reactive_state = {
 
 	watch: {
 		nav_page(new_page) {
+			// close editors when changing tab
+			this.is_editing_track = false;
+
 			if (new_page === 'project')
 				socket.send_empty(PACKET.REQ_PROJECT_LIST);
 		},
@@ -265,7 +270,7 @@ const reactive_state = {
 		},
 
 		track_edit() {
-			// todo: show the editing interface
+			this.is_editing_track = true;
 		},
 
 		track_move_down() {
