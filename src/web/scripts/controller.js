@@ -234,7 +234,13 @@ const reactive_state = {
 				duration: 1000
 			};
 
-			this.project_state.tracks.push(new_track);
+			const tracks = this.project_state.tracks;
+
+			let new_index = 0;
+			if (this.selected_track !== null)
+				new_index = tracks.indexOf(this.selected_track) + 1;
+
+			tracks.splice(new_index, 0, new_track);
 			this.selected_track = new_track;
 
 			this.track_edit();
