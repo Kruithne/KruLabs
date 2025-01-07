@@ -241,7 +241,7 @@ const reactive_state = {
 
 			const tracks = this.project_state.tracks;
 
-			let new_index = 0;
+			let new_index = tracks.length;
 			if (this.selected_track !== null)
 				new_index = tracks.indexOf(this.selected_track) + 1;
 
