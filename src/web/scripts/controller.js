@@ -54,6 +54,10 @@ const reactive_state = {
 
 			edit_mode: 'NONE', // NONE | TRACK | CUE
 
+			playback_live: false,
+			playback_last_update: 0,
+			playback_time: 0,
+
 			local_time: Date.now(),
 			
 			loading_message: '',
@@ -75,6 +79,8 @@ const reactive_state = {
 
 		selected_track() {
 			this.selected_cue = null;
+			this.playback_live = false;
+			this.playback_time = 0;
 		},
 
 		config: {
@@ -109,7 +115,26 @@ const reactive_state = {
 
 		local_time_formatted() {
 			return format_time(this.local_time);
-		}
+		},
+
+		playback_factor() {
+			if (this.selected_track)
+				return this.playback_time / this.selected_track.duration;
+
+			return 0;
+		},
+
+		playback_current_time() {
+			return format_timespan_ms(this.selected_track ? this.playback_time : 0);
+		},
+
+		playback_remaining_time() {
+			return format_timespan_ms(this.selected_track ? this.selected_track.duration - this.playback_time : 0);
+		},
+
+		playback_total_remaining() {
+			return 0;
+		},
 	},
 	
 	methods: {
@@ -137,6 +162,10 @@ const reactive_state = {
 
 		format_timespan(ts) {
 			return format_timespan(ts);
+		},
+
+		format_timespan_ms(ts) {
+			return format_timespan_ms(ts);
 		},
 
 		format_index(index) {
@@ -337,6 +366,32 @@ const reactive_state = {
 				return;
 
 			move_element(this.project_state.tracks, this.selected_track, -1);
+		},
+
+		// MARK: :playback methods
+		playback_go() {
+			if (this.selected_track) {
+				this.playback_last_update = performance.now();
+				this.playback_live = true;
+			}
+		},
+
+		playback_hold() {
+			this.playback_live = false;
+		},
+
+		playback_update(ts) {
+			if (this.playback_live && this.selected_track) {
+				const elapsed = ts - this.playback_last_update;
+				this.playback_time += elapsed;
+				this.playback_last_update = ts;
+		
+				if (this.playback_time >= this.selected_track.duration) {
+					this.playback_time = this.selected_track.duration;
+					this.playback_hold();
+				}
+			}
+			requestAnimationFrame(ts => this.playback_update(ts));
 		},
 
 		// MARK: :config methods
@@ -585,6 +640,7 @@ const listbox_component = {
 
 	app_state.load_config();
 	app_state.update_project_hash();
+	app_state.playback_update();
 	
 	socket.on('statechange', state => app_state.socket_state = state);
 	socket.on(PACKET.ACK_PROJECT_LIST, data => app_state.available_projects = data.projects);

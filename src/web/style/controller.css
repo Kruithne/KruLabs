@@ -3,6 +3,7 @@
 	--hover-color: white;
 	--invert-color: black;
 	--alert-color: #ff2a2a;
+	--active-color: #4bf34b;
 }
 
 body {
@@ -128,6 +129,11 @@ input[type="button"] {
 	background: transparent;
 }
 
+input[type="button"].active {
+	border-color: var(--active-color);
+	color: var(--active-color);
+}
+
 input[type="button"].alert {
 	border-color: var(--alert-color);
 	color: var(--alert-color);	
@@ -137,6 +143,11 @@ input[type="button"]:hover:not(.enabled) {
 	background-color: var(--hover-color);
 	color: var(--invert-color);
 	border-color: var(--hover-color);
+}
+
+input[type="button"]:hover.active {
+	background-color: var(--active-color);
+	border-color: var(--active-color);
 }
 
 input[type="button"].enabled {
@@ -307,6 +318,46 @@ input[type="checkbox"]:checked {
 
 .panel-split > div:last-child {
 	border-right: none;
+}
+
+.panel-split-alt {
+	grid-template-rows: 1fr auto;
+}
+
+/*
+	MARK: :playback
+*/
+.playback-panel {
+	border-top: 1px solid var(--primary-color);
+	grid-row: 2;
+	grid-column: span 2;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 10px 20px !important;
+	gap: 10px;
+}
+
+#playback-bar-row {
+	width: 100%;
+}
+
+#playback-bar {
+	border: 1px solid var(--primary-color);
+	height: 30px;
+	width: 100%;
+}
+
+#playback-bar-fill {
+	height: 100%;
+	background-color: var(--primary-color);
+}
+
+#playback-info {
+	display: flex;
+	justify-content: space-evenly;
+	width: 100%;
 }
 
 /*

@@ -82,7 +82,7 @@
 							</div>
 						</template>
 						<template v-else-if="nav_page === 'cues'">
-							<div class="panel-split">
+							<div class="panel-split panel-split-alt">
 								<div>
 									<template v-if="edit_mode === 'CUE' && selected_cue">
 										<div class="form">
@@ -156,6 +156,24 @@
 											<input type="button" value="EDIT" @click="edit_mode = 'CUE'"/>
 										</div>
 									</template>
+								</div>
+								<div class="playback-panel">
+									<div id="playback-info">
+										<span>CT {{ playback_current_time }}</span>
+										<span>CR {{ playback_remaining_time }}</span>
+										<span>TR {{ playback_total_remaining }}</span>
+									</div>
+									<div id="playback-bar-row">
+										<div id="playback-bar">
+											<div id="playback-bar-fill" :style="{ width: (playback_factor * 100) + '%' }"></div>
+										</div>
+									</div>
+									<div>
+										<div class="button-tray">
+											<input type="button" value="GO" @click="playback_go" :class="{ active: playback_live }"/>
+											<input type="button" value="HOLD" @click="playback_hold" :class="{ active: !playback_live }"/>
+										</div>
+									</div>
 								</div>
 							</div>
 						</template>
