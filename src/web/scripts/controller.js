@@ -243,8 +243,23 @@ const reactive_state = {
 			this.edit_mode = 'CUE';
 		},
 
-		cue_delete() {
-			// todo
+		async cue_delete() {
+			const cue = this.selected_cue;
+			const track = this.selected_track;
+
+			if (cue === null || track === null)
+				return;
+
+			const user_confirm = await show_confirm_modal(
+				'CONFIRM CUE DELETE',
+				`Are you sure you wish to delete cue "${cue.name}" from "${track.name}"? This action cannot be reversed.`
+			);
+
+			if (!user_confirm)
+				return;
+
+			track.cues.splice(track.cues.indexOf(cue), 1);
+			this.selected_cue = null;
 		},
 
 		// MARK: :track methods
