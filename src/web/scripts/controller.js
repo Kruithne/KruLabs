@@ -53,7 +53,7 @@ const reactive_state = {
 			selected_track: null,
 			selected_cue: null,
 
-			is_editing_track: false,
+			edit_mode: 'NONE', // NONE | TRACK | CUE
 
 			local_time: Date.now(),
 			
@@ -68,8 +68,7 @@ const reactive_state = {
 
 	watch: {
 		nav_page(new_page) {
-			// close editors when changing tab
-			this.is_editing_track = false;
+			this.edit_mode = 'NONE';
 
 			if (new_page === 'project')
 				socket.send_empty(PACKET.REQ_PROJECT_LIST);
@@ -237,6 +236,17 @@ const reactive_state = {
 			}
 		},
 
+		// MARK: :cue methods
+		cue_add() {
+			// todo
+
+			this.edit_mode = 'CUE';
+		},
+
+		cue_delete() {
+			// todo
+		},
+
 		// MARK: :track methods
 		track_add() {
 			const new_track = {
@@ -253,7 +263,7 @@ const reactive_state = {
 			tracks.splice(new_index, 0, new_track);
 			this.selected_track = new_track;
 
-			this.track_set_edit_mode(true);
+			this.edit_mode = 'TRACK';
 		},
 
 		async track_delete() {
@@ -267,10 +277,6 @@ const reactive_state = {
 			const tracks = this.project_state.tracks;
 			tracks.splice(tracks.indexOf(this.selected_track), 1);
 			this.selected_track = null;
-		},
-
-		track_set_edit_mode(state) {
-			this.is_editing_track = state;
 		},
 
 		track_move_down() {
