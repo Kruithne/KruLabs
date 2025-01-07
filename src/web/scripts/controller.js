@@ -238,7 +238,17 @@ const reactive_state = {
 
 		// MARK: :cue methods
 		cue_add() {
-			// todo
+			const track = this.selected_track;
+			if (track === null)
+				return;
+
+			const new_cue = {
+				name: 'New Cue',
+				time: 10000 // todo: replace with current track time
+			};
+
+			track.cues.push(new_cue);
+			this.selected_cue = new_cue;
 
 			this.edit_mode = 'CUE';
 		},
