@@ -390,6 +390,7 @@ const timeinput_component = {
 			@input="temp_input = $event.target.value"
 			@focus="start_editing"
 			@blur="stop_editing"
+			@keyup.enter="force_blur"
 		/>`,
 
 	data() {
@@ -412,6 +413,10 @@ const timeinput_component = {
 	},
 
 	methods: {
+		force_blur() {
+			this.$el.blur();
+		},
+
 		start_editing() {
 			this.editing = true;
 		},
