@@ -165,7 +165,7 @@
 										<span>TR {{ playback_total_remaining }}</span>
 									</div>
 									<div id="playback-bar-row">
-										<div id="playback-bar">
+										<div id="playback-bar" @click="playback_seek">
 											<div id="playback-bar-fill" :style="{ width: (playback_factor * 100) + '%' }"></div>
 										</div>
 									</div>

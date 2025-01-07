@@ -420,6 +420,14 @@ const reactive_state = {
 			requestAnimationFrame(ts => this.playback_update(ts));
 		},
 
+		playback_seek(event) {
+			if (this.selected_track) {
+				const $bar = event.target.closest('#playback-bar');
+				const factor = (event.clientX - $bar.getBoundingClientRect().left) / $bar.offsetWidth;
+				this.playback_time = this.selected_track.duration * factor;
+			}
+		},
+
 		calculate_track_denominator() {
 			let total = 0;
 
