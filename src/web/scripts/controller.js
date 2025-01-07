@@ -52,6 +52,8 @@ const reactive_state = {
 
 			selected_track: null,
 			selected_cue: null,
+
+			local_time: Date.now(),
 			
 			loading_message: '',
 			
@@ -93,6 +95,10 @@ const reactive_state = {
 
 		cue_stack_sorted() {
 			return this.selected_track?.cues.sort((a, b) => a.time - b.time) ?? [];
+		},
+
+		local_time_formatted() {
+			return format_time(this.local_time);
 		}
 	},
 	
@@ -247,6 +253,11 @@ async function show_modal(title, message, type) {
 function format_datetime(ts) {
 	const d = new Date(ts);
 	return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}:${d.getSeconds().toString().padStart(2, '0')}`;
+}
+
+function format_time(ts) {
+	const d = new Date(ts);
+	return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}:${d.getSeconds().toString().padStart(2, '0')}`;
 }
 
 async function document_ready() {
@@ -415,6 +426,8 @@ const listbox_component = {
 	app.component('listbox-component', listbox_component);
 	app.component('time-input', timeinput_component);
 	app_state = app.mount('#app');
+
+	setInterval(() => app_state.local_time = Date.now(), 1000);
 
 	app_state.update_project_hash();
 	
