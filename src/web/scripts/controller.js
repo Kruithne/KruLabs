@@ -129,6 +129,7 @@ const reactive_state = {
 			return format_timespan(ts);
 		},
 
+		// MARK: :project methods
 		get_project_by_id(id) {
 			return this.available_projects.find(p => p.id === id);
 		},
@@ -224,6 +225,35 @@ const reactive_state = {
 				this.hide_loading_message();
 				this.selected_project_id = null;
 			}
+		},
+
+		// MARK: :track methods
+		track_add() {
+			const new_track = {
+				name: 'New Track',
+				duration: 1000
+			};
+
+			this.project_state.tracks.push(new_track);
+			this.selected_track = new_track;
+
+			this.track_edit();
+		},
+
+		track_delete() {
+			// todo: show a confirmation dialog and then delete the track
+		},
+
+		track_edit() {
+			// todo: show the editing interface
+		},
+
+		track_move_down() {
+			move_element(this.project_state.tracks, this.selected_track, 1);
+		},
+
+		track_move_up() {
+			move_element(this.project_state.tracks, this.selected_track, -1);
 		}
 	}
 };
@@ -302,6 +332,17 @@ function hash_object(obj) {
 		hash = ((hash << 5) - hash) + str.charCodeAt(i);
 
 	return hash >>> 0;
+}
+
+/** Moves an element in an array forward (1) or back (-1) one place. */
+function move_element(arr, elem, direction) {
+	const index = arr.indexOf(elem);
+    const new_index = direction > 0 ? index + 1 : index - 1;
+
+    if (new_index < 0 || new_index >= arr.length)
+		return arr;
+    
+    [arr[index], arr[new_index]] = [arr[new_index], arr[index]];
 }
 
 // MARK: :timeinput
