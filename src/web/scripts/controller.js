@@ -91,6 +91,12 @@ const reactive_state = {
 			deep: true,
 			handler() {
 				this.calculate_track_denominator();
+
+				if (this.selected_track) {
+					// this prevents tracks going out-of-bounds if we shorten a track
+					if (this.playback_time > this.selected_track.duration)
+						this.playback_time = this.selected_track.duration;
+				}
 			}
 		},
 
