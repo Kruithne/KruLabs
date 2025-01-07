@@ -172,7 +172,7 @@ const reactive_state = {
 
 				const local_project = localStorage.getItem(LSK_LAST_PROJECT_ID);
 				if (local_project === project_id)
-					localStorage.deleteItem(LSK_LAST_PROJECT_ID);
+					localStorage.removeItem(LSK_LAST_PROJECT_ID);
 
 				socket.send_empty(PACKET.REQ_PROJECT_LIST);
 
