@@ -81,7 +81,7 @@
 								</div>
 							</div>
 						</template>
-						<template v-if="nav_page === 'cues'">
+						<template v-else-if="nav_page === 'cues'">
 							<div class="panel-split">
 								<div>
 									<template v-if="edit_mode === 'CUE'">
@@ -159,7 +159,7 @@
 								</div>
 							</div>
 						</template>
-						<template v-if="nav_page === 'zones'">
+						<template v-else-if="nav_page === 'zones'">
 							ZONES PANEL
 						</template>
 					</div>
