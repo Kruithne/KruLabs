@@ -251,8 +251,17 @@ const reactive_state = {
 			this.track_edit();
 		},
 
-		track_delete() {
-			// todo: show a confirmation dialog and then delete the track
+		async track_delete() {
+			if (this.selected_track === null)
+				return;
+
+			const user_confirm = await show_confirm_modal('CONFIRM TRACK DELETE', 'Are you sure you wish to delete the track "' + this.selected_track.name + '"? This action cannot be reversed.');
+			if (!user_confirm)
+				return;
+
+			const tracks = this.project_state.tracks;
+			tracks.splice(tracks.indexOf(this.selected_track), 1);
+			this.selected_track = null;
 		},
 
 		track_edit() {
@@ -260,10 +269,16 @@ const reactive_state = {
 		},
 
 		track_move_down() {
+			if (this.selected_track === null)
+				return;
+
 			move_element(this.project_state.tracks, this.selected_track, 1);
 		},
 
 		track_move_up() {
+			if (this.selected_track === null)
+				return;
+
 			move_element(this.project_state.tracks, this.selected_track, -1);
 		}
 	}
