@@ -295,6 +295,13 @@ const reactive_state = {
 		},
 
 		// MARK: :cue methods
+		cue_goto() {
+			if (!this.selected_track || !this.selected_cue)
+				return;
+
+			this.playback_time = Math.min(this.selected_track.duration, this.selected_cue.time);
+		},
+
 		cue_add() {
 			const track = this.selected_track;
 			if (track === null)
