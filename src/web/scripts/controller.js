@@ -418,16 +418,19 @@ const timeinput_component = {
 		},
 
 		start_editing() {
+			this.temp_input = this.formatted_time;
 			this.editing = true;
 		},
 
 		stop_editing(e) {
 			this.editing = false;
-			
+
 			if (!this.temp_input)
 				return;
 
-			const parts = e.target.value.split(':').map(Number);
+			const parts = this.temp_input.split(':').map(Number);
+			this.temp_input = '';
+
 			if (parts.some(isNaN))
 				return;
 		 
