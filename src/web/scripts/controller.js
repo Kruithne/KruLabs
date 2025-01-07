@@ -13,7 +13,7 @@ let app_state = null;
 const reactive_state = {
 	data() {
 		return {
-			nav_pages: ['project', 'tracks', 'cues', 'zones'],
+			nav_pages: ['project', 'cues', 'zones'],
 			nav_page: '',
 			
 			socket_state: 0x0,
