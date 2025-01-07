@@ -422,6 +422,8 @@ const timeinput_component = {
 		},
 
 		stop_editing(e) {
+			this.editing = false;
+			
 			if (!this.temp_input)
 				return;
 
