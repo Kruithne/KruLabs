@@ -422,7 +422,7 @@ const timeinput_component = {
 			this.editing = true;
 		},
 
-		stop_editing(e) {
+		stop_editing() {
 			this.editing = false;
 
 			if (!this.temp_input)
