@@ -94,7 +94,7 @@ const reactive_state = {
 		},
 
 		cue_stack_sorted() {
-			return this.selected_track?.cues.sort((a, b) => a.time - b.time) ?? [];
+			return this.selected_track?.cues?.sort((a, b) => a.time - b.time) ?? [];
 		},
 
 		local_time_formatted() {
