@@ -388,17 +388,22 @@ const timeinput_component = {
 			type="text" 
 			:value="formatted_time"
 			@input="temp_input = $event.target.value"
-			@blur="handle_input"
+			@focus="start_editing"
+			@blur="stop_editing"
 		/>`,
 
 	data() {
 		return {
-			temp_input: ''
+			temp_input: '',
+			editing: false
 		}
 	},
 
 	computed: {
 		formatted_time() {
+			if (this.editing)
+				return this.temp_input;
+
 			if (this.includeMs)
 				return format_timespan_ms(this.value);
 
@@ -407,7 +412,11 @@ const timeinput_component = {
 	},
 
 	methods: {
-		handle_input(e) {
+		start_editing() {
+			this.editing = true;
+		},
+
+		stop_editing(e) {
 			if (!this.temp_input)
 				return;
 
