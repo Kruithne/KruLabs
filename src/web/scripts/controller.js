@@ -139,6 +139,10 @@ const reactive_state = {
 			return format_timespan(ts);
 		},
 
+		format_index(index) {
+			return (index + 1).toString().padStart(3, '0');
+		},
+
 		// MARK: :project methods
 		get_project_by_id(id) {
 			return this.available_projects.find(p => p.id === id);
@@ -549,7 +553,7 @@ const listbox_component = {
 	props: ['items'],
 	template: `
 		<div class="listbox">
-			<slot v-for="item in items" :item="item"></slot>
+			<slot v-for="(item, index) in items" :index="index" :item="item"></slot>
 		</div>
 	`,
 	data() {

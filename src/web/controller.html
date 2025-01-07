@@ -104,9 +104,9 @@
 										<h1>TRACKS</h1>
 										<div class="spacer"></div>
 										<listbox-component :items="project_state.tracks">
-											<template v-slot="{ item }">
+											<template v-slot="{ item, index }">
 												<div :class="{ selected: selected_track === item }" @click="selected_track = item">
-													<span>{{ item.name }}</span>
+													<span>{{ format_index(index) + ' ' + item.name }}</span>
 													<span>{{ format_timespan(item.duration) }}</span>
 												</div>
 											</template>
@@ -142,9 +142,9 @@
 										<h1>CUES</h1>
 										<div class="spacer"></div>
 										<listbox-component :items="cue_stack_sorted">
-											<template v-slot="{ item }">
+											<template v-slot="{ item, index }">
 												<div :class="{ selected: selected_cue === item }" @click="selected_cue = item">
-													<span>{{ item.name }}</span>
+													<span>{{ format_index(index) + ' ' + item.name }}</span>
 													<span>{{ format_timespan(item.time) }}</span>
 												</div>
 											</template>

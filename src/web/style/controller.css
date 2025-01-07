@@ -176,6 +176,9 @@ input[type="checkbox"]:checked {
 	background: var(--primary-color);
 }
 
+/*
+	MARK: :listbox
+*/
 .listbox {
 	border: 1px solid var(--primary-color);
 	overflow-y: scroll;
