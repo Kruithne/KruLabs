@@ -45,14 +45,6 @@ const reactive_state = {
 								time: 40000
 							}
 						]
-					},
-					{
-						name: 'Test Track',
-						duration: 5634834
-					},
-					{
-						name: 'Test Track',
-						duration: 5634834
 					}
 				]
 			},
