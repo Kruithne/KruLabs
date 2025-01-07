@@ -84,7 +84,7 @@
 						<template v-else-if="nav_page === 'cues'">
 							<div class="panel-split">
 								<div>
-									<template v-if="edit_mode === 'CUE'">
+									<template v-if="edit_mode === 'CUE' && selected_cue">
 										<div class="form">
 											<label>
 												CUE NAME:
@@ -122,7 +122,7 @@
 									</template>
 								</div>
 								<div>
-									<template v-if="edit_mode === 'TRACK'">
+									<template v-if="edit_mode === 'TRACK' && selected_track">
 										<div class="form">
 											<label>
 												TRACK NAME:
