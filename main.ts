@@ -1,7 +1,6 @@
 import package_json from './package.json';
-import node_os from 'node:os';
 import node_http from 'node:http';
-import node_path, { format } from 'node:path';
+import node_path from 'node:path';
 import node_fs from 'node:fs/promises';
 import { PACKET, get_packet_name, build_packet, parse_packet, PACKET_TYPE, PACKET_UNK } from './src/web/scripts/packet.js';
 

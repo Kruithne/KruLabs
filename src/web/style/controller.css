@@ -306,10 +306,6 @@ input[type="checkbox"]:checked {
 	border-right: none;
 }
 
-.test {
-	border: 1px solid red;
-}
-
 /*
 	MARK: :config
 */
