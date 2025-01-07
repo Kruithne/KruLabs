@@ -66,6 +66,10 @@ const reactive_state = {
 		nav_page(new_page) {
 			if (new_page === 'project')
 				socket.send_empty(PACKET.REQ_PROJECT_LIST);
+		},
+
+		selected_track() {
+			this.selected_cue = null;
 		}
 	},
 	
