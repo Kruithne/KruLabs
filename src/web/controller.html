@@ -82,7 +82,32 @@
 							</div>
 						</template>
 						<template v-if="nav_page === 'tracks'">
-							TRACKS PANEL
+							<div class="panel-split">
+								<div>
+									<h1>TRACKS</h1>
+									<div class="spacer"></div>
+									<listbox-component :items="project_state.tracks">
+										<template v-slot="{ item }">
+											<div :class="{ selected: selected_track === item }" @click="selected_track = item">
+												<span>{{ item.name }}</span>
+												<span>{{ format_timespan(item.duration) }}</span>
+											</div>
+										</template>
+									</listbox-component>
+								</div>
+								<div>
+									<h1>CUES</h1>
+									<div class="spacer"></div>
+									<listbox-component :items="selected_track?.cues">
+										<template v-slot="{ item }">
+											<div :class="{ selected: selected_cue === item }" @click="selected_cue = item">
+												<span>{{ item.name }}</span>
+												<span>{{ format_timespan(item.time) }}</span>
+											</div>
+										</template>
+									</listbox-component>
+								</div>
+							</div>
 						</template>
 						<template v-if="nav_page === 'cues'">
 							CUES PANEL

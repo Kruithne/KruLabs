@@ -23,8 +23,35 @@ const reactive_state = {
 			available_projects: [],
 			
 			project_state: {
-				name: 'Untitled Project'
+				name: 'Untitled Project',
+				tracks: [
+					{
+						name: 'Test Track',
+						duration: 5634834,
+						cues: [
+							{
+								name: 'Test Cue 1',
+								time: 20000
+							},
+							{
+								name: 'Test Cue 2',
+								time: 40000
+							}
+						]
+					},
+					{
+						name: 'Test Track',
+						duration: 5634834
+					},
+					{
+						name: 'Test Track',
+						duration: 5634834
+					}
+				]
 			},
+
+			selected_track: null,
+			selected_cue: null,
 			
 			loading_message: '',
 			
@@ -82,6 +109,10 @@ const reactive_state = {
 		
 		format_datetime(ts) {
 			return format_datetime(ts);
+		},
+
+		format_timespan(ts) {
+			return format_timespan(ts);
 		},
 
 		get_project_by_id(id) {
