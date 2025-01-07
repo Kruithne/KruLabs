@@ -268,6 +268,8 @@ const reactive_state = {
 			if (!user_confirm)
 				return;
 
+			this.edit_mode = 'NONE';
+
 			track.cues.splice(track.cues.indexOf(cue), 1);
 			this.selected_cue = null;
 		},
@@ -298,6 +300,8 @@ const reactive_state = {
 			const user_confirm = await show_confirm_modal('CONFIRM TRACK DELETE', 'Are you sure you wish to delete the track "' + this.selected_track.name + '"? This action cannot be reversed.');
 			if (!user_confirm)
 				return;
+
+			this.edit_mode = 'NONE';
 
 			const tracks = this.project_state.tracks;
 			tracks.splice(tracks.indexOf(this.selected_track), 1);
