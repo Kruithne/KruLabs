@@ -253,7 +253,7 @@ const reactive_state = {
 			tracks.splice(new_index, 0, new_track);
 			this.selected_track = new_track;
 
-			this.track_edit();
+			this.track_set_edit_mode(true);
 		},
 
 		async track_delete() {
@@ -269,8 +269,8 @@ const reactive_state = {
 			this.selected_track = null;
 		},
 
-		track_edit() {
-			this.is_editing_track = true;
+		track_set_edit_mode(state) {
+			this.is_editing_track = state;
 		},
 
 		track_move_down() {
