@@ -217,8 +217,16 @@ input[type="checkbox"]:checked {
 	background-color: var(--primary-color);
 }
 
-.listbox > div.selected span {
+.listbox > div.selected span, .listbox > div.active span {
 	color: var(--invert-color);
+}
+
+.listbox > div.active {
+	background-color: var(--active-color);
+}
+
+.listbox > div.selected.active {
+	background: repeating-linear-gradient(45deg, var(--primary-color), var(--primary-color) 20px, var(--active-color) 20px, var(--active-color) 40px);
 }
 
 /*

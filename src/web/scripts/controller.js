@@ -38,7 +38,7 @@ const reactive_state = {
 						cues: [
 							{
 								name: 'Test Cue 1',
-								time: 20000
+								time: 1000
 							},
 							{
 								name: 'Test Cue 2',

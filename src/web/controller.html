@@ -143,7 +143,7 @@
 										<div class="spacer"></div>
 										<listbox-component :items="cue_stack_sorted">
 											<template v-slot="{ item, index }">
-												<div :class="{ selected: selected_cue === item }" @click="selected_cue = item">
+												<div :class="{ selected: selected_cue === item, active: playback_time >= item.time }" @click="selected_cue = item">
 													<span>{{ format_index(index) + ' ' + item.name }}</span>
 													<span>{{ format_timespan(item.time) }}</span>
 												</div>
