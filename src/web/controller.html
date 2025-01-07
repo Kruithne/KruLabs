@@ -98,7 +98,7 @@
 								<div>
 									<h1>CUES</h1>
 									<div class="spacer"></div>
-									<listbox-component :items="selected_track?.cues">
+									<listbox-component :items="cue_stack_sorted">
 										<template v-slot="{ item }">
 											<div :class="{ selected: selected_cue === item }" @click="selected_cue = item">
 												<span>{{ item.name }}</span>

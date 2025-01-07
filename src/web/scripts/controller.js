@@ -89,6 +89,10 @@ const reactive_state = {
 		
 		available_projects_sorted() {
 			return this.available_projects.sort((a, b) => b.last_saved - a.last_saved);
+		},
+
+		cue_stack_sorted() {
+			return this.selected_track?.cues.sort((a, b) => a.time - b.time) ?? [];
 		}
 	},
 	
