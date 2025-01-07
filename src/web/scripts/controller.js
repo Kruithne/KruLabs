@@ -215,6 +215,35 @@ async function document_ready() {
 		await new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve), { once: true });
 }
 
+/** Formats a timespan (ms) as hh:mm:ss */
+function format_timespan(span) {
+	const total_seconds = Math.floor(span / 1000);
+	const hours = Math.floor(total_seconds / 3600);
+	const minutes = Math.floor((total_seconds % 3600) / 60);
+	const seconds = total_seconds % 60;
+	
+	return `${pad_time_unit(hours)}:${pad_time_unit(minutes)}:${pad_time_unit(seconds)}`;
+}
+
+/** Formats a timespan (ms) as hh:mm:ss.mmm */
+function format_timespan_ms(span) {
+	const total_seconds = Math.floor(span / 1000);
+	const ms = span % 1000;
+	const hours = Math.floor(total_seconds / 3600);
+	const minutes = Math.floor((total_seconds % 3600) / 60);
+	const seconds = total_seconds % 60;
+	
+	return `${pad_time_unit(hours)}:${pad_time_unit(minutes)}:${pad_time_unit(seconds)}:${pad_ms(ms)}`;
+ }
+ 
+ function pad_ms(ms) {
+	return String(Math.floor(ms)).padStart(3, '0');
+ }
+
+function pad_time_unit(unit) {
+	return String(unit).padStart(2, '0');
+}
+
 function hash_object(obj) {
 	const str = JSON.stringify(obj);
 	let hash = 0
@@ -224,6 +253,68 @@ function hash_object(obj) {
 
 	return hash >>> 0;
 }
+
+// MARK: :timeinput
+const timeinput_component = {
+	props: {
+		value: String,
+		includeMs: Boolean
+	},
+
+	template: `
+		<input 
+			type="text" 
+			:value="formatted_time"
+			@input="temp_input = $event.target.value"
+			@blur="handle_input"
+		/>`,
+
+	data() {
+		return {
+			temp_input: ''
+		}
+	},
+
+	computed: {
+		formatted_time() {
+			if (this.includeMs)
+				return format_timespan_ms(this.value);
+
+			return format_timespan(this.value);
+		}
+	},
+
+	methods: {
+		handle_input(e) {
+			if (!this.temp_input)
+				return;
+
+			const parts = e.target.value.split(':').map(Number);
+			if (parts.some(isNaN))
+				return;
+		 
+			let ms = 0;
+			switch(parts.length) {
+				case 1: 
+					ms = parts[0] * 1000;
+					break;
+				case 2:
+					ms = (parts[0] * 60 + parts[1]) * 1000;
+					break;
+				case 3:
+					ms = (parts[0] * 3600 + parts[1] * 60 + parts[2]) * 1000;
+					break;
+				case 4:
+					ms = (parts[0] * 3600000 + parts[1] * 60000 + parts[2] * 1000 + parts[3]);
+					break;
+				default:
+					return;
+			}
+			
+			this.$emit('updated', ms);
+		 }
+	}
+};
 
 // MARK: :listbox
 function update_listbox_height($el) {
@@ -283,6 +374,7 @@ const listbox_component = {
 	
 	const app = createApp(reactive_state);
 	app.component('listbox-component', listbox_component);
+	app.component('time-input', timeinput_component);
 	app_state = app.mount('#app');
 
 	app_state.update_project_hash();
