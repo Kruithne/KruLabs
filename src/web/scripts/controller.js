@@ -150,6 +150,11 @@ const reactive_state = {
 			}
 		},
 
+		set_project_state(state) {
+			this.selected_track = null;
+			this.project_state = state;
+		},
+
 		async load_selected_project() {
 			const project_id = this.selected_project_id;
 
@@ -168,7 +173,7 @@ const reactive_state = {
 			this.hide_loading_message();
 
 			if (res.success) {
-				this.project_state = res.state;
+				this.set_project_state(res.state);
 				this.update_project_hash();
 				this.local_save_project_id();
 			} else {
