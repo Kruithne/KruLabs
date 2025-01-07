@@ -406,6 +406,10 @@ const reactive_state = {
 			this.playback_live = false;
 		},
 
+		playback_reset() {
+			this.playback_time = 0;
+		},
+
 		playback_update(ts) {
 			if (this.playback_live && this.selected_track) {
 				const elapsed = ts - this.playback_last_update;
