@@ -270,8 +270,11 @@ const reactive_state = {
 
 			this.edit_mode = 'NONE';
 
+			const sorted_index = this.cue_stack_sorted.indexOf(cue);
 			track.cues.splice(track.cues.indexOf(cue), 1);
-			this.selected_cue = null;
+
+			const sorted_previous = this.cue_stack_sorted[sorted_index > 0 ? sorted_index - 1 : 0];
+			this.selected_cue = sorted_previous ?? null;
 		},
 
 		// MARK: :track methods
@@ -304,8 +307,12 @@ const reactive_state = {
 			this.edit_mode = 'NONE';
 
 			const tracks = this.project_state.tracks;
-			tracks.splice(tracks.indexOf(this.selected_track), 1);
-			this.selected_track = null;
+
+			const track_index = tracks.indexOf(this.selected_track);
+			tracks.splice(track_index, 1);
+			
+			const previous_track = tracks[track_index > 0 ? track_index - 1 : 0];
+			this.selected_track = previous_track ?? null;
 		},
 
 		track_move_down() {
