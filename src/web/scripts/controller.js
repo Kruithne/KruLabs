@@ -57,6 +57,7 @@ const reactive_state = {
 			playback_live: false,
 			playback_last_update: 0,
 			playback_time: 0,
+			playback_track_denominator: 0,
 
 			local_time: Date.now(),
 			
@@ -69,6 +70,7 @@ const reactive_state = {
 		}
 	},
 
+	// MARK: :watch
 	watch: {
 		nav_page(new_page) {
 			this.edit_mode = 'NONE';
@@ -81,6 +83,15 @@ const reactive_state = {
 			this.selected_cue = null;
 			this.playback_live = false;
 			this.playback_time = 0;
+
+			this.calculate_track_denominator();
+		},
+
+		'project_state.tracks': {
+			deep: true,
+			handler() {
+				this.calculate_track_denominator();
+			}
 		},
 
 		config: {
@@ -91,6 +102,7 @@ const reactive_state = {
 		},
 	},
 	
+	// MARK: :computed
 	computed: {
 		socket_state_text() {
 			if (this.socket_state === socket.SOCKET_STATE_DISCONNECTED)
@@ -133,10 +145,11 @@ const reactive_state = {
 		},
 
 		playback_total_remaining() {
-			return 0;
+			return format_timespan_ms(this.selected_track ? this.playback_track_denominator - this.playback_time : 0);
 		},
 	},
 	
+	// MARK: :methods
 	methods: {
 		modal_confirm() {
 			this.modal_is_active = false;
@@ -392,6 +405,20 @@ const reactive_state = {
 				}
 			}
 			requestAnimationFrame(ts => this.playback_update(ts));
+		},
+
+		calculate_track_denominator() {
+			let total = 0;
+
+			if (this.selected_track) {
+				const tracks = this.project_state.tracks;
+				const track_index = tracks.indexOf(this.selected_track);
+
+				for (let i = track_index, n = tracks.length; i < n; i++)
+					total += tracks[i].duration;
+			}
+
+			this.playback_track_denominator = total;
 		},
 
 		// MARK: :config methods
