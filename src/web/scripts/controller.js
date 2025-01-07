@@ -379,7 +379,7 @@ function move_element(arr, elem, direction) {
 // MARK: :timeinput
 const timeinput_component = {
 	props: {
-		value: String,
+		value: [String, Number],
 		includeMs: Boolean
 	},
 
