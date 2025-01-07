@@ -162,6 +162,18 @@
 						<template v-else-if="nav_page === 'zones'">
 							ZONES PANEL
 						</template>
+						<template v-else-if="nav_page === 'config'">
+							<div id="config-panel" class="form">
+								<label class="inline">
+									<input type="checkbox" v-model="config.confirm_track_deletion"/>
+									Require confirmation when deleting tracks?
+								</label>
+								<label class="inline">
+									<input type="checkbox" v-model="config.confirm_cue_deletion"/>
+									Require confirmation when deleting cues?
+								</label>
+							</div>
+						</template>
 					</div>
 					<div id="main-grid-status">
 						<div id="main-grid-status-socket-state">{{ socket_state_text }}</div>

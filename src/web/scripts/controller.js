@@ -4,7 +4,9 @@ import { PACKET } from './packet.js';
 
 // MARK: :constants
 const PROJECT_MANAGEMENT_TIMEOUT = 10000;
+
 const LSK_LAST_PROJECT_ID = 'last_project_id';
+const LSK_SYS_CONFIG = 'system_config';
 
 // MARK: :state
 let modal_confirm_resolver = null;
@@ -13,7 +15,7 @@ let app_state = null;
 const reactive_state = {
 	data() {
 		return {
-			nav_pages: ['project', 'cues', 'zones'],
+			nav_pages: ['project', 'cues', 'zones', 'config'],
 			nav_page: '',
 			
 			socket_state: 0x0,
@@ -21,6 +23,11 @@ const reactive_state = {
 			project_last_save_hash: 0,
 			selected_project_id: null,
 			available_projects: [],
+
+			config: {
+				confirm_track_deletion: true,
+				confirm_cue_deletion: true
+			},
 			
 			project_state: {
 				name: 'Untitled Project',
@@ -76,7 +83,14 @@ const reactive_state = {
 
 		selected_track() {
 			this.selected_cue = null;
-		}
+		},
+
+		config: {
+			deep: true,
+			handler(new_config) {
+				this.save_config(new_config);
+			}
+		},
 	},
 	
 	computed: {
@@ -260,13 +274,11 @@ const reactive_state = {
 			if (cue === null || track === null)
 				return;
 
-			const user_confirm = await show_confirm_modal(
-				'CONFIRM CUE DELETE',
-				`Are you sure you wish to delete cue "${cue.name}" from "${track.name}"? This action cannot be reversed.`
-			);
-
-			if (!user_confirm)
-				return;
+			if (this.config.confirm_cue_deletion) {
+				const user_confirm = await show_confirm_modal('CONFIRM CUE DELETE', `Are you sure you wish to delete cue "${cue.name}" from "${track.name}"? This action cannot be reversed.`);
+				if (!user_confirm)
+					return;
+			}
 
 			this.edit_mode = 'NONE';
 
@@ -300,9 +312,11 @@ const reactive_state = {
 			if (this.selected_track === null)
 				return;
 
-			const user_confirm = await show_confirm_modal('CONFIRM TRACK DELETE', 'Are you sure you wish to delete the track "' + this.selected_track.name + '"? This action cannot be reversed.');
-			if (!user_confirm)
-				return;
+			if (this.config.confirm_track_deletion) {
+				const user_confirm = await show_confirm_modal('CONFIRM TRACK DELETE', 'Are you sure you wish to delete the track "' + this.selected_track.name + '"? This action cannot be reversed.');
+				if (!user_confirm)
+					return;
+			}
 
 			this.edit_mode = 'NONE';
 
@@ -327,6 +341,17 @@ const reactive_state = {
 				return;
 
 			move_element(this.project_state.tracks, this.selected_track, -1);
+		},
+
+		// MARK: :config methods
+		save_config(config) {
+			localStorage.setItem(LSK_SYS_CONFIG, JSON.stringify(config));
+		},
+
+		load_config() {
+			const config = localStorage.getItem(LSK_SYS_CONFIG);
+			if (config)
+				this.config = JSON.parse(config);
 		}
 	}
 };
@@ -562,6 +587,7 @@ const listbox_component = {
 
 	setInterval(() => app_state.local_time = Date.now(), 1000);
 
+	app_state.load_config();
 	app_state.update_project_hash();
 	
 	socket.on('statechange', state => app_state.socket_state = state);
