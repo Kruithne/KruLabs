@@ -147,30 +147,33 @@ function remove_listeners(ws: ClientSocket) {
 	log_verbose(`Removed {${removed}} listeners from client {${ws.data.sck_id}}`);
 }
 
-function send_packet(ws: PacketTarget|null, packet_id: number, packet_type: number, data: PacketDataType) {
+function send_packet(ws: PacketTarget|null, packet_id: number, packet_type: number, data: PacketDataType, originator: ClientSocket|null) {
 	const packet = build_packet(packet_id, packet_type, data);
 	const targets = ws === null ? get_listening_clients(packet_id) : Array.isArray(ws) ? ws : [ws];
 	
 	for (const socket of targets) {
+		if (socket === originator)
+			continue;
+
 		socket.sendBinary(packet);
 		log_verbose(`SEND {${get_packet_name(packet_id)}} [{${packet_id}}] to {${socket.data.sck_id}} size {${format_file_size(packet.byteLength)}}`, PREFIX_WEBSOCKET);
 	}
 }
 
-function send_string(packet_id: number, str: string, ws: PacketTarget|null = null) {
-	send_packet(ws, packet_id, PACKET_TYPE.STRING, str);
+function send_string(packet_id: number, str: string, ws: PacketTarget|null = null, originator: ClientSocket|null = null) {
+	send_packet(ws, packet_id, PACKET_TYPE.STRING, str, originator);
 }
 
-function send_object(packet_id: number, obj: object, ws: PacketTarget|null = null) {
-	send_packet(ws, packet_id, PACKET_TYPE.OBJECT, obj);
+function send_object(packet_id: number, obj: object, ws: PacketTarget|null = null, originator: ClientSocket|null = null) {
+	send_packet(ws, packet_id, PACKET_TYPE.OBJECT, obj, originator);
 }
 
-function send_binary( packet_id: number, data: ArrayBuffer, ws: PacketTarget|null = null) {
-	send_packet(ws, packet_id, PACKET_TYPE.BINARY, data);
+function send_binary( packet_id: number, data: ArrayBuffer, ws: PacketTarget|null = null, originator: ClientSocket|null = null) {
+	send_packet(ws, packet_id, PACKET_TYPE.BINARY, data, originator);
 }
 
-function send_empty(packet_id: number, ws: PacketTarget|null = null) {
-	send_packet(ws, packet_id, PACKET_TYPE.NONE, null);
+function send_empty(packet_id: number, ws: PacketTarget|null = null, originator: ClientSocket|null = null) {
+	send_packet(ws, packet_id, PACKET_TYPE.NONE, null, originator);
 }
 
 function get_listening_clients(packet_id: number) {
@@ -192,7 +195,7 @@ function generate_socket_id() {
 	return 'SCK-' + (next_client_id++);
 }
 
-async function handle_packet(ws: ClientSocket, packet_id: number, packet_data: any) {
+async function handle_packet(ws: ClientSocket, packet_id: number, packet_data: any, packet_type: number) {
 	if (packet_id === PACKET.REQ_REGISTER) {
 		const packets = validate_typed_array<number>(packet_data?.packets, TYPE_NUMBER, 'packets');
 		register_packet_listener(ws, packets);
@@ -251,6 +254,17 @@ async function handle_packet(ws: ClientSocket, packet_id: number, packet_data: a
 		}
 
 		send_object(PACKET.ACK_PROJECT_LIST, { projects: project_list });
+	} else {
+		// dispatch all other packets to listeners
+		const listeners = get_listening_clients(packet_id);
+		if (packet_type === PACKET_TYPE.NONE)
+			send_empty(packet_id, listeners, ws);
+		else if (packet_type === PACKET_TYPE.BINARY)
+			send_binary(packet_id, packet_data, listeners, ws);
+		else if (packet_type === PACKET_TYPE.STRING)
+			send_string(packet_id, packet_data, listeners, ws);
+		else if (packet_type === PACKET_TYPE.OBJECT)
+			send_object(packet_id, packet_data, listeners, ws);
 	}
 }
 
@@ -264,7 +278,7 @@ const websocket_handlers: WebSocketHandler<ClientSocketData> = {
 			if (!(message instanceof ArrayBuffer))
 				throw new Error('Socket sent non-binary payload');
 
-			const packet = parse_packet(message) as Packet;
+			const [packet, packet_type] = parse_packet(message) as [Packet, number];
 			const packet_id = packet.id;
 			const packet_name = get_packet_name(packet_id);
 
@@ -272,7 +286,7 @@ const websocket_handlers: WebSocketHandler<ClientSocketData> = {
 				throw new Error('Unknown packet ID ' + packet_id);
 
 			log_verbose(`RECV {${packet_name}} [{${packet_id}}] from {${ws.data.sck_id}}`, PREFIX_WEBSOCKET);
-			await handle_packet(ws, packet_id, packet.data);
+			await handle_packet(ws, packet_id, packet.data, packet_type);
 		} catch (e) {
 			const err = e as Error;
 			log_warn(`${err.name} processing ${packet_name} [${packet_id}] from ${ws.data.sck_id}: ${err.message}`);

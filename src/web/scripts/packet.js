@@ -25,6 +25,9 @@ export const PACKET = {
 
 	/** [SERVER -> CLIENT] Response to REQ_PROJECT_LIST containing available projects. */
 	ACK_PROJECT_LIST: 0x8,
+
+	/** [CLIENT -> ALL] Contains updated zone configuration. */
+	ZONES_UPDATED: 0x9,
 };
 
 export const PACKET_UNK = 'UNKNOWN';
@@ -98,5 +101,5 @@ export function parse_packet(buffer) {
 	else
 		parsed.data = data;
 		
-	return parsed;
+	return [parsed, packet_type];
  }

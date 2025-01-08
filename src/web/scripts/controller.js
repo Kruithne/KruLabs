@@ -131,6 +131,13 @@ const reactive_state = {
 			}
 		},
 
+		'project_state.zones': {
+			deep: true,
+			handler() {
+				this.dispatch_zone_updates();
+			}
+		},
+
 		config: {
 			deep: true,
 			handler(new_config) {
@@ -354,6 +361,19 @@ const reactive_state = {
 
 			move_element(this.project_state.zones, this.selected_zone, -1);
 			// todo: sync zone order with clients.
+		},
+
+		dispatch_zone_updates() {
+			const payload = {};
+
+			for (const zone of this.project_state.zones) {
+				payload[zone.id] = {
+					accessor_id: zone.accessor_id,
+					corners: zone.corners
+				};
+			}
+			
+			socket.send_object(PACKET.ZONES_UPDATED, payload);
 		},
 
 		// MARK: :cue methods

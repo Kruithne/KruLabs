@@ -77,33 +77,25 @@ function update_zones(new_zones) {
 	}
 }
 
+function handle_window_resize() {
+	const aspect_ratio = window.innerWidth / window.innerHeight;
+	camera.left = -2 * aspect_ratio;
+	camera.right = 2 * aspect_ratio;
+	camera.updateProjectionMatrix();
+	renderer.setSize(window.innerWidth, window.innerHeight);
+	update_all_planes();
+}
+
 // MARK: :init
 (async () => {
 	if (document.readyState === 'loading')
 		await new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve), { once: true });
 
 	document.body.appendChild(renderer.domElement);
+	window.addEventListener('resize', handle_window_resize);
 
-	update_zones({ 'foo': {
-		accessor_id: 5,
-		corners: [
-			{x: 0.1, y: 0.1},
-			{x: 0.9, y: 0.1},
-			{x: 0.9, y: 0.9},
-			{x: 0.1, y: 0.9}
-		]
-	}});
-
-	window.addEventListener('resize', () => {
-		const aspect_ratio = window.innerWidth / window.innerHeight;
-		camera.left = -2 * aspect_ratio;
-		camera.right = 2 * aspect_ratio;
-		camera.updateProjectionMatrix();
-		renderer.setSize(window.innerWidth, window.innerHeight);
-		update_all_planes();
-	});
-
-	animate();
-
+	socket.on(PACKET.ZONES_UPDATED, update_zones);
 	socket.init();
+	
+	animate();
 })();

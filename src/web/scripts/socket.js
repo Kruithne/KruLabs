@@ -172,7 +172,7 @@ async function handle_socket_message(event) {
 	if (data instanceof Blob)
 		data = await data.arrayBuffer();
 
-	const packet = parse_packet(data);
+	const [packet, packet_type] = parse_packet(data);
 
 	emit(packet.id, packet.data);
 	emit('*', packet.data);
