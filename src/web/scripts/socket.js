@@ -156,9 +156,6 @@ function process_dispatch() {
 function set_socket_state(state) {
 	socket_state = state;
 	emit('statechange', state);
-
-	if (state === SOCKET_STATE_CONNECTED)
-		emit('connected');
 }
 
 function handle_socket_close() {

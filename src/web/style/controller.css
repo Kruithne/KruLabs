@@ -155,7 +155,7 @@ input[type="button"].enabled {
 	color: var(--invert-color);
 }
 
-input[type="text"] {
+input[type="text"], input[type="number"] {
 	padding: 5px;
 	border: 1px solid var(--primary-color);
 	background: var(--primary-color);
@@ -163,19 +163,19 @@ input[type="text"] {
 	width: 100%;
 }
 
-input[type="text"]:focus:not([readonly]) {
+input[type="text"]:focus:not([readonly]), input[type="number"]:focus:not([readonly]) {
 	border-style: dashed;
 	color: var(--primary-color);
 	background: transparent;
 }
 
-input[type="text"][readonly] {
+input[type="text"][readonly], input[type="number"][readonly] {
 	cursor: default;
 }
 
 input[type="checkbox"] {
 	position: relative;
-	background: var(--invert-color);
+	background-color: var(--invert-color);
 	accent-color: var(--primary-color);
 	border: 1px solid var(--primary-color);
 	appearance: none;
@@ -184,7 +184,8 @@ input[type="checkbox"] {
 }
 
 input[type="checkbox"]:checked {
-	background: var(--primary-color);
+	background-color: var(--active-color);
+	border-color: var(--active-color);
 }
 
 /*
@@ -330,6 +331,10 @@ input[type="checkbox"]:checked {
 
 .panel-split-alt {
 	grid-template-rows: 1fr auto;
+}
+
+.panel-split-compact {
+	grid-template-columns: auto 1fr;
 }
 
 /*

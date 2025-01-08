@@ -180,7 +180,51 @@
 							</div>
 						</template>
 						<template v-else-if="nav_page === 'zones'">
-							ZONES PANEL
+							<div class="panel-split panel-split-compact">
+								<div>
+									<listbox-component :items="project_state.zones">
+										<template v-slot="{ item, index }">
+											<div :class="{ selected: selected_zone === item }" @click="selected_zone = item">
+												<span>{{ format_index(index) }} {{ item.name }} [{{ item.accessor_id }}]</span>
+												<span><input type="checkbox" v-model="item.visible"/></span>
+											</div>
+										</template>
+									</listbox-component>
+									<div class="spacer"></div>
+									<div class="button-tray">
+										<input type="button" value="ADD" @click="zone_add"/>
+										<input type="button" value="EDIT" @click="edit_mode = 'ZONE'"/>
+										<input type="button" value="DELETE" @click="zone_delete"/>
+										<input type="button" value="UP" @click="zone_move_up"/>
+										<input type="button" value="DOWN" @click="zone_move_down"/>
+									</div>
+								</div>
+								<div>
+									<template v-if="edit_mode === 'ZONE' && selected_zone">
+										<div class="form">
+											<label>
+												CUE NAME:
+												<input type="text" v-model="selected_zone.name"/>
+											</label>
+											<label>
+												ACCESSOR ID:
+												<input type="number" v-model="selected_zone.accessor_id"/>
+											</label>
+											<label class="inline">
+												<input type="checkbox" v-model="selected_zone.visible"/>
+												VISIBLE
+											</label>
+											<div class="spacer"></div>
+											<div class="button-tray">
+												<input type="button" value="RETURN TO ZONE EDITOR" @click="edit_mode = 'NONE'"/>
+											</div>
+										</div>
+									</template>
+									<template v-else>
+										Hello from the other side.
+									</template>
+								</div>
+							</div>
 						</template>
 						<template v-else-if="nav_page === 'config'">
 							<div id="config-panel" class="form">
@@ -191,6 +235,10 @@
 								<label class="inline">
 									<input type="checkbox" v-model="config.confirm_cue_deletion"/>
 									Require confirmation when deleting cues?
+								</label>
+								<label class="inline">
+									<input type="checkbox" v-model="config.confirm_zone_deletion"/>
+									Require confirmation when deleting zones?
 								</label>
 							</div>
 						</template>

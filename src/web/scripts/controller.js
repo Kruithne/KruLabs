@@ -8,6 +8,57 @@ const PROJECT_MANAGEMENT_TIMEOUT = 10000;
 const LSK_LAST_PROJECT_ID = 'last_project_id';
 const LSK_SYS_CONFIG = 'system_config';
 
+const DEFAULT_PROJECT_STATE = {
+	name: 'Untitled Project',
+	tracks: [
+		{
+			name: 'Test Track',
+			duration: 5634834,
+			cues: [
+				{
+					name: 'Test Cue 1',
+					time: 1000
+				},
+				{
+					name: 'Test Cue 2',
+					time: 40000
+				}
+			]
+		}
+	],
+	zones: [
+		{
+			id: '876bd344-e07c-449f-b593-13a64d2bc913',
+			name: 'Test Zone',
+			accessor_id: 0,
+			visible: true
+		},
+		{
+			id: 'cac2340f-3b01-4cfe-adce-c735338f4ca4',
+			name: 'Test Zone 2',
+			accessor_id: 1,
+			visible: false
+		}
+	]
+};
+
+const DEFAULT_CUE = {
+	name: 'New Cue',
+	time: 10000 // todo: replace with current track time
+};
+
+const DEFAULT_TRACK = {
+	name: 'New Track',
+	duration: 1000
+};
+
+const DEFAULT_ZONE = {
+	id: '',
+	name: 'Zone',
+	accessor_id: 0,
+	visible: true
+};
+
 // MARK: :state
 let modal_confirm_resolver = null;
 let app_state = null;
@@ -26,31 +77,15 @@ const reactive_state = {
 
 			config: {
 				confirm_track_deletion: true,
-				confirm_cue_deletion: true
+				confirm_cue_deletion: true,
+				confirm_zone_deletion: true,
 			},
 			
-			project_state: {
-				name: 'Untitled Project',
-				tracks: [
-					{
-						name: 'Test Track',
-						duration: 5634834,
-						cues: [
-							{
-								name: 'Test Cue 1',
-								time: 1000
-							},
-							{
-								name: 'Test Cue 2',
-								time: 40000
-							}
-						]
-					}
-				]
-			},
+			project_state: structuredClone(DEFAULT_PROJECT_STATE),
 
 			selected_track: null,
 			selected_cue: null,
+			selected_zone: null,
 
 			edit_mode: 'NONE', // NONE | TRACK | CUE
 
@@ -200,18 +235,6 @@ const reactive_state = {
 			this.project_last_save_hash = hash_object(this.project_state);
 		},
 
-		local_save_project_id() {
-			localStorage.setItem(LSK_LAST_PROJECT_ID, this.selected_project_id);
-		},
-
-		local_load_project_id() {
-			const project_id = localStorage.getItem(LSK_LAST_PROJECT_ID);
-			if (project_id !== null) {
-				this.selected_project_id = project_id;
-				this.load_selected_project();
-			}
-		},
-
 		set_project_state(state) {
 			this.selected_track = null;
 			this.project_state = state;
@@ -237,7 +260,6 @@ const reactive_state = {
 			if (res.success) {
 				this.set_project_state(res.state);
 				this.update_project_hash();
-				this.local_save_project_id();
 			} else {
 				show_info_modal('CANNOT LOAD PROJECT', 'The system was unable to load the specified project.');
 			}
@@ -254,7 +276,6 @@ const reactive_state = {
 			if (res.success) {
 				this.selected_project_id = res.id;
 				this.update_project_hash();
-				this.local_save_project_id();
 
 				socket.send_empty(PACKET.REQ_PROJECT_LIST);
 			} else {
@@ -294,6 +315,52 @@ const reactive_state = {
 			}
 		},
 
+		// MARK: :zone methods
+		zone_add() {
+			const new_zone = structuredClone(DEFAULT_ZONE);
+			new_zone.id = crypto.randomUUID();
+
+			this.project_state.zones.unshift(new_zone);
+
+			this.edit_mode = 'ZONE';
+		},
+
+		async zone_delete() {
+			const zone = this.selected_zone;
+			if (zone === null)
+				return;
+
+			if (this.config.confirm_zone_deletion) {
+				const user_confirm = await show_confirm_modal('CONFIRM ZONE DELETE', `Are you sure you wish to delete cue "${zone.name}"? This action cannot be reversed.`);
+				if (!user_confirm)
+					return;
+			}
+
+			// todo: sync zone deletion with clients
+
+			const zones = this.project_state.zones;
+			const zone_index = zones.indexOf(zone);
+			zones.splice(zone_index, 1);
+
+			this.selected_zone = zones[zone_index > 0 ? zone_index - 1 : 0] ?? null;
+		},
+
+		zone_move_down() {
+			if (this.selected_zone === null)
+				return;
+
+			move_element(this.project_state.zones, this.selected_zone, 1);
+			// todo: sync zone order with clients.
+		},
+
+		zone_move_up() {
+			if (this.selected_zone === null)
+				return;
+
+			move_element(this.project_state.zones, this.selected_zone, -1);
+			// todo: sync zone order with clients.
+		},
+
 		// MARK: :cue methods
 		cue_goto() {
 			if (!this.selected_track || !this.selected_cue)
@@ -307,10 +374,7 @@ const reactive_state = {
 			if (track === null)
 				return;
 
-			const new_cue = {
-				name: 'New Cue',
-				time: 10000 // todo: replace with current track time
-			};
+			const new_cue = structuredClone(DEFAULT_CUE);
 
 			track.cues.push(new_cue);
 			this.selected_cue = new_cue;
@@ -342,11 +406,7 @@ const reactive_state = {
 
 		// MARK: :track methods
 		track_add() {
-			const new_track = {
-				name: 'New Track',
-				duration: 1000
-			};
-
+			const new_track = structuredClone(DEFAULT_TRACK);
 			const tracks = this.project_state.tracks;
 
 			let new_index = tracks.length;
@@ -696,7 +756,6 @@ const listbox_component = {
 	
 	socket.on('statechange', state => app_state.socket_state = state);
 	socket.on(PACKET.ACK_PROJECT_LIST, data => app_state.available_projects = data.projects);
-	socket.once('connected', () => app_state.local_load_project_id());
 
 	socket.init();
 })();
