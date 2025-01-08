@@ -321,7 +321,8 @@ const reactive_state = {
 			new_zone.id = crypto.randomUUID();
 
 			this.project_state.zones.unshift(new_zone);
-
+			this.selected_zone = new_zone;
+			
 			this.edit_mode = 'ZONE';
 		},
 
