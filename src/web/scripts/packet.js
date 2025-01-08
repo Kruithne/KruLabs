@@ -28,6 +28,9 @@ export const PACKET = {
 
 	/** [CLIENT -> ALL] Contains updated zone configuration. */
 	ZONES_UPDATED: 0x9,
+
+	/** [CLIENT -> ALL] Requests zone configuration. */
+	REQ_ZONES: 0xA,
 };
 
 export const PACKET_UNK = 'UNKNOWN';

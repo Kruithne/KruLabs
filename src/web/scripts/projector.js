@@ -96,6 +96,11 @@ function handle_window_resize() {
 
 	socket.on(PACKET.ZONES_UPDATED, update_zones);
 	socket.init();
+
+	socket.on('statechange', state => {
+		if (state === socket.SOCKET_STATE_CONNECTED)
+			socket.send_empty(PACKET.REQ_ZONES);
+	});
 	
 	animate();
 })();

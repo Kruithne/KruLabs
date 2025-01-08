@@ -1015,6 +1015,7 @@ const zone_editor_component = {
 	
 	socket.on('statechange', state => app_state.socket_state = state);
 	socket.on(PACKET.ACK_PROJECT_LIST, data => app_state.available_projects = data.projects);
+	socket.on(PACKET.REQ_ZONES, () => app_state.dispatch_zone_updates());
 
 	socket.init();
 })();
