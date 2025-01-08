@@ -757,6 +757,14 @@ const zone_editor_component = {
 					@mousedown="start_translate(selected, $event)"
 				></div>
 				<div
+					class="zone-editor-point point-rotate"
+					:style="{
+						top: compute_center(selected.corners[0].y, selected.corners[1].y) * 100 + '%',
+						left: compute_center(selected.corners[0].x, selected.corners[1].x) * 100 + '%'
+					}"
+					@mousedown="start_rotation(selected, $event)"
+				></div>
+				<div
 					class="zone-editor-point point-corner"
 					v-for="point in selected.corners"
 					:style="{
@@ -781,6 +789,50 @@ const zone_editor_component = {
 	},
 
 	methods: {
+		start_rotation(zone, event) {
+			const canvas = this.$refs.canvas;
+			const bounds = canvas.getBoundingClientRect();
+
+			const corners = zone.corners;
+			const original_corners = corners.map(p => ({ x: p.x, y: p.y }));
+
+			const start_x = event.clientX - bounds.left;
+			const start_y = event.clientY - bounds.top;
+			
+			const rotate_stop = () => document.removeEventListener('mousemove', rotate_update);
+			
+			const rotate_update = (event) => {
+				const current_x = event.clientX - bounds.left;
+				const current_y = event.clientY - bounds.top;
+		 
+				const center = {
+					x: this.compute_centroid_x(original_corners) * bounds.width,
+					y: this.compute_centroid_y(original_corners) * bounds.height
+				};
+		 
+				const origin_angle = Math.atan2(start_y - center.y, start_x - center.x);
+				const point_angle = Math.atan2(current_y - center.y, current_x - center.x);
+				
+				const rotation = point_angle - origin_angle;
+				const cos = Math.cos(rotation);
+				const sin = Math.sin(rotation);
+		 
+				for (let i = 0; i < corners.length; i++) {
+					const screen_x = original_corners[i].x * bounds.width;
+					const screen_y = original_corners[i].y * bounds.height;
+					
+					const dx = screen_x - center.x;
+					const dy = screen_y - center.y;
+					
+					corners[i].x = (center.x + dx * cos - dy * sin) / bounds.width;
+					corners[i].y = (center.y + dx * sin + dy * cos) / bounds.height;
+				}
+			};
+		 
+			document.addEventListener('mouseup', rotate_stop, { once: true });
+			document.addEventListener('mousemove', rotate_update);
+		 },
+
 		start_translate_point(point, event) {
 			const point_x_initial = point.x;
 			const point_y_initial = point.y;
@@ -858,6 +910,10 @@ const zone_editor_component = {
 
 		compute_centroid_x(points) {
 			return compute_centroid_x(points);
+		},
+
+		compute_center(a, b) {
+			return (a + b) / 2
 		}
 	}
 };

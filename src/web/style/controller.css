@@ -404,6 +404,10 @@ input[type="checkbox"]:checked {
 	background-color: var(--active-color);
 }
 
+.point-rotate {
+	background-color: var(--primary-color);
+}
+
 /*
 	MARK: :config
 */
