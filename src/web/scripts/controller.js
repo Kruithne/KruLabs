@@ -91,6 +91,7 @@ const reactive_state = {
 			playback_track_denominator: 0,
 
 			local_time: Date.now(),
+			server_addr: 'IPv4 Unknown',
 			
 			loading_message: '',
 			
@@ -1017,7 +1018,14 @@ const zone_editor_component = {
 	app_state.update_project_hash();
 	app_state.playback_update();
 	
-	socket.on('statechange', state => app_state.socket_state = state);
+	socket.on('statechange', state => {
+		app_state.socket_state = state;
+
+		if (state === socket.SOCKET_STATE_CONNECTED)
+			socket.send_empty(PACKET.REQ_SERVER_ADDR);
+	});
+
+	socket.on(PACKET.ACK_SERVER_ADDR, addr => app_state.server_addr = addr);
 	socket.on(PACKET.ACK_PROJECT_LIST, data => app_state.available_projects = data.projects);
 	socket.on(PACKET.REQ_ZONES, () => app_state.dispatch_zone_updates());
 

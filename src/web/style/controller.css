@@ -280,6 +280,10 @@ input[type="checkbox"]:checked {
 	width: 180px;
 }
 
+#main-grid-status-server-addr {
+	width: 200px;
+}
+
 #main-grid-content {
 	height: 100%;
 }

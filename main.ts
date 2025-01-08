@@ -1,6 +1,7 @@
 import package_json from './package.json';
 import node_http from 'node:http';
 import node_path from 'node:path';
+import node_os from 'node:os';
 import node_fs from 'node:fs/promises';
 import { PACKET, get_packet_name, build_packet, parse_packet, PACKET_TYPE, PACKET_UNK } from './src/web/scripts/packet.js';
 
@@ -254,6 +255,8 @@ async function handle_packet(ws: ClientSocket, packet_id: number, packet_data: a
 		}
 
 		send_object(PACKET.ACK_PROJECT_LIST, { projects: project_list });
+	} else if (packet_id === PACKET.REQ_SERVER_ADDR) {
+		send_string(PACKET.ACK_SERVER_ADDR, get_local_ipv4(), ws);
 	} else {
 		// dispatch all other packets to listeners
 		const listeners = get_listening_clients(packet_id);
@@ -417,6 +420,18 @@ function format_file_size(size: number): string {
 
  function get_project_state_file(project_id: string): string {
 	return node_path.join(PROJECT_STATE_DIRECTORY, project_id + PROJECT_STATE_EXT);
+ }
+
+ function get_local_ipv4(): string {
+	const interfaces = node_os.networkInterfaces();
+	for (const interface_name in interfaces) {
+		const interface_info = interfaces[interface_name];
+		const ipv4 = interface_info?.find(info => info.family === 'IPv4' && !info.internal && !info.address.startsWith('127.'));
+
+		if (ipv4)
+			return ipv4.address;
+	}
+	return 'IPv4 Unknown';
  }
 
 // MARK: :init

@@ -31,6 +31,12 @@ export const PACKET = {
 
 	/** [CLIENT -> ALL] Requests zone configuration. */
 	REQ_ZONES: 0xA,
+
+	/** [CLIENT -> SERVER] Request the server IPv4 address. Expects ACK_SERVER_ADDR. */
+	REQ_SERVER_ADDR: 0xB,
+
+	/** [SERVER -> CLIENT] Response to REQ_SERVER_ADDR containing the server IPv4 address. */
+	ACK_SERVER_ADDR: 0xC,
 };
 
 export const PACKET_UNK = 'UNKNOWN';
