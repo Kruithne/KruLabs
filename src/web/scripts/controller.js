@@ -50,8 +50,7 @@ const DEFAULT_ZONE = {
 		{ x: 0.8, y: 0.3 },
 		{ x: 0.7, y: 0.8 },
 		{ x: 0.1, y: 0.7 }
-	],
-	rotation: 0.7853981633974483
+	]
 };
 
 // MARK: :state
@@ -745,17 +744,28 @@ const listbox_component = {
 
 // MARK: :zone editor
 const zone_editor_component = {
-	props: ['zones'],
+	props: ['zones', 'selected'],
 	template: `
 		<div class="zone-editor">
-			<div
-				class="zone-editor-point"
-				v-for="zone in zones"
-				:style="{
-					top: (compute_centroid_y(zone.corners) * 100) + '%',
-					left: (compute_centroid_x(zone.corners) * 100) + '%'
-				}"
-			></div>
+			<template v-if="selected">
+				<div
+					class="zone-editor-point"
+					:style="{
+						top: (compute_centroid_y(selected.corners) * 100) + '%',
+						left: (compute_centroid_x(selected.corners) * 100) + '%'
+					}"
+					@mousedown="start_translate(selected, $event)"
+				></div>
+				<div
+					class="zone-editor-point point-corner"
+					v-for="point in selected.corners"
+					:style="{
+						top: (point.y * 100) + '%',
+						left: (point.x * 100) + '%'
+					}"
+					@mousedown="start_translate_point(point, $event)"
+				></div>
+			</template>
 
 			<canvas ref="canvas" width=1920 height=1080></canvas>
 		</div>`,
@@ -771,6 +781,50 @@ const zone_editor_component = {
 	},
 
 	methods: {
+		start_translate_point(point, event) {
+			const point_x_initial = point.x;
+			const point_y_initial = point.y;
+
+			const canvas = this.$refs.canvas;
+			const canvas_bounds = canvas.getBoundingClientRect();
+
+			const translate_start_x = event.clientX - canvas_bounds.left;
+			const translate_start_y = event.clientY - canvas_bounds.top;
+
+			const translate_stop = () => document.removeEventListener('mousemove', translate_update);
+			const translate_update = (event) => {
+				point.x = (((event.clientX - canvas_bounds.left) - translate_start_x) / canvas_bounds.width) + point_x_initial;
+				point.y = (((event.clientY - canvas_bounds.top) - translate_start_y) / canvas_bounds.height) + point_y_initial;
+			};
+
+			document.addEventListener('mouseup', translate_stop, { once: true });
+			document.addEventListener('mousemove', translate_update);
+		},
+
+		start_translate(zone, event) {
+			const initial_corners = JSON.parse(JSON.stringify(zone.corners));
+
+			const canvas = this.$refs.canvas;
+			const canvas_bounds = canvas.getBoundingClientRect();
+
+			const translate_start_x = event.clientX - canvas_bounds.left;
+			const translate_start_y = event.clientY - canvas_bounds.top;
+
+			const translate_stop = () => document.removeEventListener('mousemove', translate_update);
+			const translate_update = (event) => {
+				for (let i = 0; i < zone.corners.length; i++) {
+					const initial = initial_corners[i];
+					const corner = zone.corners[i];
+
+					corner.x = (((event.clientX - canvas_bounds.left) - translate_start_x) / canvas_bounds.width) + initial.x;
+					corner.y = (((event.clientY - canvas_bounds.top) - translate_start_y) / canvas_bounds.height) + initial.y;
+				}
+			};
+
+			document.addEventListener('mouseup', translate_stop, { once: true });
+			document.addEventListener('mousemove', translate_update);
+		},
+
 		render() {
 			const canvas = this.$refs.canvas;
 			const ctx = canvas.getContext('2d');
@@ -785,15 +839,6 @@ const zone_editor_component = {
 					continue;
 
 				const corners = zone.corners;
-				const rotation = zone.rotation;
-
-				const centroid_x = compute_centroid_x(corners) * width;
-				const centroid_y = compute_centroid_y(corners) * height;
-
-				ctx.save();
-				ctx.translate(centroid_x, centroid_y);
-				ctx.rotate(rotation);
-				ctx.translate(-centroid_x, -centroid_y);
 
 				ctx.beginPath();
 				ctx.moveTo(corners[0].x * width, corners[0].y * height);
@@ -804,7 +849,6 @@ const zone_editor_component = {
 				
 				ctx.fillStyle = 'red';
 				ctx.fill();
-				ctx.restore();
 			}
 		},
 
@@ -814,7 +858,7 @@ const zone_editor_component = {
 
 		compute_centroid_x(points) {
 			return compute_centroid_x(points);
-		},
+		}
 	}
 };
 

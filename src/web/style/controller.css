@@ -392,10 +392,15 @@ input[type="checkbox"]:checked {
 	width: 15px;
 	height: 15px;
 	border-radius: 15px;
-	background-color: var(--active-color);
+	background-color: var(--hover-color);
 	border: 2px solid var(--invert-color);
-	cursor: pointer;
+	cursor: all-scroll;
 	z-index: 5;
+	transform: translate(-50%, -50%);
+}
+
+.point-corner {
+	background-color: var(--active-color);
 }
 
 /*
