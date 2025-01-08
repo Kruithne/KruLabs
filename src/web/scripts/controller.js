@@ -48,10 +48,10 @@ const DEFAULT_ZONE = {
 	accessor_id: 0,
 	visible: true,
 	corners: [
-		{ x: 0.2, y: 0.2 },
-		{ x: 0.4, y: 0.2 },
-		{ x: 0.4, y: 0.4 },
-		{ x: 0.2, y: 0.4 }
+		{ x: 0.1, y: 0.1 },
+		{ x: 0.9, y: 0.1 },
+		{ x: 0.9, y: 0.9 },
+		{ x: 0.1, y: 0.9 }
 	]
 };
 
@@ -765,6 +765,14 @@ const zone_editor_component = {
 					@mousedown="start_rotation(selected, $event)"
 				></div>
 				<div
+					class="zone-editor-point point-scale"
+					:style="{
+						top: compute_center(selected.corners[1].y, selected.corners[2].y) * 100 + '%',
+						left: compute_center(selected.corners[1].x, selected.corners[2].x) * 100 + '%'
+					}"
+					@mousedown="start_scale(selected, $event)"
+				></div>
+				<div
 					class="zone-editor-point point-corner"
 					v-for="point in selected.corners"
 					:style="{
@@ -793,6 +801,45 @@ const zone_editor_component = {
 	},
 
 	methods: {
+		start_scale(zone, event) {
+			const canvas = this.$refs.canvas;
+			const bounds = canvas.getBoundingClientRect();
+			
+			const corners = zone.corners;
+			const original_corners = corners.map(p => ({ x: p.x, y: p.y }));
+
+			const center_x = this.compute_centroid_x(original_corners) * bounds.width;
+			const center_y = this.compute_centroid_y(original_corners) * bounds.height;
+			
+			const start_x = event.clientX - bounds.left;
+			const start_y = event.clientY - bounds.top;
+			const start_dist = Math.hypot(start_x - center_x, start_y - center_y);
+			
+			const scale_stop = () => document.removeEventListener('mousemove', scale_update);
+			
+			const scale_update = (event) => {
+				const current_x = event.clientX - bounds.left;
+				const current_y = event.clientY - bounds.top;
+				const current_dist = Math.hypot(current_x - center_x, current_y - center_y);
+				
+				const scale = current_dist / start_dist;
+				
+				for (let i = 0; i < corners.length; i++) {
+					const screen_x = original_corners[i].x * bounds.width;
+					const screen_y = original_corners[i].y * bounds.height;
+					
+					const dx = screen_x - center_x;
+					const dy = screen_y - center_y;
+					
+					corners[i].x = (center_x + dx * scale) / bounds.width;
+					corners[i].y = (center_y + dy * scale) / bounds.height;
+				}
+			};
+			
+			document.addEventListener('mouseup', scale_stop, { once: true });
+			document.addEventListener('mousemove', scale_update);
+		},
+
 		start_rotation(zone, event) {
 			const canvas = this.$refs.canvas;
 			const bounds = canvas.getBoundingClientRect();

@@ -4,6 +4,7 @@
 	--invert-color: #000000;
 	--alert-color: #ff2a2a;
 	--active-color: #4bf34b;
+	--tertiary-color: #800080;
 }
 
 body {
@@ -406,6 +407,10 @@ input[type="checkbox"]:checked {
 
 .point-rotate {
 	background-color: var(--primary-color);
+}
+
+.point-scale {
+	background-color: var(--tertiary-color);
 }
 
 /*
