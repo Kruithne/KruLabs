@@ -890,7 +890,8 @@ const zone_editor_component = {
 
 			ctx.clearRect(0, 0, width, height);
 
-			for (const zone of this.zones) {
+			for (let i = this.zones.length - 1; i >= 0; i--) {
+				const zone = this.zones[i];
 				const is_selected_zone = this.selected === zone;
 
 				const corners = zone.corners;
