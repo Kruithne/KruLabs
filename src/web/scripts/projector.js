@@ -1,243 +1,109 @@
 import * as socket from './socket.js';
+import { PACKET } from './packet.js';
+import * as THREE from './three.module.min.js';
 
-let first_connection = true;
-const $zone_elements = [];
-const $sync_elements = [];
+const zones = new Map();
 
-let $black_overlay = null;
-let $test_screen = null;
+const scene = new THREE.Scene();
+const renderer = new THREE.WebGLRenderer();
 
-const frame_width = 1920;
-const frame_height = 1080;
+const aspect_ratio = window.innerWidth / window.innerHeight;
+const camera = new THREE.OrthographicCamera(-2 * aspect_ratio, 2 * aspect_ratio, 2, -2, 0.1, 100);
 
-const frame_center_x = frame_width / 2;
-const frame_center_y = frame_height / 2;
+camera.position.z = 5;
 
-let has_interacted = false;
-let is_live_go = false;
-let is_fading = false;
-let fade_speed = 0.005;
-let volume = 1;
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setClearColor(0x000000);
 
-const ext_to_tag = {
-	'mp4': 'video',
-	'png': 'img',
-	'jpg': 'img'
-};
-
-function sync_loop() {
-	if (is_live_go && $sync_elements.length > 0) {
-		for (const $element of $sync_elements)
-			socket.send_packet('CMSG_LIVE_SYNC', { position: $element.currentTime * 1000 });
-	}
+function animate() {
+	requestAnimationFrame(animate);
+	renderer.render(scene, camera);
 }
 
-function update_volume() {
-	if (is_fading) {
-		if (volume <= 0) {
-			is_fading = false;
-			socket.send_packet('CMSG_LIVE_HOLD');
+function update_zone_plane(zone) {
+	const plane = zone.plane;
+	const geometry = plane.geometry;
 
-			suspend_videos();
+	const vertices = geometry.attributes.position;
+	const camera_positions = zone.corners.map(p => ({
+		x: (p.x * 2 - 1) * camera.right,
+		y: -(p.y * 2 - 1) * camera.top
+	}));
 
-			volume = 1;
+	vertices.setXY(0, camera_positions[0].x, camera_positions[0].y);
+	vertices.setXY(1, camera_positions[1].x, camera_positions[1].y);
+	vertices.setXY(2, camera_positions[3].x, camera_positions[3].y);
+	vertices.setXY(3, camera_positions[2].x, camera_positions[2].y);
+
+	vertices.needsUpdate = true;
+}
+
+function update_all_planes() {
+	for (const zone of zones.values())
+		update_zone_plane(zone);
+}
+
+function update_zones(new_zones) {
+	for (const [zone_id, zone] of Object.entries(new_zones)) {
+		const existing_zone = zones.get(zone_id);
+		if (existing_zone) {
+			existing_zone.corners = zone.corners;
+			existing_zone.accessor_id = zone.accessor_id;
+
+			update_zone_plane(existing_zone);
 		} else {
-			volume = Math.max(0, volume - fade_speed);
-		}
+			const geometry = new THREE.PlaneGeometry(2, 2);
+			const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+			const plane = new THREE.Mesh(geometry, material);
 
-		for (const $zone of $zone_elements) {
-			if ($zone.tagName.toLowerCase() === 'video')
-				$zone.volume = volume;
+			const new_zone = {
+				plane,
+				corners: zone.corners,
+				accessor_id: zone.accessor_id,
+			};
+
+			update_zone_plane(new_zone);
+			
+			scene.add(plane);
+			zones.set(zone_id, new_zone);
 		}
 	}
-}
 
-function setup_zones(zones) {
-	const $container = document.getElementById('container');
-	const $used_zones = [];
-
-	$sync_elements.length = 0;
-
-	for (const zone of zones) {
-		const zone_ext = zone.source.split('.').pop();
-		const zone_tag = ext_to_tag[zone_ext] ?? 'video';
-
-		let $zone_element = document.getElementById(zone.name);
-
-		if ($zone_element && $zone_element.tagName.toLowerCase() !== zone_tag)
-			$zone_element = undefined;
-
-		const src_path = `/sources/${zone.source}`;
-
-		if (!$zone_element) {
-			$zone_element = document.createElement(zone_tag);
-			$container.appendChild($zone_element);
-
-			$zone_element.src = src_path;
-		} else {
-			const full_src_path = window.location.origin + src_path;
-			if ($zone_element.src !== full_src_path)
-				$zone_element.src = src_path;
-		}
-
-		$used_zones.push($zone_element);
-
-		$zone_element.id = zone.name;
-		$zone_element.classList.add('zone');
-
-		const zone_width = frame_width * zone.scale_x;
-		const zone_height = frame_height * zone.scale_y;
-
-		$zone_element.style.width = zone_width + 'px';
-		$zone_element.style.height = zone_height + 'px';
-
-		const position_x = ((frame_center_x + zone.offset_x) - (zone_width / 2)) / frame_width
-		$zone_element.style.left = `${position_x * 100}%`;
-
-		const position_y = ((frame_center_y + zone.offset_y) - (zone_height / 2)) / frame_height;
-		$zone_element.style.bottom = `${position_y * 100}%`;
-
-		$zone_element.style.zIndex = zone.channel;
-		$zone_element.style.transform = `rotate(${-zone.rotation}rad)`;
-
-		if (zone_tag === 'video') {
-			$zone_element.crossorigin = 'anonymous';
-			$zone_element.loop = !!zone.loop;
-		}
-
-		$zone_element.volume = zone.volume ?? 1
-
-		if (zone.sync)
-			$sync_elements.push($zone_element);
-	}
-
-	for (const element of $zone_elements) {
-		if (!$used_zones.includes(element))
-			element.remove();
-	}
-
-	$zone_elements.length = 0;
-	$zone_elements.push(...$used_zones);
-}
-
-function suspend_videos() {
-	for (const $zone of $zone_elements) {
-		if ($zone.tagName.toLowerCase() === 'video')
-			$zone.pause();
-	}
-}
-
-function seek_sources(position) {
-	for (const $zone of $zone_elements) {
-		if ($zone.tagName.toLowerCase() === 'video') {
-			if ($zone.loop)
-				$zone.currentTime = position / 1000 % $zone.duration;
-			else
-				$zone.currentTime = position / 1000;
+	for (const [zone_id, zone] of zones) {
+		if (!(zone_id in new_zones)) {
+			scene.remove(zone.plane);
+			zones.delete(zone_id);
 		}
 	}
 }
 
-async function document_ready() {
+// MARK: :init
+(async () => {
 	if (document.readyState === 'loading')
 		await new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve), { once: true });
-}
 
-(async () => {
-	socket.register_socket_listener(handle_socket_message);
-	socket.register_connection_callback(handle_connect);
+	document.body.appendChild(renderer.domElement);
 
-	await document_ready();
-	socket.socket_init(socket.CLIENT_IDENTITY.PROJECTOR);
+	update_zones({ 'foo': {
+		accessor_id: 5,
+		corners: [
+			{x: 0.1, y: 0.1},
+			{x: 0.9, y: 0.1},
+			{x: 0.9, y: 0.9},
+			{x: 0.1, y: 0.9}
+		]
+	}});
 
-	setInterval(sync_loop, 1000);
-	setInterval(update_volume, 10);
+	window.addEventListener('resize', () => {
+		const aspect_ratio = window.innerWidth / window.innerHeight;
+		camera.left = -2 * aspect_ratio;
+		camera.right = 2 * aspect_ratio;
+		camera.updateProjectionMatrix();
+		renderer.setSize(window.innerWidth, window.innerHeight);
+		update_all_planes();
+	});
 
-	$black_overlay = document.getElementById('black-overlay');
-	$test_screen = document.getElementById('test-screen');
+	animate();
 
-	document.addEventListener('click', () => has_interacted = true, { once: true });
-
-	function handle_connect() {
-		if (first_connection) {
-			first_connection = false;
-			socket.send_packet('CMSG_GET_PROJECT_STATE');
-			socket.send_packet('CMSG_GET_ACTIVE_ZONES');
-		}
-	}
-
-	function handle_socket_message(data) {
-		if (data.op === 'SMSG_LIVE_GO') {
-			if (!has_interacted) {
-				socket.send_packet('CMSG_ABORT', { reason: 'Projection context requires initialization' });
-				return;
-			}
-
-			is_live_go = true;
-
-			for (const $zone of $zone_elements) {
-				if ($zone.tagName.toLowerCase() === 'video')
-					$zone.play();
-			}
-			return;
-		}
-
-		if (data.op === 'SMSG_LIVE_HOLD') {
-			is_live_go = false;
-
-			suspend_videos();
-			return;
-		}
-
-		if (data.op === 'SMSG_FADE_BEGIN') {
-			fade_speed = 0.005;
-			is_fading = true;
-			return;
-		}
-
-		if (data.op === 'SMSG_FADE_BEGIN_QUICK') {
-			fade_speed = 0.00875;
-			is_fading = true;
-			return;
-		}
-
-		if (data.op === 'SMSG_FADE_IN') {
-			$black_overlay.style.opacity = 0;
-			return;
-		}
-
-		if (data.op === 'SMSG_FADE_OUT') {
-			$black_overlay.style.opacity = 1;
-			return;
-		}
-
-		if (data.op === 'SMSG_LIVE_SEEK') {
-			seek_sources(data.position);
-			return;
-		}
-
-		if (data.op === 'SMSG_PROJECT_STATE') {
-			is_live_go = data.is_live_go;
-			seek_sources(data.live_position);
-		}
-
-		if (data.op === 'SMSG_SCENE_CHANGED') {
-			$test_screen.style.opacity = data.scene === 'TEST_SCREEN' ? 1 : 0;
-
-			is_live_go = false;
-			suspend_videos();
-			socket.send_packet('CMSG_GET_ACTIVE_ZONES');
-			return;
-		}
-
-		if (data.op === 'SMSG_DATA_UPDATED') {
-			socket.send_packet('CMSG_GET_ACTIVE_ZONES');
-			return;
-		}
-
-		if (data.op === 'SMSG_ACTIVE_ZONES') {
-			setup_zones(data.zones);
-			return;
-		}
-	}
+	socket.init();
 })();
