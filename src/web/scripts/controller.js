@@ -316,8 +316,6 @@ const reactive_state = {
 
 			this.project_state.zones.unshift(new_zone);
 			this.selected_zone = new_zone;
-
-			this.edit_mode = 'ZONE';
 		},
 
 		async zone_delete() {
@@ -812,7 +810,7 @@ const zone_editor_component = {
 		 
 				const origin_angle = Math.atan2(start_y - center.y, start_x - center.x);
 				const point_angle = Math.atan2(current_y - center.y, current_x - center.x);
-				
+
 				const rotation = point_angle - origin_angle;
 				const cos = Math.cos(rotation);
 				const sin = Math.sin(rotation);
