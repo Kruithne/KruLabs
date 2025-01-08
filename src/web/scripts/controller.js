@@ -319,12 +319,20 @@ const reactive_state = {
 		},
 
 		// MARK: :zone methods
-		zone_add() {
-			const new_zone = structuredClone(DEFAULT_ZONE);
+		zone_add(source = DEFAULT_ZONE) {
+			const new_zone = JSON.parse(JSON.stringify(source));
 			new_zone.id = crypto.randomUUID();
 
 			this.project_state.zones.unshift(new_zone);
 			this.selected_zone = new_zone;
+		},
+
+		zone_duplicate() {
+			const zone = this.selected_zone;
+			if (zone === null)
+				return;
+
+			this.zone_add(this.selected_zone);
 		},
 
 		async zone_delete() {
