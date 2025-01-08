@@ -385,6 +385,7 @@ input[type="checkbox"]:checked {
 
 .zone-editor {
 	position: relative;
+	overflow: hidden;
 }
 
 .zone-editor-point {
