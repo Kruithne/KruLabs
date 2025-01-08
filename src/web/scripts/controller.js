@@ -27,18 +27,6 @@ const DEFAULT_PROJECT_STATE = {
 		}
 	],
 	zones: [
-		{
-			id: '876bd344-e07c-449f-b593-13a64d2bc913',
-			name: 'Test Zone',
-			accessor_id: 0,
-			visible: true
-		},
-		{
-			id: 'cac2340f-3b01-4cfe-adce-c735338f4ca4',
-			name: 'Test Zone 2',
-			accessor_id: 1,
-			visible: false
-		}
 	]
 };
 
@@ -56,7 +44,14 @@ const DEFAULT_ZONE = {
 	id: '',
 	name: 'Zone',
 	accessor_id: 0,
-	visible: true
+	visible: true,
+	corners: [
+		{ x: 0.2, y: 0.2 },
+		{ x: 0.8, y: 0.3 },
+		{ x: 0.7, y: 0.8 },
+		{ x: 0.1, y: 0.7 }
+	],
+	rotation: 0.7853981633974483
 };
 
 // MARK: :state
@@ -322,7 +317,7 @@ const reactive_state = {
 
 			this.project_state.zones.unshift(new_zone);
 			this.selected_zone = new_zone;
-			
+
 			this.edit_mode = 'ZONE';
 		},
 
@@ -607,6 +602,14 @@ function move_element(arr, elem, direction) {
     [arr[index], arr[new_index]] = [arr[new_index], arr[index]];
 }
 
+function compute_centroid_x(points) {
+	return points.reduce((sum, p) => sum + p.x, 0) / points.length;
+}
+
+function compute_centroid_y(points) {
+	return points.reduce((sum, p) => sum + p.y, 0) / points.length;
+}
+
 // MARK: :timeinput
 const timeinput_component = {
 	props: {
@@ -740,6 +743,81 @@ const listbox_component = {
 	}
 };
 
+// MARK: :zone editor
+const zone_editor_component = {
+	props: ['zones'],
+	template: `
+		<div class="zone-editor">
+			<div
+				class="zone-editor-point"
+				v-for="zone in zones"
+				:style="{
+					top: (compute_centroid_y(zone.corners) * 100) + '%',
+					left: (compute_centroid_x(zone.corners) * 100) + '%'
+				}"
+			></div>
+
+			<canvas ref="canvas" width=1920 height=1080></canvas>
+		</div>`,
+
+	watch: {
+		zones: {
+			deep: true,
+			immediate: true,
+			handler() {
+				this.$nextTick(() => this.render());
+			}
+		}
+	},
+
+	methods: {
+		render() {
+			const canvas = this.$refs.canvas;
+			const ctx = canvas.getContext('2d');
+
+			const width = canvas.width;
+			const height = canvas.height;
+
+			ctx.clearRect(0, 0, width, height);
+
+			for (const zone of this.zones) {
+				if (!zone.visible)
+					continue;
+
+				const corners = zone.corners;
+				const rotation = zone.rotation;
+
+				const centroid_x = compute_centroid_x(corners) * width;
+				const centroid_y = compute_centroid_y(corners) * height;
+
+				ctx.save();
+				ctx.translate(centroid_x, centroid_y);
+				ctx.rotate(rotation);
+				ctx.translate(-centroid_x, -centroid_y);
+
+				ctx.beginPath();
+				ctx.moveTo(corners[0].x * width, corners[0].y * height);
+				ctx.lineTo(corners[1].x * width, corners[1].y * height);
+				ctx.lineTo(corners[2].x * width, corners[2].y * height);
+				ctx.lineTo(corners[3].x * width, corners[3].y * height);
+				ctx.closePath();
+				
+				ctx.fillStyle = 'red';
+				ctx.fill();
+				ctx.restore();
+			}
+		},
+
+		compute_centroid_y(points) {
+			return compute_centroid_y(points);
+		},
+
+		compute_centroid_x(points) {
+			return compute_centroid_x(points);
+		},
+	}
+};
+
 // MARK: :init
 (async () => {
 	await document_ready();
@@ -747,6 +825,8 @@ const listbox_component = {
 	const app = createApp(reactive_state);
 	app.component('listbox-component', listbox_component);
 	app.component('time-input', timeinput_component);
+	app.component('zone-editor', zone_editor_component);
+	
 	app_state = app.mount('#app');
 
 	setInterval(() => app_state.local_time = Date.now(), 1000);
