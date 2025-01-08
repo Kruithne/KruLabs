@@ -86,6 +86,12 @@ function handle_window_resize() {
 	update_all_planes();
 }
 
+function set_test_screen(state) {
+	const test_screen = document.getElementById('test-screen');
+	if (test_screen)
+		test_screen.style.display = state ? 'block' : 'none';
+}
+
 // MARK: :init
 (async () => {
 	if (document.readyState === 'loading')
@@ -95,12 +101,13 @@ function handle_window_resize() {
 	window.addEventListener('resize', handle_window_resize);
 
 	socket.on(PACKET.ZONES_UPDATED, update_zones);
-	socket.init();
-
+	socket.on(PACKET.SET_TEST_SCREEN, set_test_screen);
+	
 	socket.on('statechange', state => {
 		if (state === socket.SOCKET_STATE_CONNECTED)
 			socket.send_empty(PACKET.REQ_ZONES);
 	});
 	
+	socket.init();
 	animate();
 })();

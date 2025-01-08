@@ -284,6 +284,15 @@ input[type="checkbox"]:checked {
 	width: 200px;
 }
 
+#main-grid-status-test {
+	width: 170px;
+	cursor: pointer;
+}
+
+#main-grid-status-test.active {
+	color: var(--active-color);
+}
+
 #main-grid-content {
 	height: 100%;
 }

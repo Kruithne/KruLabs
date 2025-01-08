@@ -92,6 +92,8 @@ const reactive_state = {
 
 			local_time: Date.now(),
 			server_addr: 'IPv4 Unknown',
+
+			state_test_screen: false,
 			
 			loading_message: '',
 			
@@ -117,6 +119,10 @@ const reactive_state = {
 			this.playback_time = 0;
 
 			this.calculate_track_denominator();
+		},
+
+		state_test_screen(state) {
+			socket.send_object(PACKET.SET_TEST_SCREEN, state);
 		},
 
 		'project_state.tracks': {

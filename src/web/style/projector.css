@@ -29,7 +29,7 @@ canvas {
 	right: 0;
 	bottom: 0;
 	z-index: 19;
-	opacity: 0;
+	display: none;
 	background-image: url(../images/test_screen.png);
 	background-repeat: no-repeat;
 	background-size: cover;

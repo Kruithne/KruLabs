@@ -37,6 +37,9 @@ export const PACKET = {
 
 	/** [SERVER -> CLIENT] Response to REQ_SERVER_ADDR containing the server IPv4 address. */
 	ACK_SERVER_ADDR: 0xC,
+
+	/** [CLIENT -> ALL] Set test screen state (true/false). */
+	SET_TEST_SCREEN: 0xD,
 };
 
 export const PACKET_UNK = 'UNKNOWN';
