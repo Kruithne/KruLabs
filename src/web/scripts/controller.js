@@ -5,6 +5,8 @@ import { PACKET } from './packet.js';
 // MARK: :constants
 const PROJECT_MANAGEMENT_TIMEOUT = 10000;
 
+const ARRAY_EMPTY = [];
+
 const LSK_LAST_PROJECT_ID = 'last_project_id';
 const LSK_SYS_CONFIG = 'system_config';
 
@@ -783,6 +785,10 @@ const zone_editor_component = {
 			handler() {
 				this.$nextTick(() => this.render());
 			}
+		},
+
+		selected() {
+			this.render();
 		}
 	},
 
@@ -885,8 +891,7 @@ const zone_editor_component = {
 			ctx.clearRect(0, 0, width, height);
 
 			for (const zone of this.zones) {
-				if (!zone.visible)
-					continue;
+				const is_selected_zone = this.selected === zone;
 
 				const corners = zone.corners;
 
@@ -896,9 +901,16 @@ const zone_editor_component = {
 				ctx.lineTo(corners[2].x * width, corners[2].y * height);
 				ctx.lineTo(corners[3].x * width, corners[3].y * height);
 				ctx.closePath();
-				
-				ctx.fillStyle = 'red';
-				ctx.fill();
+
+				if (zone.visible) {
+					ctx.fillStyle = is_selected_zone ? '#4bf34b' : 'orange';
+					ctx.fill();
+				} else {
+					ctx.setLineDash([5, 15]);
+					ctx.strokeStyle = is_selected_zone ? 'orange' : 'grey';
+					ctx.stroke();
+					ctx.setLineDash(ARRAY_EMPTY);
+				}
 			}
 		},
 
