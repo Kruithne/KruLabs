@@ -346,8 +346,6 @@ const reactive_state = {
 					return;
 			}
 
-			// todo: sync zone deletion with clients
-
 			const zones = this.project_state.zones;
 			const zone_index = zones.indexOf(zone);
 			zones.splice(zone_index, 1);
@@ -360,7 +358,6 @@ const reactive_state = {
 				return;
 
 			move_element(this.project_state.zones, this.selected_zone, 1);
-			// todo: sync zone order with clients.
 		},
 
 		zone_move_up() {
@@ -368,7 +365,6 @@ const reactive_state = {
 				return;
 
 			move_element(this.project_state.zones, this.selected_zone, -1);
-			// todo: sync zone order with clients.
 		},
 
 		dispatch_zone_updates() {
