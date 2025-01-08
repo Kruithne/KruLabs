@@ -1,7 +1,7 @@
 :root {
-	--primary-color: orange;
-	--hover-color: white;
-	--invert-color: black;
+	--primary-color: #ffa500;
+	--hover-color: #ffffff;
+	--invert-color: #000000;
 	--alert-color: #ff2a2a;
 	--active-color: #4bf34b;
 }
