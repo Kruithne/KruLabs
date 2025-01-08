@@ -91,7 +91,7 @@ export function parse_packet(buffer) {
 	const parsed = { id: packet_id, data: null };
 	
 	if (buffer.byteLength <= 2 || packet_type === PACKET_TYPE.NONE) 
-		return parsed;
+		return [parsed, packet_type];
 
 	const data = new Uint8Array(buffer.slice(2));
 	if (packet_type === PACKET_TYPE.STRING)
