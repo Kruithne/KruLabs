@@ -14,6 +14,8 @@ const PREFIX_HTTP = 'HTTP';
 const HTTP_SERVE_DIRECTORY = './src/web';
 const MEDIA_SOURCE_DIRECTORY = './src/web/sources';
 
+const PARTIAL_DEFAULT_CHUNK = 2 * 1024 * 1024;
+
 const PROJECT_STATE_DIRECTORY = './state';
 const PROJECT_STATE_EXT = '.json';
 const PROJECT_STATE_INDEX = node_path.join(PROJECT_STATE_DIRECTORY, 'index.json');
@@ -357,7 +359,7 @@ async function http_request_handler(req: Request): Promise<Response|undefined> {
 
 		if (match !== null) {
 			const start = parseInt(match[1], 10);
-			const end = match[2] ? parseInt(match[2], 10) : file.size - 1;
+			const end = match[2] ? parseInt(match[2], 10) : Math.min(start + PARTIAL_DEFAULT_CHUNK, file.size - 1);
 			const chunk_size = (end - start) + 1;
 
 			log_verbose(`{206} Partial Content {${pathname}} ({${start}}-{${end}}/{${file.size}}) {${format_file_size(chunk_size)}}`, PREFIX_HTTP);
