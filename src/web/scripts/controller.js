@@ -1,7 +1,6 @@
 import { createApp } from './vue.js';
 import * as socket from './socket.js';
 import { PACKET } from './packet.js';
-import { CUE_EVENTS, get_cue_event_by_id } from './cue_events.js';
 
 // MARK: :constants
 const PROJECT_MANAGEMENT_TIMEOUT = 10000;
@@ -10,6 +9,32 @@ const ARRAY_EMPTY = [];
 
 const LSK_LAST_PROJECT_ID = 'last_project_id';
 const LSK_SYS_CONFIG = 'system_config';
+
+const CEV_BASIC = 0x0;
+const CEV_PLAY_AUDIO = 0x1;
+const CEV_STOP_AUDIO = 0x2;
+
+const CEV_LABELS = {
+	[CEV_BASIC]: { short: 'CUE', long: 'BASIC CUE' },
+	[CEV_PLAY_AUDIO]: { short: 'AUDIO', long: 'PLAY AUDIO TRACK' },
+	[CEV_STOP_AUDIO]: { short: 'AUDIO STOP', long: 'STOP AUDIO TRACK' }
+};
+
+const CEV_PACKETS = {
+	[CEV_PLAY_AUDIO]: PACKET.CUE_EVENT_PLAY_AUDIO,
+	[CEV_STOP_AUDIO]: PACKET.CUE_EVENT_STOP_AUDIO
+};
+
+const CEV_EVENT_META = {
+	[CEV_BASIC]: {},
+	[CEV_PLAY_AUDIO]: {
+		src: '',
+		channel: 'master',
+		volume: 1,
+		loop: false
+	},
+	[CEV_STOP_AUDIO]: {}
+};
 
 const DEFAULT_PROJECT_STATE = {
 	name: 'Untitled Project',
@@ -27,7 +52,7 @@ const DEFAULT_PROJECT_STATE = {
 const DEFAULT_CUE = {
 	name: 'New Cue',
 	time: 0,
-	event_type: CUE_EVENTS.NONE.id
+	event_type: CEV_BASIC
 };
 
 const DEFAULT_TRACK = {
@@ -99,7 +124,7 @@ const reactive_state = {
 			modal_type: 'NONE',
 			modal_is_active: false,
 
-			CUE_EVENTS
+			CEV_LABELS
 		}
 	},
 
@@ -110,7 +135,10 @@ const reactive_state = {
 			for (let i = this.last_cue_index, n = cue_stack.length; i < n; i++) {
 				const cue = cue_stack[i];
 				if (time >= cue.time) {
-					this.fire_cue_event(cue);
+					const packet_id = CEV_PACKETS[cue.event_type];
+					if (packet_id !== undefined)
+						socket.send_object(packet_id, cue.event_meta);
+					
 					this.last_cue_index++;
 				} else {
 					// cues are sorted by time, so nothing ahead should be fired
@@ -150,13 +178,8 @@ const reactive_state = {
 		'selected_cue.event_type': {
 			handler(event_type) {
 				if (this.selected_cue && this.selected_cue.event_meta?.id !== event_type) {
-					const event_type_info = get_cue_event_by_id(event_type);
-					const event_type_meta = event_type_info.default_meta;
-
-					const event_meta = object_clone(event_type_meta);
-					event_meta.id = event_type;
-
-					this.selected_cue.event_meta = event_meta;
+					this.selected_cue.event_meta = object_clone(CEV_EVENT_META[event_type]);
+					this.selected_cue.event_meta.id = event_type;
 				}
 			}
 		},
@@ -466,24 +489,6 @@ const reactive_state = {
 
 			const sorted_previous = this.cue_stack_sorted[sorted_index > 0 ? sorted_index - 1 : 0];
 			this.selected_cue = sorted_previous ?? null;
-		},
-
-		get_cue_stack_name(id) {
-			if (id === 0x0)
-				return 'CUE';
-		
-			for (const key in CUE_EVENTS) {
-				const event = CUE_EVENTS[key];
-				if (event.id === id)
-					return key;
-			}
-		},
-
-		fire_cue_event(cue) {
-			if (cue.event_type === CUE_EVENTS.PLAY_AUDIO.id)
-				socket.send_object(PACKET.CUE_EVENT_PLAY_AUDIO, cue.event_meta);
-			else if (cue.event_type === CUE_EVENTS.STOP_AUDIO.id)
-				socket.send_object(PACKET.CUE_EVENT_STOP_AUDIO, cue.event_meta);
 		},
 
 		// MARK: :track methods
