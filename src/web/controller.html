@@ -131,6 +131,12 @@
 													<input type="text" v-model="selected_cue.event_meta.target_name"/>
 												</label>
 											</template>
+											<template v-else-if="selected_cue.event_type == 0x2">
+												<label>
+													[EVENT] CHANNEL
+													<input type="text" v-model="selected_cue.event_meta.channel"/>
+												</label>
+											</template>
 											<div class="spacer"></div>
 											<div class="button-tray">
 												<input type="button" value="RETURN TO TRACKS" @click="edit_mode = 'NONE'"/>

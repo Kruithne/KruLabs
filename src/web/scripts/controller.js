@@ -11,8 +11,8 @@ const LSK_LAST_PROJECT_ID = 'last_project_id';
 const LSK_SYS_CONFIG = 'system_config';
 
 const CEV_BASIC = 0x0;
-const CEV_PLAY_AUDIO = 0x1;
-const CEV_STOP_AUDIO = 0x2;
+const CEV_PLAY_MEDIA = 0x1;
+const CEV_STOP_MEDIA = 0x2;
 const CEV_GOTO = 0x3;
 const CEV_HOLD = 0x4;
 
@@ -20,21 +20,24 @@ const CEV_LABELS = {
 	[CEV_BASIC]: { short: 'CUE', long: 'BASIC CUE' },
 	[CEV_GOTO]: { short: 'GOTO', long: 'GO TO CUE' },
 	[CEV_HOLD]: { short: 'HOLD', long: 'HOLD' },
-	[CEV_PLAY_AUDIO]: { short: 'AUDIO', long: 'PLAY AUDIO TRACK' },
-	[CEV_STOP_AUDIO]: { short: 'AUDIO STOP', long: 'STOP AUDIO TRACK' }
+	[CEV_PLAY_MEDIA]: { short: 'MEDIA', long: 'PLAY MEDIA TRACK' },
+	[CEV_STOP_MEDIA]: { short: 'MEDIA STOP', long: 'STOP MEDIA TRACK' }
 };
 
 const CEV_PACKETS = {
-	[CEV_PLAY_AUDIO]: PACKET.CUE_EVENT_PLAY_AUDIO,
-	[CEV_STOP_AUDIO]: PACKET.CUE_EVENT_STOP_AUDIO
+	[CEV_PLAY_MEDIA]: PACKET.CUE_EVENT_PLAY_MEDIA,
+	[CEV_STOP_MEDIA]: PACKET.CUE_EVENT_STOP_MEDIA
 };
 
 const CEV_EVENT_META = {
-	[CEV_PLAY_AUDIO]: {
+	[CEV_PLAY_MEDIA]: {
 		src: '',
 		channel: 'master',
 		volume: 1,
 		loop: false
+	},
+	[CEV_STOP_MEDIA]: {
+		channel: 'master'
 	},
 	[CEV_GOTO]: {
 		target_name: ''
@@ -139,6 +142,7 @@ const reactive_state = {
 		playback_time(time, prev_time) {
 			const cue_stack = this.cue_stack_sorted;
 			if (time < prev_time) {
+				console.log('REWINDING');
 				// playback time has gone backwards, rewind cue index
 				this.last_cue_index = 0;
 				for (let i = this.last_cue_index - 1; i >= 0; i--) {
@@ -152,8 +156,11 @@ const reactive_state = {
 				for (let i = this.last_cue_index, n = cue_stack.length; i < n; i++) {
 					const cue = cue_stack[i];
 					if (time >= cue.time) {
-						if (!this.playback_seeking)
+						console.log('WOULD FIRE');
+						if (!this.playback_seeking) {
+							console.log('FIRING');
 							this.fire_cue_event(cue);
+						}
 	
 						this.last_cue_index++;
 					} else {

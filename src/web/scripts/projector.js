@@ -2,6 +2,10 @@ import * as socket from './socket.js';
 import { PACKET } from './packet.js';
 import * as THREE from './three.module.min.js';
 
+// MARK: :constants
+const SOURCE_DIR = './sources/';
+
+// MARK: :zone rendering
 const zones = new Map();
 
 const scene = new THREE.Scene();
@@ -86,6 +90,7 @@ function handle_window_resize() {
 	update_all_planes();
 }
 
+// MARK: :overlays
 function set_test_screen(state) {
 	const test_screen = document.getElementById('test-screen');
 	if (test_screen)
@@ -100,6 +105,40 @@ function set_blackout_state(state, time) {
 	}
 }
 
+// MARK: :media
+const media_channels = new Map();
+function handle_play_media_event(event) {
+	media_channels.get(event.channel)?.pause();
+
+	const track = document.createElement('video');
+	track.style.display = 'none';
+	document.body.appendChild(track); 
+
+	track.src = SOURCE_DIR + event.src;
+	track.loop = event.loop;
+	track.volume = event.volume;
+
+	track.addEventListener('loadedmetadata', () => {
+		track.play();
+	});
+
+	media_channels.set(event.channel, track);
+
+	track.addEventListener('ended', () => {
+		media_channels.delete(event.channel);
+		track.remove();
+	});
+}
+
+function handle_stop_media_event(event) {
+	const track = media_channels.get(event.channel);
+	if (track) {
+		media_channels.delete(event.channel);
+		track.pause();
+		track.remove();
+	}
+}
+
 // MARK: :init
 (async () => {
 	if (document.readyState === 'loading')
@@ -111,6 +150,8 @@ function set_blackout_state(state, time) {
 	socket.on(PACKET.ZONES_UPDATED, update_zones);
 	socket.on(PACKET.SET_TEST_SCREEN, set_test_screen);
 	socket.on(PACKET.SET_BLACKOUT_STATE, data => set_blackout_state(data.state, data.time));
+	socket.on(PACKET.CUE_EVENT_PLAY_MEDIA, handle_play_media_event);
+	socket.on(PACKET.CUE_EVENT_STOP_MEDIA, handle_stop_media_event);
 	
 	socket.on('statechange', state => {
 		if (state === socket.SOCKET_STATE_CONNECTED)

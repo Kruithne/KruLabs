@@ -50,11 +50,11 @@ export const PACKET = {
 	/** [SERVER -> CLIENT] Response to REQ_SOURCE_LIST containing available source files. */
 	ACK_SOURCE_LIST: 0x10,
 
-	/** [CLIENT -> ALL] Fired when a PLAY_AUDIO cue event is triggered. */
-	CUE_EVENT_PLAY_AUDIO: 0x11,
+	/** [CLIENT -> ALL] Fired when a PLAY_MEDIA cue event is triggered. */
+	CUE_EVENT_PLAY_MEDIA: 0x11,
 
-	/** [CLIENT -> ALL] Fired when a STOP_AUDIO cue event is triggered. */
-	CUE_EVENT_STOP_AUDIO: 0x12,
+	/** [CLIENT -> ALL] Fired when a STOP_MEDIA cue event is triggered. */
+	CUE_EVENT_STOP_MEDIA: 0x12,
 };
 
 export const PACKET_UNK = 'UNKNOWN';
