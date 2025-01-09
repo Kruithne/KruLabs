@@ -108,7 +108,7 @@ function set_blackout_state(state, time) {
 // MARK: :media
 const media_channels = new Map();
 function handle_play_media_event(event) {
-	media_channels.get(event.channel)?.pause();
+	stop_media_by_channel(event.channel);
 
 	const track = document.createElement('video');
 	track.style.display = 'none';
@@ -118,24 +118,24 @@ function handle_play_media_event(event) {
 	track.loop = event.loop;
 	track.volume = event.volume;
 
-	track.addEventListener('loadedmetadata', () => {
-		track.play();
-	});
-
 	media_channels.set(event.channel, track);
 
-	track.addEventListener('ended', () => {
-		media_channels.delete(event.channel);
-		track.remove();
-	});
+	track.addEventListener('loadedmetadata', () => track.play());
+	track.addEventListener('ended', () => stop_media_by_channel(event.channel));
 }
 
 function handle_stop_media_event(event) {
-	const track = media_channels.get(event.channel);
+	stop_media_by_channel(event.channel);
+}
+
+function stop_media_by_channel(channel) {
+	const track = media_channels.get(channel);
 	if (track) {
-		media_channels.delete(event.channel);
-		track.pause();
+		if (!track.paused)
+			track.pause();
+
 		track.remove();
+		media_channels.delete(channel);
 	}
 }
 
