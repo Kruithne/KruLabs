@@ -156,6 +156,12 @@ input[type="button"].enabled {
 	color: var(--invert-color);
 }
 
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+	-webkit-appearance: none;
+	margin: 0;
+}
+
 input[type="text"], input[type="number"] {
 	padding: 5px;
 	border: 1px solid var(--primary-color);
