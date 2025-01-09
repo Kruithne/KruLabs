@@ -130,19 +130,31 @@ const reactive_state = {
 
 	// MARK: :watch
 	watch: {
-		playback_time(time) {
+		playback_time(time, prev_time) {
 			const cue_stack = this.cue_stack_sorted;
-			for (let i = this.last_cue_index, n = cue_stack.length; i < n; i++) {
-				const cue = cue_stack[i];
-				if (time >= cue.time) {
-					const packet_id = CEV_PACKETS[cue.event_type];
-					if (packet_id !== undefined)
-						socket.send_object(packet_id, cue.event_meta);
-					
-					this.last_cue_index++;
-				} else {
-					// cues are sorted by time, so nothing ahead should be fired
-					break;
+			if (time < prev_time) {
+				// playback time has gone backwards, rewind cue index
+				this.last_cue_index = 0;
+				for (let i = this.last_cue_index - 1; i >= 0; i--) {
+					const cue = cue_stack[i];
+					if (time >= cue.time) {
+						this.last_cue_index = i + 1;
+						break;
+					}
+				}
+			} else {
+				for (let i = this.last_cue_index, n = cue_stack.length; i < n; i++) {
+					const cue = cue_stack[i];
+					if (time >= cue.time) {
+						const packet_id = CEV_PACKETS[cue.event_type];
+						if (packet_id !== undefined)
+							socket.send_object(packet_id, cue.event_meta);
+	
+						this.last_cue_index++;
+					} else {
+						// cues are sorted by time, so nothing ahead should be fired
+						break;
+					}
 				}
 			}
 		},
