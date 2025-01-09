@@ -26,14 +26,12 @@ const CEV_PACKETS = {
 };
 
 const CEV_EVENT_META = {
-	[CEV_BASIC]: {},
 	[CEV_PLAY_AUDIO]: {
 		src: '',
 		channel: 'master',
 		volume: 1,
 		loop: false
-	},
-	[CEV_STOP_AUDIO]: {}
+	}
 };
 
 const DEFAULT_PROJECT_STATE = {
@@ -195,7 +193,7 @@ const reactive_state = {
 		'selected_cue.event_type': {
 			handler(event_type) {
 				if (this.selected_cue && this.selected_cue.event_meta?.id !== event_type) {
-					this.selected_cue.event_meta = object_clone(CEV_EVENT_META[event_type]);
+					this.selected_cue.event_meta = object_clone(CEV_EVENT_META[event_type]) ?? {};
 					this.selected_cue.event_meta.id = event_type;
 				}
 			}
@@ -722,6 +720,9 @@ function compute_centroid_y(points) {
 }
 
 function object_clone(obj) {
+	if (obj === undefined)
+		return undefined;
+
 	return JSON.parse(JSON.stringify(obj));
 }
 
