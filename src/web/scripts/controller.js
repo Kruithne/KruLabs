@@ -602,9 +602,10 @@ const reactive_state = {
 
 		playback_update(ts) {
 			if (this.playback_live && this.selected_track) {
-				const elapsed = ts - this.playback_last_update;
+				const now = performance.now();
+				const elapsed = performance.now() - this.playback_last_update;
 				this.playback_time += elapsed;
-				this.playback_last_update = ts;
+				this.playback_last_update = now;
 		
 				if (this.playback_time >= this.selected_track.duration) {
 					this.playback_time = this.selected_track.duration;
