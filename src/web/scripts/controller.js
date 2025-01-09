@@ -82,6 +82,7 @@ const reactive_state = {
 			playback_last_update: 0,
 			playback_time: 0,
 			playback_track_denominator: 0,
+			last_cue_index: 0,
 
 			source_list: [],
 
@@ -104,6 +105,20 @@ const reactive_state = {
 
 	// MARK: :watch
 	watch: {
+		playback_time(time) {
+			const cue_stack = this.cue_stack_sorted;
+			for (let i = this.last_cue_index, n = cue_stack.length; i < n; i++) {
+				const cue = cue_stack[i];
+				if (time >= cue.time) {
+					this.fire_cue_event(cue);
+					this.last_cue_index++;
+				} else {
+					// cues are sorted by time, so nothing ahead should be fired
+					break;
+				}
+			}
+		},
+
 		nav_page(new_page) {
 			this.edit_mode = 'NONE';
 
@@ -462,6 +477,13 @@ const reactive_state = {
 				if (event.id === id)
 					return key;
 			}
+		},
+
+		fire_cue_event(cue) {
+			if (cue.event_type === CUE_EVENTS.PLAY_AUDIO.id)
+				socket.send_object(PACKET.CUE_EVENT_PLAY_AUDIO, cue.event_meta);
+			else if (cue.event_type === CUE_EVENTS.STOP_AUDIO.id)
+				socket.send_object(PACKET.CUE_EVENT_STOP_AUDIO, cue.event_meta);
 		},
 
 		// MARK: :track methods
