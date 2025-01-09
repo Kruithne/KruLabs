@@ -34,6 +34,7 @@ const CEV_EVENT_META = {
 		src: '',
 		channel: 'master',
 		volume: 1,
+		confirm: false,
 		loop: false
 	},
 	[CEV_STOP_MEDIA]: {
@@ -116,6 +117,7 @@ const reactive_state = {
 			playback_time: 0,
 			playback_track_denominator: 0,
 			playback_seeking: false,
+			playback_confirm_media: new Set(),
 			last_cue_index: 0,
 
 			source_list: [],
@@ -521,13 +523,14 @@ const reactive_state = {
 		},
 
 		fire_cue_event(cue) {
-			const event_type = cue.event_type;
+			const { event_type, event_meta } = cue;
+
 			const packet_id = CEV_PACKETS[event_type];
 			if (packet_id !== undefined)
-				socket.send_object(packet_id, cue.event_meta);
+				socket.send_object(packet_id, event_meta);
 
 			if (event_type == CEV_GOTO) {
-				const target_cue_name = cue.event_meta.target_name;
+				const target_cue_name = event_meta.target_name;
 				const target_cue = this.cue_stack_sorted.find(e => e.name === target_cue_name);
 
 				if (target_cue) {
@@ -538,6 +541,9 @@ const reactive_state = {
 				}
 			} else if (event_type == CEV_HOLD) {
 				this.playback_hold();
+			} else if (event_type == CEV_PLAY_MEDIA) {
+				if (event_meta.confirm)
+					this.playback_confirm_media.add(event_meta.channel);
 			}
 		},
 
@@ -614,10 +620,8 @@ const reactive_state = {
 				this.playback_time += elapsed;
 				this.playback_last_update = now;
 		
-				if (this.playback_time >= this.selected_track.duration) {
-					this.playback_time = this.selected_track.duration;
+				if (this.playback_time >= this.selected_track.duration && this.playback_confirm_media.size === 0)
 					this.playback_hold();
-				}
 			}
 			requestAnimationFrame(ts => this.playback_update(ts));
 		},
@@ -1156,6 +1160,7 @@ const zone_editor_component = {
 	socket.on(PACKET.ACK_PROJECT_LIST, data => app_state.available_projects = data.projects);
 	socket.on(PACKET.REQ_ZONES, () => app_state.dispatch_zone_updates());
 	socket.on(PACKET.ACK_SOURCE_LIST, data => app_state.source_list = data);
+	socket.on(PACKET.CONFIRM_MEDIA_END, channel => app_state.playback_confirm_media.delete(channel));
 
 	socket.init();
 })();

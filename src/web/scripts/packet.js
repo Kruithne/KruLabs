@@ -55,6 +55,9 @@ export const PACKET = {
 
 	/** [CLIENT -> ALL] Fired when a STOP_MEDIA cue event is triggered. */
 	CUE_EVENT_STOP_MEDIA: 0x12,
+
+	/** [CLIENT -> ALL] Fired when media has naturally ended. */
+	CONFIRM_MEDIA_END: 0x13,
 };
 
 export const PACKET_UNK = 'UNKNOWN';

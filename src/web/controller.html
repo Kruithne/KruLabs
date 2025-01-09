@@ -124,6 +124,10 @@
 													<input type="checkbox" v-model="selected_cue.event_meta.loop"/>
 													[EVENT] LOOP TRACK
 												</label>
+												<label class="inline">
+													<input type="checkbox" v-model="selected_cue.event_meta.confirm"/>
+													[EVENT] CONFIRM PLAYBACK END
+												</label>
 											</template>
 											<template v-else-if="selected_cue.event_type == 0x3">
 												<label>
