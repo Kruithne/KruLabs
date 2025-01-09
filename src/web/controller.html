@@ -105,7 +105,7 @@
 												</select>
 											</label>
 											<!-- CUE EVENT: PLAY_AUDIO -->
-											<template v-if="selected_cue.event_type === 0x1">
+											<template v-if="selected_cue.event_type == 0x1">
 												<label>
 													[EVENT] TRACK SOURCE
 													<select v-model="selected_cue.event_meta.src">
