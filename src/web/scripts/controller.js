@@ -453,6 +453,17 @@ const reactive_state = {
 			this.selected_cue = sorted_previous ?? null;
 		},
 
+		get_cue_stack_name(id) {
+			if (id === 0x0)
+				return 'CUE';
+		
+			for (const key in CUE_EVENTS) {
+				const event = CUE_EVENTS[key];
+				if (event.id === id)
+					return key;
+			}
+		},
+
 		// MARK: :track methods
 		track_add() {
 			const new_track = structuredClone(DEFAULT_TRACK);
