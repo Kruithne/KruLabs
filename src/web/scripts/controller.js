@@ -13,9 +13,13 @@ const LSK_SYS_CONFIG = 'system_config';
 const CEV_BASIC = 0x0;
 const CEV_PLAY_AUDIO = 0x1;
 const CEV_STOP_AUDIO = 0x2;
+const CEV_GOTO = 0x3;
+const CEV_HOLD = 0x4;
 
 const CEV_LABELS = {
 	[CEV_BASIC]: { short: 'CUE', long: 'BASIC CUE' },
+	[CEV_GOTO]: { short: 'GOTO', long: 'GO TO CUE' },
+	[CEV_HOLD]: { short: 'HOLD', long: 'HOLD' },
 	[CEV_PLAY_AUDIO]: { short: 'AUDIO', long: 'PLAY AUDIO TRACK' },
 	[CEV_STOP_AUDIO]: { short: 'AUDIO STOP', long: 'STOP AUDIO TRACK' }
 };
@@ -31,6 +35,9 @@ const CEV_EVENT_META = {
 		channel: 'master',
 		volume: 1,
 		loop: false
+	},
+	[CEV_GOTO]: {
+		target_name: ''
 	}
 };
 
@@ -145,11 +152,8 @@ const reactive_state = {
 				for (let i = this.last_cue_index, n = cue_stack.length; i < n; i++) {
 					const cue = cue_stack[i];
 					if (time >= cue.time) {
-						if (!this.playback_seeking) {
-							const packet_id = CEV_PACKETS[cue.event_type];
-							if (packet_id !== undefined)
-								socket.send_object(packet_id, cue.event_meta);
-						}
+						if (!this.playback_seeking)
+							this.fire_cue_event(cue);
 	
 						this.last_cue_index++;
 					} else {
@@ -462,12 +466,12 @@ const reactive_state = {
 		},
 
 		// MARK: :cue methods
-		cue_goto() {
-			if (!this.selected_track || !this.selected_cue)
+		cue_goto(cue) {
+			if (!this.selected_track || !cue)
 				return;
 
 			this.playback_seeking = true;
-			this.playback_time = Math.min(this.selected_track.duration, this.selected_cue.time);
+			this.playback_time = Math.min(this.selected_track.duration, cue.time);
 		},
 
 		cue_add() {
@@ -505,6 +509,23 @@ const reactive_state = {
 
 			const sorted_previous = this.cue_stack_sorted[sorted_index > 0 ? sorted_index - 1 : 0];
 			this.selected_cue = sorted_previous ?? null;
+		},
+
+		fire_cue_event(cue) {
+			const event_type = cue.event_type;
+			const packet_id = CEV_PACKETS[event_type];
+			if (packet_id !== undefined)
+				socket.send_object(packet_id, cue.event_meta);
+
+			if (event_type == CEV_GOTO) {
+				const target_cue_name = cue.event_meta.target_name;
+				const target_cue = this.cue_stack_sorted.find(e => e.name === target_cue_name);
+
+				if (target_cue)
+					this.$nextTick(() => this.cue_goto(target_cue));
+			} else if (event_type == CEV_HOLD) {
+				this.playback_hold();
+			}
 		},
 
 		// MARK: :track methods
