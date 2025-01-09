@@ -77,6 +77,10 @@
 											PROJECT NAME:
 											<input type="text" v-model="project_state.name"/>
 										</label>
+										<label>
+											BLACKOUT FADE TIME (SECONDS):
+											<input type="number" v-model="project_state.blackout_time"/>
+										</label>
 									</div>
 								</div>
 							</div>
@@ -174,6 +178,7 @@
 											<input type="button" value="GO" @click="playback_go" :class="{ active: playback_live }"/>
 											<input type="button" value="HOLD" @click="playback_hold" :class="{ active: !playback_live }"/>
 											<input type="button" value="RESET" @click="playback_reset"/>
+											<input type="button" value="BLACKOUT" @click="state_blackout = !state_blackout" :class="{ active: state_blackout }"/>
 										</div>
 									</div>
 								</div>

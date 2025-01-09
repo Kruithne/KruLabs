@@ -40,6 +40,9 @@ export const PACKET = {
 
 	/** [CLIENT -> ALL] Set test screen state (true/false). */
 	SET_TEST_SCREEN: 0xD,
+
+	/** [CLIENT -> ALL] Set blackout state (true/false) with transition duration. */
+	SET_BLACKOUT_STATE: 0xE,
 };
 
 export const PACKET_UNK = 'UNKNOWN';

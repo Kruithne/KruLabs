@@ -12,6 +12,7 @@ const LSK_SYS_CONFIG = 'system_config';
 
 const DEFAULT_PROJECT_STATE = {
 	name: 'Untitled Project',
+	blackout_time: 2,
 	tracks: [
 		{
 			name: 'Test Track',
@@ -94,6 +95,7 @@ const reactive_state = {
 			server_addr: 'IPv4 Unknown',
 
 			state_test_screen: false,
+			state_blackout: false,
 			
 			loading_message: '',
 			
@@ -123,6 +125,10 @@ const reactive_state = {
 
 		state_test_screen(state) {
 			socket.send_object(PACKET.SET_TEST_SCREEN, state);
+		},
+
+		state_blackout(state) {
+			socket.send_object(PACKET.SET_BLACKOUT_STATE, { state, time: this.project_state.blackout_time });
 		},
 
 		'project_state.tracks': {

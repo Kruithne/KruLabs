@@ -92,6 +92,14 @@ function set_test_screen(state) {
 		test_screen.style.display = state ? 'block' : 'none';
 }
 
+function set_blackout_state(state, time) {
+	const blackout = document.getElementById('blackout');
+	if (blackout) {
+		blackout.style.transitionDuration = time + 's';
+		blackout.style.opacity = state ? 1 : 0;
+	}
+}
+
 // MARK: :init
 (async () => {
 	if (document.readyState === 'loading')
@@ -102,6 +110,7 @@ function set_test_screen(state) {
 
 	socket.on(PACKET.ZONES_UPDATED, update_zones);
 	socket.on(PACKET.SET_TEST_SCREEN, set_test_screen);
+	socket.on(PACKET.SET_BLACKOUT_STATE, data => set_blackout_state(data.state, data.time));
 	
 	socket.on('statechange', state => {
 		if (state === socket.SOCKET_STATE_CONNECTED)
