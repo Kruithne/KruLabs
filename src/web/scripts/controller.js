@@ -107,6 +107,7 @@ const reactive_state = {
 			playback_last_update: 0,
 			playback_time: 0,
 			playback_track_denominator: 0,
+			playback_seeking: false,
 			last_cue_index: 0,
 
 			source_list: [],
@@ -146,9 +147,11 @@ const reactive_state = {
 				for (let i = this.last_cue_index, n = cue_stack.length; i < n; i++) {
 					const cue = cue_stack[i];
 					if (time >= cue.time) {
-						const packet_id = CEV_PACKETS[cue.event_type];
-						if (packet_id !== undefined)
-							socket.send_object(packet_id, cue.event_meta);
+						if (!this.playback_seeking) {
+							const packet_id = CEV_PACKETS[cue.event_type];
+							if (packet_id !== undefined)
+								socket.send_object(packet_id, cue.event_meta);
+						}
 	
 						this.last_cue_index++;
 					} else {
@@ -156,6 +159,8 @@ const reactive_state = {
 						break;
 					}
 				}
+
+				this.playback_seeking = false;
 			}
 		},
 
@@ -463,6 +468,7 @@ const reactive_state = {
 			if (!this.selected_track || !this.selected_cue)
 				return;
 
+			this.playback_seeking = true;
 			this.playback_time = Math.min(this.selected_track.duration, this.selected_cue.time);
 		},
 
@@ -587,6 +593,8 @@ const reactive_state = {
 			if (this.selected_track) {
 				const $bar = event.target.closest('#playback-bar');
 				const factor = (event.clientX - $bar.getBoundingClientRect().left) / $bar.offsetWidth;
+
+				this.playback_seeking = true;
 				this.playback_time = this.selected_track.duration * factor;
 			}
 		},
