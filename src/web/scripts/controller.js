@@ -26,7 +26,7 @@ const DEFAULT_PROJECT_STATE = {
 
 const DEFAULT_CUE = {
 	name: 'New Cue',
-	time: 10000, // todo: replace with current track time
+	time: 0,
 	event_type: CUE_EVENTS.NONE.id
 };
 
@@ -422,6 +422,8 @@ const reactive_state = {
 				return;
 
 			const new_cue = structuredClone(DEFAULT_CUE);
+
+			new_cue.time = this.playback_time;
 
 			track.cues.push(new_cue);
 			this.selected_cue = new_cue;
