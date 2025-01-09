@@ -138,7 +138,7 @@ const reactive_state = {
 					const event_type_info = get_cue_event_by_id(event_type);
 					const event_type_meta = event_type_info.default_meta;
 
-					const event_meta = JSON.parse(JSON.stringify(event_type_meta));
+					const event_meta = object_clone(event_type_meta);
 					event_meta.id = event_type;
 
 					this.selected_cue.event_meta = event_meta;
@@ -348,7 +348,7 @@ const reactive_state = {
 
 		// MARK: :zone methods
 		zone_add(source = DEFAULT_ZONE) {
-			const new_zone = JSON.parse(JSON.stringify(source));
+			const new_zone = object_clone(source);
 			new_zone.id = crypto.randomUUID();
 
 			this.project_state.zones.unshift(new_zone);
@@ -661,6 +661,10 @@ function compute_centroid_y(points) {
 	return points.reduce((sum, p) => sum + p.y, 0) / points.length;
 }
 
+function object_clone(obj) {
+	return JSON.parse(JSON.stringify(obj));
+}
+
 // MARK: :timeinput
 const timeinput_component = {
 	props: {
@@ -957,7 +961,7 @@ const zone_editor_component = {
 		},
 
 		start_translate(zone, event) {
-			const initial_corners = JSON.parse(JSON.stringify(zone.corners));
+			const initial_corners = object_clone(zone.corners);
 
 			const canvas = this.$refs.canvas;
 			const canvas_bounds = canvas.getBoundingClientRect();
