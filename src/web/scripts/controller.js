@@ -1,6 +1,7 @@
 import { createApp } from './vue.js';
 import * as socket from './socket.js';
 import { PACKET } from './packet.js';
+import { CUE_EVENTS, get_cue_event_by_id } from './cue_events.js';
 
 // MARK: :constants
 const PROJECT_MANAGEMENT_TIMEOUT = 10000;
@@ -17,25 +18,16 @@ const DEFAULT_PROJECT_STATE = {
 		{
 			name: 'Test Track',
 			duration: 5634834,
-			cues: [
-				{
-					name: 'Test Cue 1',
-					time: 1000
-				},
-				{
-					name: 'Test Cue 2',
-					time: 40000
-				}
-			]
+			cues: []
 		}
 	],
-	zones: [
-	]
+	zones: []
 };
 
 const DEFAULT_CUE = {
 	name: 'New Cue',
-	time: 10000 // todo: replace with current track time
+	time: 10000, // todo: replace with current track time
+	event_type: CUE_EVENTS.NONE.id
 };
 
 const DEFAULT_TRACK = {
@@ -91,6 +83,8 @@ const reactive_state = {
 			playback_time: 0,
 			playback_track_denominator: 0,
 
+			source_list: [],
+
 			local_time: Date.now(),
 			server_addr: 'IPv4 Unknown',
 
@@ -103,6 +97,8 @@ const reactive_state = {
 			modal_message: '',
 			modal_type: 'NONE',
 			modal_is_active: false,
+
+			CUE_EVENTS
 		}
 	},
 
@@ -113,6 +109,11 @@ const reactive_state = {
 
 			if (new_page === 'project')
 				socket.send_empty(PACKET.REQ_PROJECT_LIST);
+		},
+
+		edit_mode(mode) {
+			if (mode === 'CUE')
+				socket.send_empty(PACKET.REQ_SOURCE_LIST);
 		},
 
 		selected_track() {
@@ -129,6 +130,20 @@ const reactive_state = {
 
 		state_blackout(state) {
 			socket.send_object(PACKET.SET_BLACKOUT_STATE, { state, time: this.project_state.blackout_time });
+		},
+
+		'selected_cue.event_type': {
+			handler(event_type) {
+				if (this.selected_cue && this.selected_cue.event_meta?.id !== event_type) {
+					const event_type_info = get_cue_event_by_id(event_type);
+					const event_type_meta = event_type_info.default_meta;
+
+					const event_meta = JSON.parse(JSON.stringify(event_type_meta));
+					event_meta.id = event_type;
+
+					this.selected_cue.event_meta = event_meta;
+				}
+			}
 		},
 
 		'project_state.tracks': {
@@ -1040,6 +1055,7 @@ const zone_editor_component = {
 	socket.on(PACKET.ACK_SERVER_ADDR, addr => app_state.server_addr = addr);
 	socket.on(PACKET.ACK_PROJECT_LIST, data => app_state.available_projects = data.projects);
 	socket.on(PACKET.REQ_ZONES, () => app_state.dispatch_zone_updates());
+	socket.on(PACKET.ACK_SOURCE_LIST, data => app_state.source_list = data);
 
 	socket.init();
 })();

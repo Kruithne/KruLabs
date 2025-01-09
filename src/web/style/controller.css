@@ -22,6 +22,10 @@ body {
 	scrollbar-color: var(--primary-color) transparent;
 }
 
+select::-webkit-scrollbar {
+	scrollbar-color: var(--primary-color) transparent;
+}
+
 /*
 	MARK: :generic
 */
@@ -193,6 +197,13 @@ input[type="checkbox"] {
 input[type="checkbox"]:checked {
 	background-color: var(--active-color);
 	border-color: var(--active-color);
+}
+
+select {
+	background-color: var(--invert-color);
+	border: 1px solid var(--primary-color);
+	color: var(--primary-color);
+	padding: 5px;
 }
 
 /*

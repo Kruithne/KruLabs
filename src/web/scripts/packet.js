@@ -43,6 +43,12 @@ export const PACKET = {
 
 	/** [CLIENT -> ALL] Set blackout state (true/false) with transition duration. */
 	SET_BLACKOUT_STATE: 0xE,
+
+	/** [CLIENT -> SERVER] Request list of available source files. Expects ACK_SOURCE_LIST. */
+	REQ_SOURCE_LIST: 0xF,
+
+	/** [SERVER -> CLIENT] Response to REQ_SOURCE_LIST containing available source files. */
+	ACK_SOURCE_LIST: 0x10,
 };
 
 export const PACKET_UNK = 'UNKNOWN';

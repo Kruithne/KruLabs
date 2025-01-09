@@ -98,6 +98,32 @@
 												CUE TIME:
 												<time-input :value="selected_cue.time" @updated="selected_cue.time = $event"></time-input>
 											</label>
+											<label>
+												CUE EVENT TYPE:
+												<select v-model="selected_cue.event_type">
+													<option v-for="event in CUE_EVENTS" :value="event.id">{{ event.name }}</option>
+												</select>
+											</label>
+											<template v-if="selected_cue.event_type === CUE_EVENTS.PLAY_AUDIO.id">
+												<label>
+													[EVENT] TRACK SOURCE
+													<select v-model="selected_cue.event_meta.src">
+														<option v-for="src in source_list" :value="src">{{ src }}</option>
+													</select>
+												</label>
+												<label>
+													[EVENT] PLAYBACK CHANNEL
+													<input type="text" v-model="selected_cue.event_meta.channel"/>
+												</label>
+												<label>
+													[EVENT] TRACK VOLUME
+													<input type="number" v-model="selected_cue.event_meta.volume"/>
+												</label>
+												<label class="inline">
+													<input type="checkbox" v-model="selected_cue.event_meta.loop"/>
+													[EVENT] LOOP TRACK
+												</label>
+											</template>
 											<div class="spacer"></div>
 											<div class="button-tray">
 												<input type="button" value="RETURN TO TRACKS" @click="edit_mode = 'NONE'"/>
