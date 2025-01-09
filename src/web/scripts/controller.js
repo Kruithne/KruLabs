@@ -521,8 +521,12 @@ const reactive_state = {
 				const target_cue_name = cue.event_meta.target_name;
 				const target_cue = this.cue_stack_sorted.find(e => e.name === target_cue_name);
 
-				if (target_cue)
+				if (target_cue) {
+					// fire_cue_event is called from the playback_time watcher which will unset
+					// playback_seeking after this execution, so we need to call cue_goto on the
+					// next tick to prevent us unsetting it prematurely
 					this.$nextTick(() => this.cue_goto(target_cue));
+				}
 			} else if (event_type == CEV_HOLD) {
 				this.playback_hold();
 			}
