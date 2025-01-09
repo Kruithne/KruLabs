@@ -294,7 +294,7 @@ const websocket_handlers: WebSocketHandler<ClientSocketData> = {
 			if (packet_name === PACKET_UNK)
 				throw new Error('Unknown packet ID ' + packet_id);
 
-			log_verbose(`RECV {${packet_name}} [{${packet_id}}] from {${ws.data.sck_id}}`, PREFIX_WEBSOCKET);
+			log_verbose(`RECV {${packet_name}} [{${packet_id}}] from {${ws.data.sck_id}} size {${format_file_size(message.byteLength)}}`, PREFIX_WEBSOCKET);
 			await handle_packet(ws, packet_id, packet.data, packet_type);
 		} catch (e) {
 			const err = e as Error;
