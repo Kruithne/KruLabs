@@ -34,11 +34,11 @@ h1 {
 	background-color: var(--primary-color);
 }
 
-.err-text {
+.text-err {
 	color: var(--alert-color);
 }
 
-.active-text {
+.text-active {
 	color: var(--active-color);
 }
 
