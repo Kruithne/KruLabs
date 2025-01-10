@@ -234,7 +234,7 @@ const reactive_state = {
 				if (this.selected_cue && this.selected_cue.event_meta?.id !== event_type) {
 					const event_meta = object_clone(CEV_EVENT_META[event_type]) ?? {};
 
-					if (typeof event_meta === TYPE_STRING)
+					if (typeof event_meta.uuid === TYPE_STRING)
 						event_meta.uuid = crypto.randomUUID();
 
 					this.selected_cue.event_meta = event_meta;
