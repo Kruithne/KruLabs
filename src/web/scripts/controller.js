@@ -270,11 +270,11 @@ const reactive_state = {
 		},
 
 		playback_remaining_time() {
-			return format_timespan_ms(this.selected_track ? this.selected_track.duration - this.playback_time : 0);
+			return format_timespan_ms(this.selected_track ? this.selected_track.duration - Math.min(this.selected_track.duration, this.playback_time) : 0);
 		},
 
 		playback_total_remaining() {
-			return format_timespan_ms(this.selected_track ? this.playback_track_denominator - this.playback_time : 0);
+			return format_timespan_ms(this.selected_track ? this.playback_track_denominator - Math.min(this.playback_track_denominator, this.playback_time) : 0);
 		},
 	},
 	
