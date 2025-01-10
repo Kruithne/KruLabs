@@ -138,7 +138,6 @@ const reactive_state = {
 		playback_time(time, prev_time) {
 			const cue_stack = this.cue_stack_sorted;
 			if (time < prev_time) {
-				console.log('REWINDING');
 				// playback time has gone backwards, rewind cue index
 				this.last_cue_index = 0;
 				for (let i = this.last_cue_index - 1; i >= 0; i--) {
@@ -152,11 +151,8 @@ const reactive_state = {
 				for (let i = this.last_cue_index, n = cue_stack.length; i < n; i++) {
 					const cue = cue_stack[i];
 					if (time >= cue.time) {
-						console.log('WOULD FIRE');
-						if (!this.playback_seeking) {
-							console.log('FIRING');
+						if (!this.playback_seeking)
 							this.fire_cue_event(cue);
-						}
 	
 						this.last_cue_index++;
 					} else {
