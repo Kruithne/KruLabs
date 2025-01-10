@@ -111,9 +111,9 @@ function set_blackout_state(state, time) {
 }
 
 // MARK: :media
-const media_channels = new Map();
+const active_media = new Map();
 
-function handle_play_media_event(event) {
+function handle_play_media_event(event, autoplay = true) {
 	stop_media_by_channel(event.channel);
 
 	const track = document.createElement('video');
@@ -124,10 +124,12 @@ function handle_play_media_event(event) {
 	track.loop = event.loop;
 	track.volume = event.volume;
 
-	const media_info = { track, uuid: event.uuid };
-	media_channels.set(event.channel, media_info);
+	const media_info = { track, event };
+	active_media.set(event.uuid, media_info);
 
-	track.addEventListener('loadedmetadata', () => track.play());
+	if (autoplay)
+		track.addEventListener('loadedmetadata', () => track.play());
+
 	track.addEventListener('ended', () => {
 		socket.send_string(PACKET.CONFIRM_MEDIA_END, event.uuid);
 		stop_media_by_channel(event.channel);
@@ -145,6 +147,8 @@ function handle_play_media_event(event) {
 				zone.plane.material = material;
 		}
 	}
+
+	return media_info;
 }
 
 function handle_media_length_event(src) {
@@ -169,14 +173,14 @@ function handle_stop_media_event(event) {
 }
 
 function stop_media_by_channel(channel) {
-	const media = media_channels.get(channel);
-	if (media) {
-		dispose_media(media);
-		media_channels.delete(channel);
+	for (const media of active_media.values()) {
+		if (media.event.channel == channel)
+			dispose_media(media);
 	}
 }
 
 function dispose_media(media) {
+	console.log('disposing of media %s', media.event.uuid);
 	if (!media.track.paused)
 		media.track.pause();
 
@@ -188,36 +192,56 @@ function dispose_media(media) {
 	
 	media.video_texture.dispose();
 	media.material.dispose();
+
+	active_media.delete(media.event.uuid);
 }
 
-function handle_playback_seek_event(delta) {
+function handle_playback_seek_event(event) {
 	// positive is forward, negative is backward seek
-	for (const media of media_channels.values()) {
-		const new_time = media.track.currentTime + (delta / 1000);
+	const disposed = new Set();
+	for (const media of active_media.values()) {
+		const new_time = media.track.currentTime + (event.delta / 1000);
 		if (new_time < 0 || new_time >= media.track.duration) {
+			disposed.add(media.event.uuid);
 			dispose_media(media);
-			socket.send_string(PACKET.CONFIRM_MEDIA_END, media.uuid);
+			socket.send_string(PACKET.CONFIRM_MEDIA_END, media.event.uuid);
 		} else {
 			media.track.currentTime = new_time;
 		}
 	}
+
+	// to handle seeking into media that is not yet started, the seek event passes us an array
+	// of media before the seek time. we start all of this media, set the relative seek time
+	// within the media, and then immediately dispose of media which is out-of-bounds.
+	for (const media of event.media) {
+		if (active_media.has(media.event.uuid) || disposed.has(media.event.uuid))
+			continue;
+
+		const media_info = handle_play_media_event(media.event, event.state);
+		const track = media_info.track;
+
+		track.addEventListener('loadedmetadata', () => {
+			if (media.time > track.duration * 1000)
+				dispose_media(media_info);
+			else
+				track.currentTime = media.time / 1000;
+		}, { once: true });
+	}
 }
 
 function handle_playback_hold_event() {
-	for (const media of media_channels.values())
+	for (const media of active_media.values())
 		media.track.pause();
 }
 
 function handle_playback_go_event() {
-	for (const media of media_channels.values())
+	for (const media of active_media.values())
 		media.track.play();
 }
 
 function handle_reset_media_event() {
-	for (const media of media_channels.values())
+	for (const media of active_media.values())
 		dispose_media(media);
-
-	media_channels.clear();
 }
 
 // MARK: :init

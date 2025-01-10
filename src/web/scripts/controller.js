@@ -148,8 +148,26 @@ const reactive_state = {
 	// MARK: :watch
 	watch: {
 		playback_time(time, prev_time) {
-			if (this.playback_seeking)
-				socket.send_object(PACKET.PLAYBACK_MEDIA_SEEK, time - prev_time);
+			if (this.playback_seeking) {
+				const media = [];
+				for (const cue of this.cue_stack_sorted) {
+					if (cue.time > time)
+						break;
+
+					if (cue.event_type == CEV_PLAY_MEDIA) {
+						media.push({
+							time: time - cue.time,
+							event: cue.event_meta
+						});
+					}
+				}
+
+				socket.send_object(PACKET.PLAYBACK_MEDIA_SEEK, {
+					delta: time - prev_time,
+					state: this.playback_live,
+					media
+				});
+			}
 			
 			const cue_stack = this.cue_stack_sorted;
 			if (time < prev_time) {
