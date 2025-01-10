@@ -8,6 +8,8 @@ const PROJECT_MANAGEMENT_TIMEOUT = 10000;
 const ARRAY_EMPTY = [];
 const NOOP = () => {};
 
+const TYPE_STRING = 'string';
+
 const LSK_LAST_PROJECT_ID = 'last_project_id';
 const LSK_SYS_CONFIG = 'system_config';
 
@@ -32,6 +34,7 @@ const CEV_PACKETS = {
 
 const CEV_EVENT_META = {
 	[CEV_PLAY_MEDIA]: {
+		uuid: '',
 		src: '',
 		channel: 'master',
 		volume: 1,
@@ -229,7 +232,12 @@ const reactive_state = {
 		'selected_cue.event_type': {
 			handler(event_type) {
 				if (this.selected_cue && this.selected_cue.event_meta?.id !== event_type) {
-					this.selected_cue.event_meta = object_clone(CEV_EVENT_META[event_type]) ?? {};
+					const event_meta = object_clone(CEV_EVENT_META[event_type]) ?? {};
+
+					if (typeof event_meta === TYPE_STRING)
+						event_meta.uuid = crypto.randomUUID();
+
+					this.selected_cue.event_meta = event_meta;
 					this.selected_cue.event_meta.id = event_type;
 				}
 			}
@@ -579,7 +587,7 @@ const reactive_state = {
 				this.playback_hold();
 			} else if (event_type == CEV_PLAY_MEDIA) {
 				if (event_meta.confirm)
-					this.playback_confirm_media.add(event_meta.channel);
+					this.playback_confirm_media.add(event_meta.uuid);
 			}
 		},
 
@@ -1255,7 +1263,7 @@ const zone_editor_component = {
 	socket.on(PACKET.ACK_PROJECT_LIST, data => app_state.available_projects = data.projects);
 	socket.on(PACKET.REQ_ZONES, () => app_state.dispatch_zone_updates());
 	socket.on(PACKET.ACK_SOURCE_LIST, data => app_state.source_list = data);
-	socket.on(PACKET.CONFIRM_MEDIA_END, channel => app_state.playback_confirm_media.delete(channel));
+	socket.on(PACKET.CONFIRM_MEDIA_END, uuid => app_state.playback_confirm_media.delete(uuid));
 	socket.on(PACKET.PROJECTOR_CLIENT_NEEDS_ACTIVATION, state => app_state.projector_client_requires_activation = state);
 
 	socket.init();

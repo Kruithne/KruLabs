@@ -114,8 +114,7 @@ function set_blackout_state(state, time) {
 const media_channels = new Map();
 
 function handle_play_media_event(event) {
-	const channel = event.channel;
-	stop_media_by_channel(channel);
+	stop_media_by_channel(event.channel);
 
 	const track = document.createElement('video');
 	track.style.display = 'none';
@@ -125,13 +124,13 @@ function handle_play_media_event(event) {
 	track.loop = event.loop;
 	track.volume = event.volume;
 
-	const media_info = { track, channel };
-	media_channels.set(channel, media_info);
+	const media_info = { track, uuid: event.uuid };
+	media_channels.set(event.channel, media_info);
 
 	track.addEventListener('loadedmetadata', () => track.play());
 	track.addEventListener('ended', () => {
-		socket.send_string(PACKET.CONFIRM_MEDIA_END, channel);
-		stop_media_by_channel(channel);
+		socket.send_string(PACKET.CONFIRM_MEDIA_END, event.uuid);
+		stop_media_by_channel(event.channel);
 	});
 
 	if (event.zone_id?.length > 0) {
@@ -197,7 +196,7 @@ function handle_playback_seek_event(delta) {
 		const new_time = media.track.currentTime + (delta / 1000);
 		if (new_time < 0 || new_time >= media.track.duration) {
 			dispose_media(media);
-			socket.send_string(PACKET.CONFIRM_MEDIA_END, media.channel);
+			socket.send_string(PACKET.CONFIRM_MEDIA_END, media.uuid);
 		} else {
 			media.track.currentTime = new_time;
 		}
