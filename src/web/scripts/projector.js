@@ -123,7 +123,7 @@ function handle_play_media_event(event) {
 	track.addEventListener('loadedmetadata', () => track.play());
 	track.addEventListener('ended', () => {
 		socket.send_string(PACKET.CONFIRM_MEDIA_END, event.channel);
-		stop_media_by_channel(event.channel)
+		stop_media_by_channel(event.channel);
 	});
 }
 
