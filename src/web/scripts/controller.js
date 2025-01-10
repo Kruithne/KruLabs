@@ -6,6 +6,7 @@ import { PACKET } from './packet.js';
 const PROJECT_MANAGEMENT_TIMEOUT = 10000;
 
 const ARRAY_EMPTY = [];
+const NOOP = () => {};
 
 const LSK_LAST_PROJECT_ID = 'last_project_id';
 const LSK_SYS_CONFIG = 'system_config';
@@ -367,11 +368,11 @@ const reactive_state = {
 			this.show_loading_message('LOADING PROJECT');
 
 			socket.send_object(PACKET.REQ_LOAD_PROJECT, { id: project_id });
-			const res = await socket.expect(PACKET.ACK_LOAD_PROJECT, PROJECT_MANAGEMENT_TIMEOUT);
 
+			const res = await socket.expect(PACKET.ACK_LOAD_PROJECT, PROJECT_MANAGEMENT_TIMEOUT.then(r => r).catch(NOOP));
 			this.hide_loading_message();
 
-			if (res.success) {
+			if (res?.success) {
 				this.set_project_state(res.state);
 				this.update_project_hash();
 			} else {
@@ -383,11 +384,11 @@ const reactive_state = {
 			this.show_loading_message('SAVING PROJECT');
 
 			socket.send_object(PACKET.REQ_SAVE_PROJECT, { id: project_id, state: this.project_state });
-			const res = await socket.expect(PACKET.ACK_SAVE_PROJECT, PROJECT_MANAGEMENT_TIMEOUT);
 
+			const res = await socket.expect(PACKET.ACK_SAVE_PROJECT, PROJECT_MANAGEMENT_TIMEOUT).then(r => r).catch(NOOP);
 			this.hide_loading_message();
 
-			if (res.success) {
+			if (res?.success) {
 				this.selected_project_id = res.id;
 				this.update_project_hash();
 
@@ -416,16 +417,21 @@ const reactive_state = {
 				this.show_loading_message('DELETING PROJECT');
 
 				socket.send_object(PACKET.REQ_DELETE_PROJECT, { id: project_id });
-				await socket.expect(PACKET.ACK_DELETE_PROJECT, PROJECT_MANAGEMENT_TIMEOUT);
+				
+				const success = await socket.expect(PACKET.ACK_DELETE_PROJECT, PROJECT_MANAGEMENT_TIMEOUT).then(() => true).catch(NOOP);
 
-				const local_project = localStorage.getItem(LSK_LAST_PROJECT_ID);
-				if (local_project === project_id)
-					localStorage.removeItem(LSK_LAST_PROJECT_ID);
+				if (success) {
+					const local_project = localStorage.getItem(LSK_LAST_PROJECT_ID);
+					if (local_project === project_id)
+						localStorage.removeItem(LSK_LAST_PROJECT_ID);
 
-				socket.send_empty(PACKET.REQ_PROJECT_LIST);
+					socket.send_empty(PACKET.REQ_PROJECT_LIST);
+					this.selected_project_id = null;
+				} else {
+					show_info_modal('PROJECT DELETION FAILED', 'The system was unable to delete the specified project.');
+				}
 
 				this.hide_loading_message();
-				this.selected_project_id = null;
 			}
 		},
 
