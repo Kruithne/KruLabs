@@ -195,6 +195,8 @@ const reactive_state = {
 		},
 
 		selected_track() {
+			socket.send_empty(PACKET.RESET_MEDIA);
+
 			this.selected_cue = null;
 			this.playback_hold();
 			this.playback_time = 0;

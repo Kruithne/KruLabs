@@ -72,7 +72,10 @@ export const PACKET = {
 	PLAYBACK_HOLD: 0x17,
 
 	/* [CLIENT -> ALL] Sent by controller to indicate playback has resumed. */
-	PLAYBACK_GO: 0x18
+	PLAYBACK_GO: 0x18,
+
+	/* [CLIENT -> ALL] Informs a projector client to reset media. */
+	RESET_MEDIA: 0x19,
 };
 
 export const PACKET_UNK = 'UNKNOWN';
