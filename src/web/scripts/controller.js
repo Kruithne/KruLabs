@@ -54,7 +54,7 @@ const DEFAULT_PROJECT_STATE = {
 
 const DEFAULT_CUE = {
 	name: 'New Cue',
-	time: 0,
+	time: 1,
 	event_type: CEV_BASIC
 };
 
@@ -200,6 +200,14 @@ const reactive_state = {
 					this.selected_cue.event_meta = object_clone(CEV_EVENT_META[event_type]) ?? {};
 					this.selected_cue.event_meta.id = event_type;
 				}
+			}
+		},
+
+		'selected_cue.time': {
+			handler(time) {
+				// prevent cue starting at 0ms so GOTO can seek -1ms before cue
+				if (time < 1)
+					return 1;
 			}
 		},
 
