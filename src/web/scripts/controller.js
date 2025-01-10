@@ -145,6 +145,9 @@ const reactive_state = {
 	// MARK: :watch
 	watch: {
 		playback_time(time, prev_time) {
+			if (this.playback_seeking)
+				socket.send_object(PACKET.PLAYBACK_MEDIA_SEEK, time - prev_time);
+			
 			const cue_stack = this.cue_stack_sorted;
 			if (time < prev_time) {
 				// playback time has gone backwards, rewind cue index

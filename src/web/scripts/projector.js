@@ -114,7 +114,8 @@ function set_blackout_state(state, time) {
 const media_channels = new Map();
 
 function handle_play_media_event(event) {
-	stop_media_by_channel(event.channel);
+	const channel = event.channel;
+	stop_media_by_channel(channel);
 
 	const track = document.createElement('video');
 	track.style.display = 'none';
@@ -124,13 +125,13 @@ function handle_play_media_event(event) {
 	track.loop = event.loop;
 	track.volume = event.volume;
 
-	const media_info = { track };
-	media_channels.set(event.channel, media_info);
+	const media_info = { track, channel };
+	media_channels.set(channel, media_info);
 
 	track.addEventListener('loadedmetadata', () => track.play());
 	track.addEventListener('ended', () => {
-		socket.send_string(PACKET.CONFIRM_MEDIA_END, event.channel);
-		stop_media_by_channel(event.channel);
+		socket.send_string(PACKET.CONFIRM_MEDIA_END, channel);
+		stop_media_by_channel(channel);
 	});
 
 	if (event.zone_id?.length > 0) {
@@ -190,6 +191,19 @@ function dispose_media(media) {
 	media.material.dispose();
 }
 
+function handle_playback_seek_event(delta) {
+	// positive is forward, negative is backward seek
+	for (const media of media_channels.values()) {
+		const new_time = media.track.currentTime + (delta / 1000);
+		if (new_time < 0 || new_time >= media.track.duration) {
+			dispose_media(media);
+			socket.send_string(PACKET.CONFIRM_MEDIA_END, media.channel);
+		} else {
+			media.track.currentTime = new_time;
+		}
+	}
+}
+
 function handle_playback_hold_event() {
 	for (const media of media_channels.values())
 		media.track.pause();
@@ -234,6 +248,7 @@ function handle_reset_media_event() {
 	socket.on(PACKET.PLAYBACK_GO, handle_playback_go_event);
 	socket.on(PACKET.RESET_MEDIA, handle_reset_media_event);
 	socket.on(PACKET.SET_ZONE_DEBUG_STATE, set_zone_debug_state);
+	socket.on(PACKET.PLAYBACK_MEDIA_SEEK, handle_playback_seek_event);
 	
 	let first_time = true;
 	socket.on('statechange', state => {

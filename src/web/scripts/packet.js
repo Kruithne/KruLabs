@@ -79,6 +79,9 @@ export const PACKET = {
 
 	/* [CLIENT -> ALL] Toggles zone debugging state. */
 	SET_ZONE_DEBUG_STATE: 0x1A,
+
+	/** [CLIENT -> ALL] Sent by controller to indicate playback seek. */
+	PLAYBACK_MEDIA_SEEK: 0x1B,
 };
 
 export const PACKET_UNK = 'UNKNOWN';
