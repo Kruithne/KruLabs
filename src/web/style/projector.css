@@ -1,5 +1,29 @@
 body {
-	background: black;
+	background: var(--invert-color);
+}
+
+.overlay {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background-color: rgba(0, 0, 0, 0.8);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 20;
+}
+
+.overlay > span {
+	border: 1px solid var(--primary-color);
+	background: var(--invert-color);
+	padding: 20px;
+	font-size: 1.2em;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 10px;
 }
 
 canvas {
@@ -16,7 +40,7 @@ canvas {
 	left: 0;
 	right: 0;
 	bottom: 0;
-	z-index: 20;
+	z-index: 19;
 	transition: opacity 2s;
 	opacity: 0;
 	background: black;
@@ -28,7 +52,7 @@ canvas {
 	left: 0;
 	right: 0;
 	bottom: 0;
-	z-index: 19;
+	z-index: 18;
 	display: none;
 	background-image: url(../images/test_screen.png);
 	background-repeat: no-repeat;

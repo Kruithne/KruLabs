@@ -127,6 +127,8 @@ const reactive_state = {
 			state_test_screen: false,
 			state_blackout: false,
 			
+			projector_client_requires_activation: false,
+			
 			loading_message: '',
 			
 			modal_title: '',
@@ -1239,6 +1241,7 @@ const zone_editor_component = {
 	socket.on(PACKET.REQ_ZONES, () => app_state.dispatch_zone_updates());
 	socket.on(PACKET.ACK_SOURCE_LIST, data => app_state.source_list = data);
 	socket.on(PACKET.CONFIRM_MEDIA_END, channel => app_state.playback_confirm_media.delete(channel));
+	socket.on(PACKET.PROJECTOR_CLIENT_NEEDS_ACTIVATION, state => app_state.projector_client_requires_activation = state);
 
 	socket.init();
 })();

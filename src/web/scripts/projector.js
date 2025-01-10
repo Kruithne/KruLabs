@@ -164,6 +164,15 @@ function stop_media_by_channel(channel) {
 	if (document.readyState === 'loading')
 		await new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve), { once: true });
 
+	let activator = document.getElementById('activator');
+	if (activator) {
+		activator.addEventListener('click', () => {
+			socket.send_object(PACKET.PROJECTOR_CLIENT_NEEDS_ACTIVATION, false);
+			activator.remove();
+			activator = null;
+		});
+	}
+
 	document.body.appendChild(renderer.domElement);
 	window.addEventListener('resize', handle_window_resize);
 
@@ -174,9 +183,20 @@ function stop_media_by_channel(channel) {
 	socket.on(PACKET.CUE_EVENT_STOP_MEDIA, handle_stop_media_event);
 	socket.on(PACKET.REQ_MEDIA_LENGTH, handle_media_length_event);
 	
+	let first_time = true;
 	socket.on('statechange', state => {
-		if (state === socket.SOCKET_STATE_CONNECTED)
+		if (state === socket.SOCKET_STATE_CONNECTED) {
 			socket.send_empty(PACKET.REQ_ZONES);
+
+			if (first_time) {
+				// display an activator overlay that disappears when clicking, this is visual feedback to
+				// ensure calls to HTMLMediaElement.play() will not fail due to lack of user interactivity.
+				if (activator !== null)
+					socket.send_object(PACKET.PROJECTOR_CLIENT_NEEDS_ACTIVATION, true);
+
+				first_time = false;
+			}
+		}
 	});
 	
 	socket.init();

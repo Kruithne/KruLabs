@@ -64,6 +64,9 @@ export const PACKET = {
 
 	/** [CLIENT -> ALL] Response to REQ_MEDIA_LENGTH containing media track length. */
 	ACK_MEDIA_LENGTH: 0x15,
+
+	/* [CLIENT -> ALL] Sent by projector client to request activation.  */
+	PROJECTOR_CLIENT_NEEDS_ACTIVATION: 0x16,
 };
 
 export const PACKET_UNK = 'UNKNOWN';
