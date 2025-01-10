@@ -371,7 +371,7 @@ const reactive_state = {
 
 			socket.send_object(PACKET.REQ_LOAD_PROJECT, { id: project_id });
 
-			const res = await socket.expect(PACKET.ACK_LOAD_PROJECT, PROJECT_MANAGEMENT_TIMEOUT.then(r => r).catch(NOOP));
+			const res = await socket.expect(PACKET.ACK_LOAD_PROJECT, PROJECT_MANAGEMENT_TIMEOUT).then(r => r).catch(NOOP);
 			this.hide_loading_message();
 
 			if (res?.success) {
