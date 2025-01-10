@@ -62,7 +62,7 @@ export const PACKET = {
 	/** [CLIENT -> ALL] Request length of media track. Expects ACK_MEDIA_LENGTH. */
 	REQ_MEDIA_LENGTH: 0x14,
 
-	/** [SERVER -> CLIENT] Response to REQ_MEDIA_LENGTH containing media track length. */
+	/** [CLIENT -> ALL] Response to REQ_MEDIA_LENGTH containing media track length. */
 	ACK_MEDIA_LENGTH: 0x15,
 };
 
