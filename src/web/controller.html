@@ -299,8 +299,8 @@
 						<div>{{ socket_state_text }}</div>
 						<div>{{ server_addr }}</div>
 						<div>{{ local_time_formatted }}</div>
-						<div :class="{ 'text-active': state_test_screen }" @click="state_test_screen = !state_test_screen">TEST SCREEN</div>
-						<div :class="{ 'text-active': state_zone_debug }" @click="state_zone_debug = !state_zone_debug">ZONE DEBUG</div>
+						<div class="pointer" :class="{ 'text-active': state_test_screen }" @click="state_test_screen = !state_test_screen">TEST SCREEN</div>
+						<div class="pointer" :class="{ 'text-active': state_zone_debug }" @click="state_zone_debug = !state_zone_debug">ZONE DEBUG</div>
 						<div class="text-err" v-if="projector_client_requires_activation">PROJECTOR REQUIRES ACTIVATION</div>
 					</div>
 				</div>

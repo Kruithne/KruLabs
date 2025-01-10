@@ -42,6 +42,10 @@ h1 {
 	color: var(--active-color);
 }
 
+.pointer {
+	cursor: pointer;
+}
+
 /*
 	MARK: :overlay
 */
