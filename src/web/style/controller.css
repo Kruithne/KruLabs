@@ -28,6 +28,12 @@ h1 {
 	height: 10px;
 }
 
+.gap {
+	width: 1px;
+	height: 100%;
+	background-color: var(--primary-color);
+}
+
 .err-text {
 	color: var(--alert-color);
 }
@@ -277,27 +283,12 @@ select {
 }
 
 #main-grid-status > div {
-	border-right: 1px solid var(--primary-color);
 	padding: 5px 10px;
 	display: flex;
 	justify-content: center;
 }
 
-#main-grid-status > div:last-child {
-	width: 100%;
-	border-right: none;
-}
-
-#main-grid-status-socket-state {
-	width: 180px;
-}
-
-#main-grid-status-server-addr {
-	width: 200px;
-}
-
 #main-grid-status-test {
-	width: 210px;
 	cursor: pointer;
 }
 
