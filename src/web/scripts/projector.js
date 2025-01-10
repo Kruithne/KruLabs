@@ -127,6 +127,23 @@ function handle_play_media_event(event) {
 	});
 }
 
+function handle_media_length_event(src) {
+	const track = create_media_track(src);
+	track.addEventListener('loadedmetadata', () => {
+		socket.send_object(PACKET.ACK_MEDIA_LENGTH, track.duration * 1000 ?? 0);
+		track.remove();
+	});
+}
+
+function create_media_track(src) {
+	const track = document.createElement('video');
+	track.style.display = 'none';
+	document.body.appendChild(track);
+
+	track.src = SOURCE_DIR + src;
+	return track;
+}
+
 function handle_stop_media_event(event) {
 	stop_media_by_channel(event.channel);
 }
@@ -155,6 +172,7 @@ function stop_media_by_channel(channel) {
 	socket.on(PACKET.SET_BLACKOUT_STATE, data => set_blackout_state(data.state, data.time));
 	socket.on(PACKET.CUE_EVENT_PLAY_MEDIA, handle_play_media_event);
 	socket.on(PACKET.CUE_EVENT_STOP_MEDIA, handle_stop_media_event);
+	socket.on(PACKET.REQ_MEDIA_LENGTH, handle_media_length_event);
 	
 	socket.on('statechange', state => {
 		if (state === socket.SOCKET_STATE_CONNECTED)

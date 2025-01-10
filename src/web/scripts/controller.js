@@ -588,6 +588,37 @@ const reactive_state = {
 			move_element(this.project_state.tracks, this.selected_track, -1);
 		},
 
+		async calculate_track_duration() {
+			if (this.selected_track === null)
+				return;
+
+			let failed = false;
+			let duration = 0;
+
+			this.show_loading_message('CALCULATING TRACK DURATION');
+
+			for (const cue of this.selected_track.cues) {
+				duration = Math.max(cue.time, duration);
+
+				if (cue.event_type == CEV_PLAY_MEDIA) {
+					socket.send_string(PACKET.REQ_MEDIA_LENGTH, cue.event_meta.src);
+
+					try {
+						const res = await socket.expect(PACKET.ACK_MEDIA_LENGTH, 3000);
+						duration += res;
+					} catch (e) {
+						failed = true;
+					}
+				}
+			}
+
+			this.selected_track.duration = duration;
+			this.hide_loading_message();
+
+			if (failed)
+				show_info_modal('TRACK CALCULATION', 'Failed to get duration for one or more media cues in this track. Ensure projector client is active.');
+		},
+
 		// MARK: :playback methods
 		playback_go() {
 			if (this.selected_track) {

@@ -58,6 +58,12 @@ export const PACKET = {
 
 	/** [CLIENT -> ALL] Fired when media has naturally ended. */
 	CONFIRM_MEDIA_END: 0x13,
+
+	/** [CLIENT -> ALL] Request length of media track. Expects ACK_MEDIA_LENGTH. */
+	REQ_MEDIA_LENGTH: 0x14,
+
+	/** [SERVER -> CLIENT] Response to REQ_MEDIA_LENGTH containing media track length. */
+	ACK_MEDIA_LENGTH: 0x15,
 };
 
 export const PACKET_UNK = 'UNKNOWN';
