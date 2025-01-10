@@ -76,6 +76,9 @@ export const PACKET = {
 
 	/* [CLIENT -> ALL] Informs a projector client to reset media. */
 	RESET_MEDIA: 0x19,
+
+	/* [CLIENT -> ALL] Toggles zone debugging state. */
+	SET_ZONE_DEBUG_STATE: 0x1A,
 };
 
 export const PACKET_UNK = 'UNKNOWN';

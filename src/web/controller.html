@@ -299,9 +299,10 @@
 						<div id="main-grid-status-socket-state">{{ socket_state_text }}</div>
 						<div id="main-grid-status-server-addr">{{ server_addr }}</div>
 						<div id="main-grid-status-local-time">{{ local_time_formatted }}</div>
-						<div id="main-grid-status-test" :class="{ active: state_test_screen }" @click="state_test_screen = !state_test_screen">
+						<div id="main-grid-status-test" :class="{ 'active-text': state_test_screen }" @click="state_test_screen = !state_test_screen">
 							TEST {{ state_test_screen ? 'ON' : 'OFF' }}
 						</div>
+						<div :class="{ 'active-text': state_zone_debug }" @click="state_zone_debug = !state_zone_debug">ZONE DEBUG</div>
 						<div class="err-text" v-if="projector_client_requires_activation">PROJECTOR REQUIRES ACTIVATION</div>
 					</div>
 				</div>

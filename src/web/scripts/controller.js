@@ -126,6 +126,7 @@ const reactive_state = {
 
 			state_test_screen: false,
 			state_blackout: false,
+			state_zone_debug: false,
 			
 			projector_client_requires_activation: false,
 			
@@ -215,6 +216,10 @@ const reactive_state = {
 
 		state_blackout(state) {
 			socket.send_object(PACKET.SET_BLACKOUT_STATE, { state, time: this.project_state.blackout_time });
+		},
+
+		state_zone_debug(state) {
+			socket.send_object(PACKET.SET_ZONE_DEBUG_STATE, state);
 		},
 
 		'selected_cue.event_type': {

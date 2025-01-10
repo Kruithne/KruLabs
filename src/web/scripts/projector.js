@@ -14,6 +14,8 @@ const renderer = new THREE.WebGLRenderer();
 const aspect_ratio = window.innerWidth / window.innerHeight;
 const camera = new THREE.OrthographicCamera(-2 * aspect_ratio, 2 * aspect_ratio, 2, -2, 0.1, 100);
 
+const base_material = new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0 });
+
 camera.position.z = 5;
 
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -57,8 +59,7 @@ function update_zones(new_zones) {
 			update_zone_plane(existing_zone);
 		} else {
 			const geometry = new THREE.PlaneGeometry(2, 2);
-			const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-			const plane = new THREE.Mesh(geometry, material);
+			const plane = new THREE.Mesh(geometry, base_material);
 
 			const new_zone = {
 				plane,
@@ -88,6 +89,10 @@ function handle_window_resize() {
 	camera.updateProjectionMatrix();
 	renderer.setSize(window.innerWidth, window.innerHeight);
 	update_all_planes();
+}
+
+function set_zone_debug_state(state) {
+	base_material.opacity = state ? 1 : 0;
 }
 
 // MARK: :overlays
@@ -206,6 +211,7 @@ function handle_reset_media_event() {
 	socket.on(PACKET.PLAYBACK_HOLD, handle_playback_hold_event);
 	socket.on(PACKET.PLAYBACK_GO, handle_playback_go_event);
 	socket.on(PACKET.RESET_MEDIA, handle_reset_media_event);
+	socket.on(PACKET.SET_ZONE_DEBUG_STATE, set_zone_debug_state);
 	
 	let first_time = true;
 	socket.on('statechange', state => {

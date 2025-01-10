@@ -38,6 +38,10 @@ h1 {
 	color: var(--alert-color);
 }
 
+.active-text {
+	color: var(--active-color);
+}
+
 /*
 	MARK: :overlay
 */
@@ -290,10 +294,6 @@ select {
 
 #main-grid-status-test {
 	cursor: pointer;
-}
-
-#main-grid-status-test.active {
-	color: var(--active-color);
 }
 
 #main-grid-content {
