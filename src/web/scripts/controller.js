@@ -260,7 +260,7 @@ const reactive_state = {
 
 		playback_factor() {
 			if (this.selected_track)
-				return this.playback_time / this.selected_track.duration;
+				return Math.min(1, this.playback_time / this.selected_track.duration);
 
 			return 0;
 		},
