@@ -48,13 +48,7 @@ const CEV_EVENT_META = {
 const DEFAULT_PROJECT_STATE = {
 	name: 'Untitled Project',
 	blackout_time: 2,
-	tracks: [
-		{
-			name: 'Test Track',
-			duration: 5634834,
-			cues: []
-		}
-	],
+	tracks: [],
 	zones: []
 };
 
