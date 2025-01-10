@@ -159,6 +159,16 @@ function stop_media_by_channel(channel) {
 	}
 }
 
+function handle_playback_hold_event() {
+	for (const track of media_channels.values())
+		track.pause();
+}
+
+function handle_playback_go_event() {
+	for (const track of media_channels.values())
+		track.play();
+}
+
 // MARK: :init
 (async () => {
 	if (document.readyState === 'loading')
@@ -182,6 +192,8 @@ function stop_media_by_channel(channel) {
 	socket.on(PACKET.CUE_EVENT_PLAY_MEDIA, handle_play_media_event);
 	socket.on(PACKET.CUE_EVENT_STOP_MEDIA, handle_stop_media_event);
 	socket.on(PACKET.REQ_MEDIA_LENGTH, handle_media_length_event);
+	socket.on(PACKET.PLAYBACK_HOLD, handle_playback_hold_event);
+	socket.on(PACKET.PLAYBACK_GO, handle_playback_go_event);
 	
 	let first_time = true;
 	socket.on('statechange', state => {

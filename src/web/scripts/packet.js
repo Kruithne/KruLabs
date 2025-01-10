@@ -67,6 +67,12 @@ export const PACKET = {
 
 	/* [CLIENT -> ALL] Sent by projector client to request activation.  */
 	PROJECTOR_CLIENT_NEEDS_ACTIVATION: 0x16,
+
+	/* [CLIENT -> ALL] Sent by controller to indicate playback has held. */
+	PLAYBACK_HOLD: 0x17,
+
+	/* [CLIENT -> ALL] Sent by controller to indicate playback has resumed. */
+	PLAYBACK_GO: 0x18
 };
 
 export const PACKET_UNK = 'UNKNOWN';

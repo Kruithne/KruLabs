@@ -196,13 +196,13 @@ const reactive_state = {
 
 		selected_track() {
 			this.selected_cue = null;
-			this.playback_live = false;
+			this.playback_hold();
 			this.playback_time = 0;
 
 			this.calculate_track_denominator();
 
 			if (this.playback_auto_next) {
-				this.playback_live = true;
+				this.playback_go();
 				this.playback_auto_next = false;
 			}
 		},
@@ -656,12 +656,16 @@ const reactive_state = {
 		// MARK: :playback methods
 		playback_go() {
 			if (this.selected_track) {
+				socket.send_empty(PACKET.PLAYBACK_GO);
+
 				this.playback_last_update = performance.now();
 				this.playback_live = true;
+
 			}
 		},
 
 		playback_hold() {
+			socket.send_empty(PACKET.PLAYBACK_HOLD);
 			this.playback_live = false;
 		},
 
