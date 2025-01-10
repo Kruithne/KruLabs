@@ -107,6 +107,9 @@ const reactive_state = {
 
 			edit_mode: 'NONE', // NONE | TRACK | CUE
 
+			playback_loop: false,
+			playback_auto: false,
+			playback_auto_next: false,
 			playback_live: false,
 			playback_last_update: 0,
 			playback_time: 0,
@@ -166,6 +169,16 @@ const reactive_state = {
 			}
 		},
 
+		playback_loop(state) {
+			if (state)
+				this.playback_auto = false;
+		},
+
+		playback_auto(state) {
+			if (state)
+				this.playback_loop = false;
+		},
+
 		nav_page(new_page) {
 			this.edit_mode = 'NONE';
 
@@ -184,6 +197,11 @@ const reactive_state = {
 			this.playback_time = 0;
 
 			this.calculate_track_denominator();
+
+			if (this.playback_auto_next) {
+				this.playback_live = true;
+				this.playback_auto_next = false;
+			}
 		},
 
 		state_test_screen(state) {
@@ -650,19 +668,43 @@ const reactive_state = {
 				this.playback_time += elapsed;
 				this.playback_last_update = now;
 		
-				if (this.playback_time >= this.selected_track.duration && this.playback_confirm_media.size === 0)
+				if (this.playback_time >= this.selected_track.duration && this.playback_confirm_media.size === 0) {
 					this.playback_hold();
+
+					if (this.playback_loop) {
+						this.playback_seek(0);
+						this.playback_go();
+					} else if (this.playback_auto) {
+						this.playback_auto_next = true;
+						this.playback_next_track();
+					}
+				}
 			}
 			requestAnimationFrame(ts => this.playback_update(ts));
 		},
 
-		playback_seek(event) {
+		playback_next_track() {
+			const tracks = this.project_state.tracks;
+			if (this.selected_track !== null) {
+				const track_index = tracks.indexOf(this.selected_track);
+				if (track_index !== -1 && track_index + 1 < tracks.length)
+					this.selected_track = tracks[track_index + 1];
+			} else {
+				this.selected_track = tracks[0];
+			}
+		},
+
+		playback_seek(time) {
+			this.playback_seeking = true;
+			this.playback_time = time;
+		},
+
+		handle_playback_seek(event) {
 			if (this.selected_track) {
 				const $bar = event.target.closest('#playback-bar');
 				const factor = (event.clientX - $bar.getBoundingClientRect().left) / $bar.offsetWidth;
 
-				this.playback_seeking = true;
-				this.playback_time = this.selected_track.duration * factor;
+				this.playback_seek(this.selected_track.duration * factor);
 			}
 		},
 

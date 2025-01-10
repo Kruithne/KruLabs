@@ -213,7 +213,7 @@
 										<span>TR {{ playback_total_remaining }}</span>
 									</div>
 									<div id="playback-bar-row">
-										<div id="playback-bar" @click="playback_seek">
+										<div id="playback-bar" @click="handle_playback_seek">
 											<div id="playback-bar-fill" :style="{ width: (playback_factor * 100) + '%' }"></div>
 										</div>
 									</div>
@@ -223,6 +223,8 @@
 											<input type="button" value="HOLD" @click="playback_hold" :class="{ active: !playback_live }"/>
 											<input type="button" value="RESET" @click="playback_reset"/>
 											<input type="button" value="BLACKOUT" @click="state_blackout = !state_blackout" :class="{ active: state_blackout }"/>
+											<input type="button" value="LOOP" @click="playback_loop = !playback_loop" :class="{ active: playback_loop }"/>
+											<input type="button" value="AUTO" @click="playback_auto = !playback_auto" :class="{ active: playback_auto }"/>
 										</div>
 									</div>
 								</div>
