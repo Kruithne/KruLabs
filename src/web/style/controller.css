@@ -292,10 +292,6 @@ select {
 	justify-content: center;
 }
 
-#main-grid-status-test {
-	cursor: pointer;
-}
-
 #main-grid-content {
 	height: 100%;
 }
