@@ -60,7 +60,7 @@ const DEFAULT_CUE = {
 
 const DEFAULT_TRACK = {
 	name: 'New Track',
-	duration: 1000
+	duration: 30000
 };
 
 const DEFAULT_ZONE = {
