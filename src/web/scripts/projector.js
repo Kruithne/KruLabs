@@ -112,6 +112,7 @@ function set_blackout_state(state, time) {
 
 // MARK: :media
 const media_channels = new Map();
+
 function handle_play_media_event(event) {
 	stop_media_by_channel(event.channel);
 
@@ -123,13 +124,27 @@ function handle_play_media_event(event) {
 	track.loop = event.loop;
 	track.volume = event.volume;
 
-	media_channels.set(event.channel, track);
+	const media_info = { track };
+	media_channels.set(event.channel, media_info);
 
 	track.addEventListener('loadedmetadata', () => track.play());
 	track.addEventListener('ended', () => {
 		socket.send_string(PACKET.CONFIRM_MEDIA_END, event.channel);
 		stop_media_by_channel(event.channel);
 	});
+
+	if (event.zone_id?.length > 0) {
+		const video_texture = new THREE.VideoTexture(track);
+		const material = new THREE.MeshBasicMaterial({ map: video_texture });
+
+		media_info.video_texture = video_texture;
+		media_info.material = material;
+
+		for (const zone of zones.values()) {
+			if (event.zone_id == zone.accessor_id)
+				zone.plane.material = material;
+		}
+	}
 }
 
 function handle_media_length_event(src) {
@@ -154,33 +169,40 @@ function handle_stop_media_event(event) {
 }
 
 function stop_media_by_channel(channel) {
-	const track = media_channels.get(channel);
-	if (track) {
-		if (!track.paused)
-			track.pause();
-
-		track.remove();
+	const media = media_channels.get(channel);
+	if (media) {
+		dispose_media(media);
 		media_channels.delete(channel);
 	}
 }
 
+function dispose_media(media) {
+	if (!media.track.paused)
+		media.track.pause();
+
+	media.track.remove();
+
+	for (const zone of zones.values())
+		if (zone.plane.material === media.material)
+			zone.plane.material = base_material;
+	
+	media.video_texture.dispose();
+	media.material.dispose();
+}
+
 function handle_playback_hold_event() {
-	for (const track of media_channels.values())
-		track.pause();
+	for (const media of media_channels.values())
+		media.track.pause();
 }
 
 function handle_playback_go_event() {
-	for (const track of media_channels.values())
-		track.play();
+	for (const media of media_channels.values())
+		media.track.play();
 }
 
 function handle_reset_media_event() {
-	for (const track of media_channels.values()) {
-		if (!track.paused)
-			track.pause();
-
-		track.remove();
-	}
+	for (const media of media_channels.values())
+		dispose_media(media);
 
 	media_channels.clear();
 }

@@ -117,6 +117,10 @@
 													<input type="text" v-model="selected_cue.event_meta.channel"/>
 												</label>
 												<label>
+													[EVENT] PROJECTION ZONE ID
+													<input type="text" v-model="selected_cue.event_meta.zone_id"/>
+												</label>
+												<label>
 													[EVENT] TRACK VOLUME
 													<input type="number" v-model="selected_cue.event_meta.volume"/>
 												</label>
@@ -260,7 +264,7 @@
 											</label>
 											<label>
 												ACCESSOR ID:
-												<input type="number" v-model="selected_zone.accessor_id"/>
+												<input type="text" v-model="selected_zone.accessor_id"/>
 											</label>
 											<label class="inline">
 												<input type="checkbox" v-model="selected_zone.visible"/>

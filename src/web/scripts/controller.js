@@ -36,7 +36,8 @@ const CEV_EVENT_META = {
 		channel: 'master',
 		volume: 1,
 		confirm: false,
-		loop: false
+		loop: false,
+		zone_id: ''
 	},
 	[CEV_STOP_MEDIA]: {
 		channel: 'master'
@@ -68,7 +69,7 @@ const DEFAULT_TRACK = {
 const DEFAULT_ZONE = {
 	id: '',
 	name: 'Zone',
-	accessor_id: 0,
+	accessor_id: '',
 	visible: true,
 	corners: [
 		{ x: 0.1, y: 0.1 },
