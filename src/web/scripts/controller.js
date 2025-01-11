@@ -263,9 +263,9 @@ const reactive_state = {
 
 		'selected_cue.time': {
 			handler(time) {
-				// prevent cue starting at 0ms so GOTO can seek -1ms before cue
-				if (time < 1)
-					return 1;
+				// prevent cue starting at 10ms or less so GOTO can seek -1ms before cue
+				if (time < 10)
+					this.$nextTick(() => this.selected_cue.time = 10);
 			}
 		},
 
