@@ -206,8 +206,8 @@ function dispose_media(media) {
 		if (zone.plane.material === media.material)
 			zone.plane.material = base_material;
 	
-	media.video_texture.dispose();
-	media.material.dispose();
+	media.video_texture?.dispose();
+	media.material?.dispose();
 
 	active_media.delete(media.event.uuid);
 }
