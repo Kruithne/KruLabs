@@ -61,7 +61,7 @@ const CEV_EVENT_META = {
 
 const DEFAULT_PROJECT_STATE = {
 	name: 'Untitled Project',
-	blackout_time: 2,
+	blackout_time: 2000,
 	preload_media: true,
 	playback_volume: 1,
 	tracks: [],

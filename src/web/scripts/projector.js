@@ -111,7 +111,7 @@ function set_test_screen(state) {
 function set_blackout_state(state, time) {
 	const blackout = document.getElementById('blackout');
 	if (blackout) {
-		blackout.style.transitionDuration = time + 's';
+		blackout.style.transitionDuration = time + 'ms';
 		blackout.style.opacity = state ? 1 : 0;
 	}
 }
