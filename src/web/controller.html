@@ -81,6 +81,10 @@
 											BLACKOUT FADE TIME (SECONDS):
 											<input type="number" v-model="project_state.blackout_time"/>
 										</label>
+										<label class="inline">
+											<input type="checkbox" v-model="project_state.preload_media"/>
+											PRE-LOAD TRACK MEDIA
+										</label>
 									</div>
 								</div>
 							</div>
@@ -223,7 +227,7 @@
 									</div>
 									<div>
 										<div class="button-tray">
-											<input type="button" value="GO" @click="playback_go" :class="{ active: playback_live }"/>
+											<input type="button" value="GO" @click="playback_go" :class="{ active: playback_live || media_preload_resolver !== null }"/>
 											<input type="button" value="HOLD" @click="playback_hold" :class="{ active: !playback_live }"/>
 											<input type="button" value="RESET" @click="playback_reset"/>
 											<input type="button" value="BLACKOUT" @click="state_blackout = !state_blackout" :class="{ active: state_blackout }"/>
@@ -303,6 +307,10 @@
 						<div>{{ socket_state_text }}</div>
 						<div>{{ server_addr }}</div>
 						<div>{{ local_time_formatted }}</div>
+						<template v-if="project_state.preload_media">
+							<div class="text-err" v-if="media_preloading">MEDIA PRE-LOADING</div>
+							<div class="text-active" v-else>MEDIA PRE-LOADED</div>
+						</template>
 						<div class="pointer" :class="{ 'text-active': state_test_screen }" @click="state_test_screen = !state_test_screen">TEST SCREEN</div>
 						<div class="pointer" :class="{ 'text-active': state_zone_debug }" @click="state_zone_debug = !state_zone_debug">ZONE DEBUG</div>
 						<div class="text-err" v-if="projector_client_requires_activation">PROJECTOR REQUIRES ACTIVATION</div>

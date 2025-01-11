@@ -82,6 +82,12 @@ export const PACKET = {
 
 	/** [CLIENT -> ALL] Sent by controller to indicate playback seek. */
 	PLAYBACK_MEDIA_SEEK: 0x1B,
+
+	/** [CLIENT -> ALL] Sent by controller to request media preload. Expects ACK_MEDIA_PRELOAD. */
+	REQ_MEDIA_PRELOAD: 0x1C,
+
+	/** [CLIENT -> ALL] Response to ACK_MEDIA_PRELOAD, confirming media is preloaded. */
+	ACK_MEDIA_PRELOAD: 0x1D,
 };
 
 export const PACKET_UNK = 'UNKNOWN';

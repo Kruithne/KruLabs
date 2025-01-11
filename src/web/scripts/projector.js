@@ -118,13 +118,20 @@ function set_blackout_state(state, time) {
 
 // MARK: :media
 const active_media = new Map();
+const preloaded_tracks = new Map();
 
 function handle_play_media_event(event, autoplay = true) {
-	const track = document.createElement('video');
-	track.style.display = 'none';
-	document.body.appendChild(track); 
+	let track = preloaded_tracks.get(event.uuid);
+	if (track === undefined) {
+		track = document.createElement('video');
+		track.style.display = 'none';
+		document.body.appendChild(track);
 
-	track.src = SOURCE_DIR + event.src;
+		track.src = SOURCE_DIR + event.src;
+	} else {
+		preloaded_tracks.delete(event.uuid);
+	}
+
 	track.loop = event.loop;
 	track.volume = event.volume;
 
@@ -135,7 +142,7 @@ function handle_play_media_event(event, autoplay = true) {
 	active_media.set(event.uuid, media_info);
 
 	if (autoplay)
-		track.addEventListener('loadedmetadata', () => track.play());
+		track.readyState > 0 ? track.play() : track.addEventListener('loadedmetadata', () => track.play());
 
 	track.addEventListener('ended', () => {
 		socket.send_string(PACKET.CONFIRM_MEDIA_END, event.uuid);
@@ -248,8 +255,29 @@ function handle_playback_go_event() {
 }
 
 function handle_reset_media_event() {
+	for (const track of preloaded_tracks.values())
+		track.remove();
+
+	preloaded_tracks.clear();
+
 	for (const media of active_media.values())
 		dispose_media(media);
+}
+
+function handle_media_preload_event(event) {
+	const preload_promises = [];
+	for (const media of event) {
+		const track = document.createElement('video');
+		track.style.display = 'none';
+		document.body.appendChild(track); 
+	
+		track.src = SOURCE_DIR + media.src;
+
+		preload_promises.push(new Promise(res => track.addEventListener('loadedmetadata', res, { once: true })));
+		preloaded_tracks.set(media.uuid, track);
+	}
+
+	Promise.all(preload_promises).then(() => socket.send_empty(PACKET.ACK_MEDIA_PRELOAD));
 }
 
 // MARK: :init
@@ -280,6 +308,7 @@ function handle_reset_media_event() {
 	socket.on(PACKET.RESET_MEDIA, handle_reset_media_event);
 	socket.on(PACKET.SET_ZONE_DEBUG_STATE, set_zone_debug_state);
 	socket.on(PACKET.PLAYBACK_MEDIA_SEEK, handle_playback_seek_event);
+	socket.on(PACKET.REQ_MEDIA_PRELOAD, handle_media_preload_event);
 	
 	let first_time = true;
 	socket.on('statechange', state => {

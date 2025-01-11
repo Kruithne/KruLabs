@@ -5,6 +5,7 @@ import { PACKET } from './packet.js';
 // MARK: :constants
 const PROJECT_MANAGEMENT_TIMEOUT = 10000; // timeout in ms that state callback timeout (load, save, etc)
 const MIN_LOADING_ELAPSED = 500; // minimum time in ms a loading message is visible for
+const MEDIA_PRELOAD_TIMEOUT = 2000; // time in ms for media preload to timeout
 
 const ARRAY_EMPTY = Object.freeze([]);
 const NOOP = () => {};
@@ -59,6 +60,7 @@ const CEV_EVENT_META = {
 const DEFAULT_PROJECT_STATE = {
 	name: 'Untitled Project',
 	blackout_time: 2,
+	preload_media: true,
 	tracks: [],
 	zones: []
 };
@@ -128,6 +130,9 @@ const reactive_state = {
 			playback_seeking: false,
 			playback_confirm_media: new Set(),
 			last_cue_index: 0,
+
+			media_preloading: false,
+			media_preload_resolver: null,
 
 			source_list: [],
 
@@ -235,9 +240,12 @@ const reactive_state = {
 
 			this.calculate_track_denominator();
 
+			if (this.project_state.preload_media)
+				this.preload_media();
+
 			if (this.playback_auto_next) {
-				this.playback_go();
 				this.playback_auto_next = false;
+				this.playback_go();
 			}
 		},
 
@@ -704,13 +712,18 @@ const reactive_state = {
 		},
 
 		// MARK: :playback methods
-		playback_go() {
+		async playback_go() {
 			if (this.selected_track) {
+				if (this.media_preload_resolver !== null)
+					return;
+	
+				if (this.media_preloading)
+					await new Promise(res => this.media_preload_resolver = res);
+
 				socket.send_empty(PACKET.PLAYBACK_GO);
 
 				this.playback_last_update = performance.now();
 				this.playback_live = true;
-
 			}
 		},
 
@@ -782,6 +795,20 @@ const reactive_state = {
 			}
 
 			this.playback_track_denominator = total;
+		},
+
+		async preload_media() {
+			this.media_preloading = true;
+			
+			const media = this.cue_stack_sorted.filter(e => e.event_type == CEV_PLAY_MEDIA).map(e => e.event_meta);
+			socket.send_object(PACKET.REQ_MEDIA_PRELOAD, media);
+
+			await socket.expect(PACKET.ACK_MEDIA_PRELOAD, MEDIA_PRELOAD_TIMEOUT).catch(NOOP);
+
+			this.media_preloading = false;
+
+			this.media_preload_resolver?.();
+			this.media_preload_resolver = null;
 		},
 
 		// MARK: :config methods
