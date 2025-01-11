@@ -122,6 +122,9 @@ function handle_play_media_event(event, autoplay = true) {
 	track.loop = event.loop;
 	track.volume = event.volume;
 
+	// store channel lowercase ahead of time for channel comparison
+	event.channel = event.channel.toLowerCase();
+
 	const media_info = { track, event };
 	active_media.set(event.uuid, media_info);
 
@@ -168,7 +171,7 @@ function create_media_track(src) {
 }
 
 function handle_stop_media_event(event) {
-	stop_media_by_channel(event.channel);
+	stop_media_by_channel(event.channel.toLowerCase());
 }
 
 function stop_media_by_channel(channel) {
