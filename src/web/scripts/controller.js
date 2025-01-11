@@ -543,8 +543,8 @@ const reactive_state = {
 
 			this.playback_seeking = true;
 
-			// seek to 1 millisecond before the cue so that it fires
-			this.playback_time = Math.min(this.selected_track.duration, cue.time - 1);
+			// seek to 10 millisecond before the cue so that it fires
+			this.playback_time = Math.min(this.selected_track.duration, cue.time - 10);
 		},
 
 		cue_add() {
