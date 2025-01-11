@@ -425,11 +425,22 @@ select {
 	height: 30px;
 	width: 100%;
 	cursor: pointer;
+	position: relative;
+	overflow: hidden;
 }
 
 #playback-bar-fill {
 	height: 100%;
 	background-color: var(--primary-color);
+}
+
+.playback-bar-cue {
+	position: absolute;
+	height: 100%;
+	width: 4px;
+	transform: translateX(-50%);
+	background-color: var(--alert-color);
+	top: 0;
 }
 
 #playback-info {

@@ -227,6 +227,9 @@
 									<div id="playback-bar-row">
 										<div id="playback-bar" @click="handle_playback_seek">
 											<div id="playback-bar-fill" :style="{ width: (playback_factor * 100) + '%' }"></div>
+											<template v-if="selected_track">
+												<div class="playback-bar-cue" v-for="cue in cue_stack_sorted" :style="{ left: (cue.time / selected_track.duration) * 100 + '%' }"></div>
+											</template>
 										</div>
 									</div>
 									<div>
