@@ -26,9 +26,12 @@ function animate() {
 	renderer.render(scene, camera);
 }
 
-function update_zone_plane(zone) {
+function update_zone_plane(zone, render_order) {
 	const plane = zone.plane;
 	const geometry = plane.geometry;
+
+	if (render_order !== undefined)
+		plane.renderOrder = render_order;
 
 	const vertices = geometry.attributes.position;
 	const camera_positions = zone.corners.map(p => ({
@@ -50,13 +53,16 @@ function update_all_planes() {
 }
 
 function update_zones(new_zones) {
-	for (const [zone_id, zone] of Object.entries(new_zones)) {
+	const new_zone_entries = Object.entries(new_zones);
+	let render_order = new_zone_entries.length;
+
+	for (const [zone_id, zone] of new_zone_entries) {
 		const existing_zone = zones.get(zone_id);
 		if (existing_zone) {
 			existing_zone.corners = zone.corners;
 			existing_zone.accessor_id = zone.accessor_id;
 
-			update_zone_plane(existing_zone);
+			update_zone_plane(existing_zone, render_order--);
 		} else {
 			const geometry = new THREE.PlaneGeometry(2, 2);
 			const plane = new THREE.Mesh(geometry, base_material);
@@ -67,7 +73,7 @@ function update_zones(new_zones) {
 				accessor_id: zone.accessor_id.toLowerCase(),
 			};
 
-			update_zone_plane(new_zone);
+			update_zone_plane(new_zone, render_order--);
 			
 			scene.add(plane);
 			zones.set(zone_id, new_zone);
