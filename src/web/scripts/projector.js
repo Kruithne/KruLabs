@@ -114,8 +114,6 @@ function set_blackout_state(state, time) {
 const active_media = new Map();
 
 function handle_play_media_event(event, autoplay = true) {
-	stop_media_by_channel(event.channel);
-
 	const track = document.createElement('video');
 	track.style.display = 'none';
 	document.body.appendChild(track); 
