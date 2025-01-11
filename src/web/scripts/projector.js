@@ -197,7 +197,6 @@ function stop_media_by_channel(channel) {
 }
 
 function dispose_media(media) {
-	console.log('disposing of media %s', media.event.uuid);
 	if (!media.track.paused)
 		media.track.pause();
 
