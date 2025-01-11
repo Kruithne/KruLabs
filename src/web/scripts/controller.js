@@ -7,8 +7,6 @@ const PROJECT_MANAGEMENT_TIMEOUT = 10000; // timeout in ms that state callback t
 const MIN_LOADING_ELAPSED = 500; // minimum time in ms a loading message is visible for
 const MEDIA_PRELOAD_TIMEOUT = 2000; // time in ms for media preload to timeout
 
-const VOL_INTERPOLATE_MS = 100; // tick speed for volume interpolation
-
 const ARRAY_EMPTY = Object.freeze([]);
 const NOOP = () => {};
 
