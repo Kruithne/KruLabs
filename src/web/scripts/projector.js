@@ -136,7 +136,7 @@ function handle_play_media_event(event, autoplay = true) {
 	});
 
 	if (event.zone_id?.length > 0) {
-		const zone_id = zone_id.toLowerCase();
+		const zone_id = event.zone_id.toLowerCase();
 		const video_texture = new THREE.VideoTexture(track);
 		const material = new THREE.MeshBasicMaterial({ map: video_texture });
 
