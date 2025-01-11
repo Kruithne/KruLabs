@@ -62,6 +62,7 @@ const CEV_EVENT_META = {
 const DEFAULT_PROJECT_STATE = {
 	name: 'Untitled Project',
 	blackout_time: 2000,
+	vol_fade_time: 2000,
 	preload_media: true,
 	playback_volume: 1,
 	tracks: [],
@@ -423,7 +424,7 @@ const reactive_state = {
 			const current_volume = this.project_state.playback_volume;
 			this.vol_previous = current_volume;
 
-			await interpolate(current_volume, 0, 2000, v => this.project_state.playback_volume = v);
+			await interpolate(current_volume, 0, this.project_state.vol_fade_time, v => this.project_state.playback_volume = v);
 			this.vol_fade_active = false;
 		},
 
@@ -439,7 +440,7 @@ const reactive_state = {
 			this.vol_fade_active = true;
 
 			const current_volume = this.project_state.playback_volume;
-			await interpolate(current_volume, this.vol_previous, 2000, v => this.project_state.playback_volume = v);
+			await interpolate(current_volume, this.vol_previous, this.project_state.vol_fade_time, v => this.project_state.playback_volume = v);
 
 			this.vol_fade_active = false;
 		},
