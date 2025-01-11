@@ -7,6 +7,8 @@ const PROJECT_MANAGEMENT_TIMEOUT = 10000; // timeout in ms that state callback t
 const MIN_LOADING_ELAPSED = 500; // minimum time in ms a loading message is visible for
 const MEDIA_PRELOAD_TIMEOUT = 2000; // time in ms for media preload to timeout
 
+const VOL_INTERPOLATE_MS = 100; // tick speed for volume interpolation
+
 const ARRAY_EMPTY = Object.freeze([]);
 const NOOP = () => {};
 
@@ -131,6 +133,9 @@ const reactive_state = {
 			playback_seeking: false,
 			playback_confirm_media: new Set(),
 			last_cue_index: 0,
+
+			vol_fade_active: false,
+			vol_previous: 1,
 
 			media_preloading: false,
 			media_preload_resolver: null,
@@ -406,6 +411,37 @@ const reactive_state = {
 
 		format_index(index) {
 			return (index + 1).toString().padStart(3, '0');
+		},
+
+		// MARK: :volume methods
+		async vol_fade_out() {
+			if (this.vol_fade_active)
+				return;
+
+			this.vol_fade_active = true;
+
+			const current_volume = this.project_state.playback_volume;
+			this.vol_previous = current_volume;
+
+			await interpolate(current_volume, 0, 2000, v => this.project_state.playback_volume = v);
+			this.vol_fade_active = false;
+		},
+
+		async vol_fade_hold() {
+			await this.vol_fade_out();
+			this.playback_hold();
+		},
+
+		async vol_fade_back() {
+			if (this.vol_fade_active)
+				return;
+
+			this.vol_fade_active = true;
+
+			const current_volume = this.project_state.playback_volume;
+			await interpolate(current_volume, this.vol_previous, 2000, v => this.project_state.playback_volume = v);
+
+			this.vol_fade_active = false;
 		},
 
 		// MARK: :project methods
@@ -933,6 +969,29 @@ function object_clone(obj) {
 		return undefined;
 
 	return JSON.parse(JSON.stringify(obj));
+}
+
+async function interpolate(current, target, duration, update) {
+	if (current === target)
+		return;
+
+	return new Promise(resolve => {
+		const start = Date.now();
+
+		const tick = () => {
+			const elapsed = Date.now() - start;
+			const progress = Math.min(1, elapsed / duration);
+
+			update(current + ((target - current) * progress));
+
+			if (progress < 1)
+				requestAnimationFrame(tick);
+			else
+				resolve();
+		};
+
+		requestAnimationFrame(tick);
+	});
 }
 
 // MARK: :timeinput

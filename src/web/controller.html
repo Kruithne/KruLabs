@@ -233,6 +233,9 @@
 											<input type="button" value="BLACKOUT" @click="state_blackout = !state_blackout" :class="{ active: state_blackout }"/>
 											<input type="button" value="LOOP" @click="playback_loop = !playback_loop" :class="{ active: playback_loop }"/>
 											<input type="button" value="AUTO" @click="playback_auto = !playback_auto" :class="{ active: playback_auto }"/>
+											<input type="button" value="F-HOLD" @click="vol_fade_hold" :class="{ active: vol_fade_active }"/>
+											<input type="button" value="F-OUT" @click="vol_fade_out" :class="{ active: vol_fade_active }"/>
+											<input type="button" value="F-BACK" @click="vol_fade_back" :class="{ active: vol_fade_active }"/>
 											<input-slider text="VOLUME" :value="project_state.playback_volume" @updated="project_state.playback_volume = $event"></input-slider>
 										</div>
 									</div>
