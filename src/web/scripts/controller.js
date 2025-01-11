@@ -3,23 +3,26 @@ import * as socket from './socket.js';
 import { PACKET } from './packet.js';
 
 // MARK: :constants
-const PROJECT_MANAGEMENT_TIMEOUT = 10000;
+const PROJECT_MANAGEMENT_TIMEOUT = 10000; // timeout in ms that state callback timeout (load, save, etc)
 const MIN_LOADING_ELAPSED = 500; // minimum time in ms a loading message is visible for
 
-const ARRAY_EMPTY = [];
+const ARRAY_EMPTY = Object.freeze([]);
 const NOOP = () => {};
 
 const TYPE_STRING = 'string';
 
+// local storage keys
 const LSK_LAST_PROJECT_ID = 'last_project_id';
 const LSK_SYS_CONFIG = 'system_config';
 
+// cue event ids
 const CEV_BASIC = 0x0;
 const CEV_PLAY_MEDIA = 0x1;
 const CEV_STOP_MEDIA = 0x2;
 const CEV_GOTO = 0x3;
 const CEV_HOLD = 0x4;
 
+// cue event labels. short appears in cue stack, long appears in config
 const CEV_LABELS = {
 	[CEV_BASIC]: { short: 'CUE', long: 'BASIC CUE' },
 	[CEV_GOTO]: { short: 'GOTO', long: 'GO TO CUE' },
@@ -28,11 +31,13 @@ const CEV_LABELS = {
 	[CEV_STOP_MEDIA]: { short: 'MEDIA STOP', long: 'STOP MEDIA TRACK' }
 };
 
+// assign cue events packets to fire
 const CEV_PACKETS = {
 	[CEV_PLAY_MEDIA]: PACKET.CUE_EVENT_PLAY_MEDIA,
 	[CEV_STOP_MEDIA]: PACKET.CUE_EVENT_STOP_MEDIA
 };
 
+// default meta structure for cue events
 const CEV_EVENT_META = {
 	[CEV_PLAY_MEDIA]: {
 		uuid: '',
