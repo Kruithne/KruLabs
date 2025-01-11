@@ -1374,6 +1374,7 @@ const zone_editor_component = {
 	socket.on(PACKET.ACK_SOURCE_LIST, data => app_state.source_list = data);
 	socket.on(PACKET.CONFIRM_MEDIA_END, uuid => app_state.playback_confirm_media.delete(uuid));
 	socket.on(PACKET.PROJECTOR_CLIENT_NEEDS_ACTIVATION, state => app_state.projector_client_requires_activation = state);
+	socket.on(PACKET.REQ_PLAYBACK_VOLUME, () => socket.send_object(PACKET.PLAYBACK_VOLUME, app_state.project_state.playback_volume));
 
 	socket.init();
 })();

@@ -91,6 +91,9 @@ export const PACKET = {
 
 	/** [CLIENT -> ALL] Sent by controller to indicate global playback volume. */
 	PLAYBACK_VOLUME: 0x1E,
+
+	/** [CLIENT -> ALL] Requests updated volume from controller. Expects PLAYBACK_VOLUME. */
+	REQ_PLAYBACK_VOLUME: 0x1F,
 };
 
 export const PACKET_UNK = 'UNKNOWN';

@@ -320,6 +320,7 @@ function handle_playback_volume_event(volume) {
 	socket.on('statechange', state => {
 		if (state === socket.SOCKET_STATE_CONNECTED) {
 			socket.send_empty(PACKET.REQ_ZONES);
+			socket.send_empty(PACKET.REQ_PLAYBACK_VOLUME);
 
 			if (first_time) {
 				// display an activator overlay that disappears when clicking, this is visual feedback to
