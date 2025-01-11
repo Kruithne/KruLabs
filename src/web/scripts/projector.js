@@ -120,6 +120,8 @@ function set_blackout_state(state, time) {
 const active_media = new Map();
 const preloaded_tracks = new Map();
 
+let playback_volume = 1;
+
 function handle_play_media_event(event, autoplay = true) {
 	let track = preloaded_tracks.get(event.uuid);
 	if (track === undefined) {
@@ -133,7 +135,7 @@ function handle_play_media_event(event, autoplay = true) {
 	}
 
 	track.loop = event.loop;
-	track.volume = event.volume;
+	track.volume = event.volume * playback_volume;
 
 	// store channel lowercase ahead of time for channel comparison
 	event.channel = event.channel.toLowerCase();
@@ -281,6 +283,7 @@ function handle_media_preload_event(event) {
 }
 
 function handle_playback_volume_event(volume) {
+	playback_volume = volume;
 	for (const media of active_media.values())
 		media.track.volume = media.event.volume * volume;
 }
