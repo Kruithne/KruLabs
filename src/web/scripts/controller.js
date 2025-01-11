@@ -4,6 +4,7 @@ import { PACKET } from './packet.js';
 
 // MARK: :constants
 const PROJECT_MANAGEMENT_TIMEOUT = 10000;
+const MIN_LOADING_ELAPSED = 500; // minimum time in ms a loading message is visible for
 
 const ARRAY_EMPTY = [];
 const NOOP = () => {};
@@ -358,9 +359,16 @@ const reactive_state = {
 		
 		show_loading_message(message) {
 			this.loading_message = message;
+			return Date.now();
 		},
 		
-		hide_loading_message() {
+		async hide_loading_message(ts) {
+			if (ts !== undefined) {
+				const elapsed = Date.now() - ts;
+				if (elapsed < MIN_LOADING_ELAPSED)
+					await new Promise(res => setTimeout(res, MIN_LOADING_ELAPSED - elapsed));
+			}
+
 			this.loading_message = '';
 		},
 		
@@ -404,12 +412,12 @@ const reactive_state = {
 					return;
 			}
 
-			this.show_loading_message('LOADING PROJECT');
+			const load_start_ts = this.show_loading_message('LOADING PROJECT');
 
 			socket.send_object(PACKET.REQ_LOAD_PROJECT, { id: project_id });
 
 			const res = await socket.expect(PACKET.ACK_LOAD_PROJECT, PROJECT_MANAGEMENT_TIMEOUT).then(r => r).catch(NOOP);
-			this.hide_loading_message();
+			await this.hide_loading_message(load_start_ts);
 
 			if (res?.success) {
 				this.set_project_state(res.state);
@@ -420,12 +428,12 @@ const reactive_state = {
 		},
 
 		async save_project(project_id = null) {
-			this.show_loading_message('SAVING PROJECT');
+			const load_start_ts = this.show_loading_message('SAVING PROJECT');
 
 			socket.send_object(PACKET.REQ_SAVE_PROJECT, { id: project_id, state: this.project_state });
 
 			const res = await socket.expect(PACKET.ACK_SAVE_PROJECT, PROJECT_MANAGEMENT_TIMEOUT).then(r => r).catch(NOOP);
-			this.hide_loading_message();
+			await this.hide_loading_message(load_start_ts);
 
 			if (res?.success) {
 				this.selected_project_id = res.id;
@@ -453,7 +461,7 @@ const reactive_state = {
 
 			const user_confirm = await show_confirm_modal('CONFIRM PROJECT DELETION', `Are you sure you want to delete the project '${project.name}'? This action cannot be reversed.`);
 			if (user_confirm) {
-				this.show_loading_message('DELETING PROJECT');
+				const load_start_ts = this.show_loading_message('DELETING PROJECT');
 
 				socket.send_object(PACKET.REQ_DELETE_PROJECT, { id: project_id });
 				
@@ -470,7 +478,7 @@ const reactive_state = {
 					show_info_modal('PROJECT DELETION FAILED', 'The system was unable to delete the specified project.');
 				}
 
-				this.hide_loading_message();
+				await this.hide_loading_message(load_start_ts);
 			}
 		},
 
@@ -666,7 +674,7 @@ const reactive_state = {
 			let failed = false;
 			let duration = 0;
 
-			this.show_loading_message('CALCULATING TRACK DURATION');
+			const load_start_ts = this.show_loading_message('CALCULATING TRACK DURATION');
 
 			for (const cue of this.selected_track.cues) {
 				duration = Math.max(cue.time, duration);
@@ -684,7 +692,7 @@ const reactive_state = {
 			}
 
 			this.selected_track.duration = duration;
-			this.hide_loading_message();
+			await this.hide_loading_message(load_start_ts);
 
 			if (failed)
 				show_info_modal('TRACK CALCULATION', 'Failed to get duration for one or more media cues in this track. Ensure projector client is active.');
