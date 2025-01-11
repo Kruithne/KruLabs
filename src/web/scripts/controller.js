@@ -67,7 +67,7 @@ const DEFAULT_PROJECT_STATE = {
 
 const DEFAULT_CUE = {
 	name: 'New Cue',
-	time: 1,
+	time: 10,
 	event_type: CEV_BASIC
 };
 
