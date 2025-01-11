@@ -136,6 +136,7 @@ function handle_play_media_event(event, autoplay = true) {
 	});
 
 	if (event.zone_id?.length > 0) {
+		const zone_id = zone_id.toLowerCase();
 		const video_texture = new THREE.VideoTexture(track);
 		const material = new THREE.MeshBasicMaterial({ map: video_texture });
 
@@ -143,7 +144,7 @@ function handle_play_media_event(event, autoplay = true) {
 		media_info.material = material;
 
 		for (const zone of zones.values()) {
-			if (event.zone_id == zone.accessor_id)
+			if (zone_id == zone.accessor_id)
 				zone.plane.material = material;
 		}
 	}
