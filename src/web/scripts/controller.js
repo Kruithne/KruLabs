@@ -462,7 +462,9 @@ const reactive_state = {
 			if (this.selected_project_id === null)
 				return;
 
-			await this.save_project(this.selected_project_id);
+			const user_confirm = await show_confirm_modal('CONFIRM PROJECT SAVE', `Are you sure you want to overwrite the selected project? This action cannot be reversed.`);
+			if (user_confirm)
+				await this.save_project(this.selected_project_id);
 		},
 
 		async delete_selected_project() {
