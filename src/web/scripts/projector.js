@@ -64,7 +64,7 @@ function update_zones(new_zones) {
 			const new_zone = {
 				plane,
 				corners: zone.corners,
-				accessor_id: zone.accessor_id,
+				accessor_id: zone.accessor_id.toLowerCase(),
 			};
 
 			update_zone_plane(new_zone);
