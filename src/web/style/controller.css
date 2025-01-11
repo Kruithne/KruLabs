@@ -215,6 +215,53 @@ select {
 	padding: 5px;
 }
 
+.input-slider {
+	border: 1px solid var(--active-color);
+	cursor: pointer;
+	width: 100px;
+	display: flex;
+	justify-content: center;
+	position: relative;
+}
+
+.input-slider.off {
+	border-color: var(--alert-color);
+}
+
+.input-slider.off .input-slider-text {
+	color: var(--alert-color);
+}
+
+.input-slider.off .input-slider-handle {
+	background-color: var(--alert-color);
+}
+
+.input-slider-inner {
+	width: calc(100% - 8px);
+	position: relative;
+}
+
+.input-slider-text {
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	top: 0;
+	right: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--active-color);
+}
+
+.input-slider-handle {
+	width: 8px;
+	background-color: var(--active-color);
+	position: absolute;
+	left: 0;
+	height: 100%;
+	transform: translateX(-50%);
+}
+
 /*
 	MARK: :listbox
 */

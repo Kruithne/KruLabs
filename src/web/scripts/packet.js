@@ -88,6 +88,9 @@ export const PACKET = {
 
 	/** [CLIENT -> ALL] Response to ACK_MEDIA_PRELOAD, confirming media is preloaded. */
 	ACK_MEDIA_PRELOAD: 0x1D,
+
+	/** [CLIENT -> ALL] Sent by controller to indicate global playback volume. */
+	PLAYBACK_VOLUME: 0x1E,
 };
 
 export const PACKET_UNK = 'UNKNOWN';

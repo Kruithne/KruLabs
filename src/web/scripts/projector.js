@@ -269,7 +269,7 @@ function handle_media_preload_event(event) {
 	for (const media of event) {
 		const track = document.createElement('video');
 		track.style.display = 'none';
-		document.body.appendChild(track); 
+		document.body.appendChild(track);
 	
 		track.src = SOURCE_DIR + media.src;
 
@@ -278,6 +278,11 @@ function handle_media_preload_event(event) {
 	}
 
 	Promise.all(preload_promises).then(() => socket.send_empty(PACKET.ACK_MEDIA_PRELOAD));
+}
+
+function handle_playback_volume_event(volume) {
+	for (const media of active_media.values())
+		media.track.volume = media.event.volume * volume;
 }
 
 // MARK: :init
@@ -309,6 +314,7 @@ function handle_media_preload_event(event) {
 	socket.on(PACKET.SET_ZONE_DEBUG_STATE, set_zone_debug_state);
 	socket.on(PACKET.PLAYBACK_MEDIA_SEEK, handle_playback_seek_event);
 	socket.on(PACKET.REQ_MEDIA_PRELOAD, handle_media_preload_event);
+	socket.on(PACKET.PLAYBACK_VOLUME, handle_playback_volume_event);
 	
 	let first_time = true;
 	socket.on('statechange', state => {

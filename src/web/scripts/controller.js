@@ -61,6 +61,7 @@ const DEFAULT_PROJECT_STATE = {
 	name: 'Untitled Project',
 	blackout_time: 2,
 	preload_media: true,
+	playback_volume: 1,
 	tracks: [],
 	zones: []
 };
@@ -300,6 +301,12 @@ const reactive_state = {
 			deep: true,
 			handler() {
 				this.dispatch_zone_updates();
+			}
+		},
+
+		'project_state.playback_volume': {
+			handler(playback_volume) {
+				socket.send_object(PACKET.PLAYBACK_VOLUME, playback_volume);
 			}
 		},
 
@@ -1009,6 +1016,47 @@ const timeinput_component = {
 	}
 };
 
+// MARK: :slider
+const slider_component = {
+	props: ['value', 'text'],
+
+	computed: {
+		off() {
+			return this.value === 0;
+		}
+	},
+
+	template: `
+		<div class="input-slider" :class="{ off }">
+			<div class="input-slider-text">{{ this.text }}</div>
+			<div class="input-slider-inner" @mousedown="handle_mouse_down">
+				<div class="input-slider-handle" :style="{ left: this.value * 100 + '%' }"></div>
+			</div>
+		</div>
+	`,
+
+	methods: {
+		handle_mouse_down(event) {
+			const $bar = event.target.closest('.input-slider-inner');
+
+			const mouse_move_callback = event => {
+				const factor = (event.clientX - $bar.getBoundingClientRect().left) / $bar.offsetWidth;
+
+				this.$emit('updated', Math.min(1, Math.max(0, factor)));
+			};
+
+			const mouse_up_callback = () => {
+				document.removeEventListener('mousemove', mouse_move_callback);
+			};
+
+			document.addEventListener('mousemove', mouse_move_callback);
+			document.addEventListener('mouseup', mouse_up_callback, { once: true });
+
+			mouse_move_callback(event);
+		}
+	}
+};
+
 // MARK: :listbox
 function update_listbox_height($el) {
 	$el.style.height = 0;
@@ -1303,6 +1351,7 @@ const zone_editor_component = {
 	app.component('listbox-component', listbox_component);
 	app.component('time-input', timeinput_component);
 	app.component('zone-editor', zone_editor_component);
+	app.component('input-slider', slider_component);
 	
 	app_state = app.mount('#app');
 
