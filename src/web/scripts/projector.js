@@ -289,8 +289,8 @@ function handle_playback_volume_event(volume) {
 }
 
 // MARK: :live
-let live_canvas_width = 0;
-let live_canvas_height = 0;
+let live_canvas_width = 1;
+let live_canvas_height = 1;
 
 let live_data = null;
 const live_zones = new Set();
