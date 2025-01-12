@@ -22,6 +22,8 @@ const CEV_PLAY_MEDIA = 0x1;
 const CEV_STOP_MEDIA = 0x2;
 const CEV_GOTO = 0x3;
 const CEV_HOLD = 0x4;
+const CEV_START_LIVE = 0x5;
+const CEV_STOP_LIVE = 0x6;
 
 // cue event labels. short appears in cue stack, long appears in config
 const CEV_LABELS = {
@@ -29,13 +31,17 @@ const CEV_LABELS = {
 	[CEV_GOTO]: { short: 'GOTO', long: 'GO TO CUE' },
 	[CEV_HOLD]: { short: 'HOLD', long: 'HOLD' },
 	[CEV_PLAY_MEDIA]: { short: 'MEDIA', long: 'PLAY MEDIA TRACK' },
-	[CEV_STOP_MEDIA]: { short: 'MEDIA STOP', long: 'STOP MEDIA TRACK' }
+	[CEV_STOP_MEDIA]: { short: 'MEDIA STOP', long: 'STOP MEDIA TRACK' },
+	[CEV_START_LIVE]: { short: 'LIVE', long: 'START LIVE STREAM' },
+	[CEV_STOP_LIVE]: { short: 'LIVE STOP', long: 'STOP LIVE STREAM' }
 };
 
 // assign cue events packets to fire
 const CEV_PACKETS = {
 	[CEV_PLAY_MEDIA]: PACKET.CUE_EVENT_PLAY_MEDIA,
-	[CEV_STOP_MEDIA]: PACKET.CUE_EVENT_STOP_MEDIA
+	[CEV_STOP_MEDIA]: PACKET.CUE_EVENT_STOP_MEDIA,
+	[CEV_START_LIVE]: PACKET.CUE_EVENT_START_LIVE,
+	[CEV_STOP_LIVE]: PACKET.CUE_EVENT_STOP_LIVE
 };
 
 // default meta structure for cue events
@@ -54,6 +60,9 @@ const CEV_EVENT_META = {
 	},
 	[CEV_GOTO]: {
 		target_name: ''
+	},
+	[CEV_START_LIVE]: {
+		zone_id: ''
 	}
 };
 

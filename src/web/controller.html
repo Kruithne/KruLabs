@@ -153,6 +153,12 @@
 													<input type="text" v-model="selected_cue.event_meta.channel"/>
 												</label>
 											</template>
+											<template v-else-if="selected_cue.event_type == 0x5">
+												<label>
+													[EVENT] PROJECTION ZONE ID
+													<input type="text" v-model="selected_cue.event_meta.zone_id"/>
+												</label>
+											</template>
 											<div class="spacer"></div>
 											<div class="button-tray">
 												<input type="button" value="RETURN TO TRACKS" @click="edit_mode = 'NONE'"/>

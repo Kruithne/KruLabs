@@ -33,7 +33,7 @@ const registered_packet_ids = [];
 export function init() {
 	set_socket_state(SOCKET_STATE_CONNECTING);
 
-	ws = new WebSocket(`ws://${location.host}/api/pipe`);
+	ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/api/pipe`);
 	
 	ws.addEventListener('close', handle_socket_close);
 	ws.addEventListener('error', console.error);

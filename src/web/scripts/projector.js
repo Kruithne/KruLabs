@@ -287,6 +287,64 @@ function handle_playback_volume_event(volume) {
 		media.track.volume = media.event.volume * volume;
 }
 
+// MARK: :live
+let live_canvas_ctx = null;
+let live_canvas = null;
+
+let live_canvas_width = 0;
+let live_canvas_height = 0;
+
+const live_zones = new Set();
+
+function handle_live_camera_frame(frame) {
+	const image_data = live_canvas_ctx.createImageData(live_canvas.width, live_canvas.height);
+	image_data.data.set(frame);
+
+	live_canvas_ctx.putImageData(image_data, 0, 0);
+
+	for (const zone of live_zones)
+		zone.plane.material.map.needsUpdate = true;
+}
+
+function handle_live_camera_dimensions(event) {
+	live_canvas_width = event.width;
+	live_canvas_height = event.height;
+
+	if (live_canvas) {
+		live_canvas.width = live_canvas_width;
+		live_canvas.height = live_canvas_height;
+	}
+}
+
+function handle_start_live_event(event) {
+	live_canvas = document.createElement('canvas');
+	live_canvas.width = live_canvas_width;
+	live_canvas.height = live_canvas_height;
+
+	live_canvas_ctx = live_canvas.getContext('2d');
+
+	const zone_id = event.zone_id.toLowerCase();
+	const canvas_texture = new THREE.CanvasTexture(live_canvas);
+	const material = new THREE.MeshBasicMaterial({ map: canvas_texture });
+
+	for (const zone of zones.values()) {
+		if (zone_id == zone.accessor_id) {
+			zone.plane.material = material;
+			live_zones.add(zone);
+		}
+	}
+}
+
+function handle_stop_live_event() {
+	for (const zone of live_zones)
+		zone.plane.material = base_material;
+
+	live_zones.clear();
+
+	live_canvas = null;
+	live_canvas_ctx = null;
+}
+
 // MARK: :init
 (async () => {
 	if (document.readyState === 'loading')
@@ -317,6 +375,10 @@ function handle_playback_volume_event(volume) {
 	socket.on(PACKET.PLAYBACK_MEDIA_SEEK, handle_playback_seek_event);
 	socket.on(PACKET.REQ_MEDIA_PRELOAD, handle_media_preload_event);
 	socket.on(PACKET.PLAYBACK_VOLUME, handle_playback_volume_event);
+	socket.on(PACKET.LIVE_CAMERA_FRAME, handle_live_camera_frame);
+	socket.on(PACKET.CUE_EVENT_START_LIVE, handle_start_live_event);
+	socket.on(PACKET.CUE_EVENT_STOP_LIVE, handle_stop_live_event);
+	socket.on(PACKET.LIVE_CAMERA_DIMENSIONS, handle_live_camera_dimensions);
 	
 	let first_time = true;
 	socket.on('statechange', state => {
