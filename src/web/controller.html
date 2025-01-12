@@ -104,7 +104,7 @@
 											</label>
 											<label>
 												CUE TIME:
-												<time-input :value="selected_cue.time" @updated="selected_cue.time = $event"></time-input>
+												<time-input :value="selected_cue.time" @updated="selected_cue.time = $event" include-ms></time-input>
 											</label>
 											<label>
 												CUE EVENT TYPE:
@@ -255,7 +255,7 @@
 											<template v-slot="{ item, index }">
 												<div :class="{ selected: selected_cue === item, active: playback_time >= item.time }" @click="selected_cue = item">
 													<span>{{ format_index(index) + ' ' + CEV_LABELS[item.event_type].short + ' ' + item.name }}</span>
-													<span>{{ format_timespan(item.time) }}</span>
+													<span>{{ format_timespan_ms(item.time) }}</span>
 												</div>
 											</template>
 										</listbox-component>
