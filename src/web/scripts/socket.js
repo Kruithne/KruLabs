@@ -129,6 +129,14 @@ export function register_packet(packet_id) {
 	}
 }
 
+export function unregister_packet(packet_id) {
+	const index = registered_packet_ids.indexOd(packet_id);
+	if (index > -1)
+		registered_packet_ids.splice(index, 1);
+
+	send_object(PACKET.REQ_UNREGISTER, { packet_id });
+}
+
 function queue_dispatch() {
 	if (!is_dispatching) {
 		is_dispatching = true;

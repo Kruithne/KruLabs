@@ -343,6 +343,8 @@ function handle_stop_live_event() {
 
 	live_canvas = null;
 	live_canvas_ctx = null;
+
+	socket.unregister_packet(PACKET.LIVE_CAMERA_FRAME);
 }
 
 // MARK: :init

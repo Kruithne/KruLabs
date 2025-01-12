@@ -106,6 +106,9 @@ export const PACKET = {
 
 	/** [CLIENT -> ALL] Contains updated dimensions from a live camera. */
 	LIVE_CAMERA_DIMENSIONS: 0x23,
+
+	/** [CLIENT -> ALL] Unregister a packet with the server. */
+	REQ_UNREGISTER: 0x24,
 };
 
 export const PACKET_UNK = 'UNKNOWN';

@@ -139,6 +139,17 @@ function register_packet_listener(ws: ClientSocket, packets: number[]) {
 	}
 }
 
+function unregister_packet_listener(ws: ClientSocket, packet_id: number) {
+	const listeners = socket_packet_listeners.get(packet_id);
+	if (listeners !== undefined) {
+		const listener_index = listeners.indexOf(ws);
+		if (listener_index > -1) {
+			listeners.splice(listener_index, 1);
+			log_verbose(`{${ws.data.sck_id}} unregistered from {${get_packet_name(packet_id)}}`);
+		}
+	}
+}
+
 function remove_listeners(ws: ClientSocket) {
 	let removed = 0;
 	for (const listener_array of socket_packet_listeners.values()) {
@@ -204,6 +215,9 @@ async function handle_packet(ws: ClientSocket, packet_id: number, packet_data: a
 	if (packet_id === PACKET.REQ_REGISTER) {
 		const packets = validate_typed_array<number>(packet_data?.packets, TYPE_NUMBER, 'packets');
 		register_packet_listener(ws, packets);
+	} else if (packet_id === PACKET.REQ_UNREGISTER) {
+		const packet_id = validate_number(packet_data?.packet_id, 'packet_id');
+		unregister_packet_listener(ws, packet_id);
 	} else if (packet_id === PACKET.REQ_SAVE_PROJECT) {
 		try {
 			const project_state = validate_object(packet_data?.state, 'state');
@@ -404,6 +418,13 @@ function validate_string(str: any, key: string): string {
 		throw new AssertionError('expected string', key);
 
 	return str;
+}
+
+function validate_number(num: any, key: string): number {
+	if (typeof num !== TYPE_NUMBER)
+		throw new AssertionError('expected number', key);
+
+	return num;
 }
 
 // MARK: :general
