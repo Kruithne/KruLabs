@@ -609,7 +609,7 @@ const reactive_state = {
 				return;
 
 			if (this.config.confirm_zone_deletion) {
-				const user_confirm = await show_confirm_modal('CONFIRM ZONE DELETE', `Are you sure you wish to delete cue "${zone.name}"? This action cannot be reversed.`);
+				const user_confirm = await show_confirm_modal('CONFIRM ZONE DELETE', `Are you sure you wish to delete zone "${zone.name}"? This action cannot be reversed.`);
 				if (!user_confirm)
 					return;
 			}
