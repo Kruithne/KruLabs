@@ -289,19 +289,20 @@ function handle_playback_volume_event(volume) {
 }
 
 // MARK: :live
-let live_canvas_ctx = null;
-let live_canvas = null;
-
 let live_canvas_width = 0;
 let live_canvas_height = 0;
 
+let live_data = null;
 const live_zones = new Set();
 
 function handle_live_camera_frame(frame) {
-	const image_data = live_canvas_ctx.createImageData(live_canvas.width, live_canvas.height);
+	if (live_data === null)
+		return;
+
+	const image_data = live_data.ctx.createImageData(live_data.canvas.width, live_data.canvas.height);
 	image_data.data.set(frame);
 
-	live_canvas_ctx.putImageData(image_data, 0, 0);
+	live_data.ctx.putImageData(image_data, 0, 0);
 
 	for (const zone of live_zones)
 		zone.plane.material.map.needsUpdate = true;
@@ -311,22 +312,22 @@ function handle_live_camera_dimensions(event) {
 	live_canvas_width = event.width;
 	live_canvas_height = event.height;
 
-	if (live_canvas) {
-		live_canvas.width = live_canvas_width;
-		live_canvas.height = live_canvas_height;
+	if (live_data) {
+		live_data.canvas.width = live_canvas_width;
+		live_data.canvas.height = live_canvas_height;
 	}
 }
 
 function handle_start_live_event(event) {
-	live_canvas = document.createElement('canvas');
-	live_canvas.width = live_canvas_width;
-	live_canvas.height = live_canvas_height;
+	const canvas = document.createElement('canvas');
+	canvas.width = live_canvas_width;
+	canvas.height = live_canvas_height;
 
-	live_canvas_ctx = live_canvas.getContext('2d');
+	const ctx = canvas.getContext('2d');
 
 	const zone_id = event.zone_id.toLowerCase();
-	const canvas_texture = new THREE.CanvasTexture(live_canvas);
-	const material = new THREE.MeshBasicMaterial({ map: canvas_texture });
+	const texture = new THREE.CanvasTexture(canvas);
+	const material = new THREE.MeshBasicMaterial({ map: texture });
 
 	for (const zone of zones.values()) {
 		if (zone_id == zone.accessor_id) {
@@ -334,6 +335,10 @@ function handle_start_live_event(event) {
 			live_zones.add(zone);
 		}
 	}
+
+	live_data = {
+		canvas, ctx, texture, material
+	};
 }
 
 function handle_stop_live_event() {
@@ -341,9 +346,7 @@ function handle_stop_live_event() {
 		zone.plane.material = base_material;
 
 	live_zones.clear();
-
-	live_canvas = null;
-	live_canvas_ctx = null;
+	live_data = null;
 
 	socket.unregister_packet(PACKET.LIVE_CAMERA_FRAME);
 }
