@@ -109,6 +109,18 @@ export const PACKET = {
 
 	/** [CLIENT -> ALL] Unregister a packet with the server. */
 	REQ_UNREGISTER: 0x24,
+
+	/** [CLIENT -> ALL] Requests creation of a timer zone. */
+	CUE_EVENT_CREATE_TIMER: 0x25,
+
+	/** [CLIENT -> ALL] Sets the current time of a timer. */
+	CUE_EVENT_SET_TIMER: 0x26,
+
+	/** [CLIENT -> ALL] Starts a timer. */
+	CUE_EVENT_START_TIMER: 0x27,
+
+	/** [CLIENT -> ALL] Stops a timer. */
+	CUE_EVENT_STOP_TIMER: 0x28,
 };
 
 export const PACKET_UNK = 'UNKNOWN';

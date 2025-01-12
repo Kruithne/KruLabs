@@ -21,9 +21,10 @@ camera.position.z = 5;
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setClearColor(0x000000);
 
-function animate() {
+function animate(ts) {
 	requestAnimationFrame(animate);
 	renderer.render(scene, camera);
+	update_timers(ts);
 }
 
 function update_zone_plane(zone, render_order) {
@@ -347,6 +348,119 @@ function handle_stop_live_event() {
 	socket.unregister_packet(PACKET.LIVE_CAMERA_FRAME);
 }
 
+// MARK: :timers
+const timers = new Map();
+function handle_timer_create_event(event) {
+	const timer_id = event.timer_id.toLowerCase();
+	const existing = timers.get(timer_id);
+
+	if (existing)
+		dispose_timer(existing);
+
+	const canvas = document.createElement('canvas');
+	const ctx = canvas.getContext('2d');
+	
+	ctx.font = event.font;
+	ctx.fillStyle = event.color;
+	
+	const metrics = ctx.measureText('00:00:00');
+	canvas.width = metrics.width;
+	canvas.height = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+	
+	const texture = new THREE.CanvasTexture(canvas);
+	const material = new THREE.MeshBasicMaterial({ map: texture });
+	
+	const timer = {
+		canvas, ctx, material, texture,
+		value: 0, running: false, id: timer_id,
+		font: event.font, color: event.color
+	};
+	
+	timers.set(timer_id, timer);
+	update_timer(timer, 0);
+	
+	const zone_id = event.zone_id.toLowerCase();
+	for (const zone of zones.values()) {
+		if (zone.accessor_id == zone_id)
+			zone.plane.material = material;
+	}
+}
+
+function dispose_timer(timer) {
+	for (const zone of zones.values()) {
+		if (zone.plane.material == timer.material)
+			zone.plane.material = base_material;
+	}
+
+	timer.material.dispose();
+	timer.texture.dispose();
+
+	timers.remove(timer.id);
+}
+
+function update_timer(timer, value) {
+	timer.value = value;
+	const time_str = format_timespan(value);
+	
+	timer.ctx.fillStyle = 'black';
+	timer.ctx.fillRect(0, 0, timer.canvas.width, timer.canvas.height);
+
+	timer.ctx.font = timer.font;
+	timer.ctx.fillStyle = timer.color;
+	timer.ctx.fillText(time_str, 0, timer.ctx.measureText(time_str).actualBoundingBoxAscent);
+	
+	timer.texture.needsUpdate = true;
+}
+
+function handle_timer_set_event(event) {
+	const timer = timers.get(event.timer_id.toLowerCase());
+	if (timer)
+		update_timer(timer, event.value);
+}
+
+function handle_timer_start_event(event) {
+	const timer = timers.get(event.timer_id.toLowerCase());
+	if (timer)
+		timer.running = true;
+}
+
+function handle_timer_stop_event(event) {
+	const timer = timers.get(event.timer_id.toLowerCase());
+	if (timer)
+		dispose_timer(timer);
+}
+
+let last_timer_update = null;
+function update_timers(ts) {
+	if (last_timer_update === null) {
+		last_timer_update = ts;
+		return;
+	}
+
+	const elapsed = ts - last_timer_update;
+	last_timer_update = ts;
+	
+	for (const timer of timers.values())
+		if (timer.running) {
+			const new_value = Math.max(0, timer.value - elapsed);
+			if (new_value !== timer.value)
+				update_timer(timer, new_value);
+		}
+}
+
+function pad_time_unit(unit) {
+	return String(unit).padStart(2, '0');
+}
+
+function format_timespan(span) {
+	const total_seconds = Math.floor(span / 1000);
+	const hours = Math.floor(total_seconds / 3600);
+	const minutes = Math.floor((total_seconds % 3600) / 60);
+	const seconds = total_seconds % 60;
+	
+	return `${pad_time_unit(hours)}:${pad_time_unit(minutes)}:${pad_time_unit(seconds)}`;
+}
+
 // MARK: :init
 (async () => {
 	if (document.readyState === 'loading')
@@ -381,6 +495,10 @@ function handle_stop_live_event() {
 	socket.on(PACKET.CUE_EVENT_START_LIVE, handle_start_live_event);
 	socket.on(PACKET.CUE_EVENT_STOP_LIVE, handle_stop_live_event);
 	socket.on(PACKET.LIVE_CAMERA_DIMENSIONS, handle_live_camera_dimensions);
+	socket.on(PACKET.CUE_EVENT_CREATE_TIMER, handle_timer_create_event);
+	socket.on(PACKET.CUE_EVENT_SET_TIMER, handle_timer_set_event);
+	socket.on(PACKET.CUE_EVENT_START_TIMER, handle_timer_start_event);
+	socket.on(PACKET.CUE_EVENT_STOP_TIMER, handle_timer_stop_event);
 	
 	let first_time = true;
 	socket.on('statechange', state => {
@@ -400,5 +518,5 @@ function handle_stop_live_event() {
 	});
 	
 	socket.init();
-	animate();
+	requestAnimationFrame(animate);
 })();

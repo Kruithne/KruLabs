@@ -141,22 +141,62 @@
 													[EVENT] CONFIRM PLAYBACK END
 												</label>
 											</template>
+											<!-- CUE EVENT: GOTO -->
 											<template v-else-if="selected_cue.event_type == 0x3">
 												<label>
 													[EVENT] TARGET CUE NAME
 													<input type="text" v-model="selected_cue.event_meta.target_name"/>
 												</label>
 											</template>
+											<!-- CUE EVENT: STOP_MEDIA -->
 											<template v-else-if="selected_cue.event_type == 0x2">
 												<label>
 													[EVENT] CHANNEL
 													<input type="text" v-model="selected_cue.event_meta.channel"/>
 												</label>
 											</template>
+											<!-- CUE EVENT: START_LIVE -->
 											<template v-else-if="selected_cue.event_type == 0x5">
 												<label>
 													[EVENT] PROJECTION ZONE ID
 													<input type="text" v-model="selected_cue.event_meta.zone_id"/>
+												</label>
+											</template>
+											<!-- CUE EVENT: CREATE_TIMER -->
+											<template v-else-if="selected_cue.event_type == 0x7">
+												<label>
+													[EVENT] TIMER ID
+													<input type="text" v-model="selected_cue.event_meta.timer_id"/>
+												</label>
+												<label>
+													[EVENT] PROJECTION ZONE ID
+													<input type="text" v-model="selected_cue.event_meta.zone_id"/>
+												</label>
+												<label>
+													[EVENT] TIMER FONT (CSS)
+													<input type="text" v-model="selected_cue.event_meta.font"/>
+												</label>
+												<label>
+													[EVENT] TIMER COLOR (CSS)
+													<input type="text" v-model="selected_cue.event_meta.color"/>
+												</label>
+											</template>
+											<!-- CUE EVENT: SET_TIMER -->
+											<template v-else-if="selected_cue.event_type == 0x8">
+												<label>
+													[EVENT] TIMER ID
+													<input type="text" v-model="selected_cue.event_meta.timer_id"/>
+												</label>
+												<label>
+													[EVENT] VALUE
+													<input type="number" v-model="selected_cue.event_meta.value"/>
+												</label>
+											</template>
+											<!-- CUE EVENT: START_TIMER, STOP_TIMER -->
+											<template v-else-if="selected_cue.event_type == 0x9 || selected_cue.event_type == 0xA">
+												<label>
+													[EVENT] TIMER ID
+													<input type="text" v-model="selected_cue.event_meta.timer_id"/>
 												</label>
 											</template>
 											<div class="spacer"></div>
