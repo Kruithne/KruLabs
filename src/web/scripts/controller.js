@@ -754,7 +754,7 @@ const reactive_state = {
 					ctx.closePath();
 				} else {
 					ctx.beginPath();
-					ctx.arc(zone.position.x * width, zone.position.y * height, zone.radius * height, 0, Math.PI * 2);
+					ctx.arc(region.position.x * width, region.position.y * height, region.radius * height, 0, Math.PI * 2);
 				}
 
 				ctx.fillStyle = region.invert ? 'black' : 'white';
