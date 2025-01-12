@@ -143,8 +143,9 @@ const DEFAULT_MASK = {
 	regions: []
 };
 
-const DEFAULT_MASK_REGION = {
-	name: 'Mask Region',
+const DEFAULT_MASK_REGION_RECT = {
+	name: 'Mask Rect',
+	type: 'rect',
 	invert: false,
 	corners: [
 		{ x: 0.1, y: 0.1 },
@@ -152,6 +153,17 @@ const DEFAULT_MASK_REGION = {
 		{ x: 0.9, y: 0.9 },
 		{ x: 0.1, y: 0.9 }
 	]
+};
+
+const DEFAULT_MASK_REGION_CIRC = {
+	name: 'Mask Circle',
+	type: 'circle',
+	invert: false,
+	position: {
+		x: 0.5,
+		y: 0.5
+	},
+	radius: 0.1
 };
 
 const DEFAULT_ZONE = {
@@ -674,11 +686,11 @@ const reactive_state = {
 			this.selected_mask_index = mask_index > 0 ? mask_index - 1 : 0;
 		},
 
-		mask_region_add() {
+		mask_region_add(type = 'rect') {
 			if (this.selected_mask === null)
 				return;
 
-			const new_region = object_clone(DEFAULT_MASK_REGION);
+			const new_region = object_clone(type === 'rect' ? DEFAULT_MASK_REGION_RECT : DEFAULT_MASK_REGION_CIRC);
 
 			this.selected_mask.regions.unshift(new_region);
 			this.selected_mask_region = new_region;
@@ -733,12 +745,17 @@ const reactive_state = {
 				const region = regions[i];
 				const corners = region.corners;
 
-				ctx.beginPath();
-				ctx.moveTo(corners[0].x * width, corners[0].y * height);
-				ctx.lineTo(corners[1].x * width, corners[1].y * height);
-				ctx.lineTo(corners[2].x * width, corners[2].y * height);
-				ctx.lineTo(corners[3].x * width, corners[3].y * height);
-				ctx.closePath();
+				if (region.type === 'rect') {
+					ctx.beginPath();
+					ctx.moveTo(corners[0].x * width, corners[0].y * height);
+					ctx.lineTo(corners[1].x * width, corners[1].y * height);
+					ctx.lineTo(corners[2].x * width, corners[2].y * height);
+					ctx.lineTo(corners[3].x * width, corners[3].y * height);
+					ctx.closePath();
+				} else {
+					ctx.beginPath();
+					ctx.arc(zone.position.x * width, zone.position.y * height, zone.radius * height, 0, Math.PI * 2);
+				}
 
 				ctx.fillStyle = region.invert ? 'black' : 'white';
 				ctx.fill();
@@ -1392,7 +1409,7 @@ const zone_editor_component = {
 	],
 	template: `
 		<div class="zone-editor" :class="{ 'mask-mode': this.maskMode }">
-			<template v-if="selected">
+			<template v-if="selected && (!selected.type || selected.type === 'rect')">
 				<div
 					class="zone-editor-point"
 					:style="{
@@ -1427,6 +1444,24 @@ const zone_editor_component = {
 					@mousedown="start_translate_point(point, $event)"
 				></div>
 			</template>
+			<template v-else-if="selected && selected.type === 'circle'">
+				<div
+					class="zone-editor-point"
+					:style="{
+						top: (selected.position.y * 100) + '%',
+						left: (selected.position.x * 100) + '%'
+					}"
+					@mousedown="start_translate_circle(selected, $event)"
+				></div>
+				<div
+					class="zone-editor-point point-scale"
+					:style="{
+						top: ((selected.position.y - selected.radius) * 100) + '%',
+						left: (selected.position.x * 100) + '%'
+					}"
+					@mousedown="start_scale_circle(selected, $event)"
+				></div>
+			</template>
 
 			<canvas ref="canvas" width=1920 height=1080></canvas>
 		</div>`,
@@ -1446,6 +1481,47 @@ const zone_editor_component = {
 	},
 
 	methods: {
+		start_scale_circle(zone, event) {
+			const canvas = this.$refs.canvas;
+			const bounds = canvas.getBoundingClientRect();
+			
+			const original_radius = zone.radius;
+			const start_y = event.clientY - bounds.top;
+			const center_y = zone.position.y * bounds.height;
+			const start_dist = Math.abs(start_y - center_y);
+			
+			const scale_stop = () => document.removeEventListener('mousemove', scale_update);
+			
+			const scale_update = (event) => {
+				const current_y = event.clientY - bounds.top;
+				const current_dist = Math.abs(current_y - center_y);
+				zone.radius = (original_radius * current_dist) / start_dist;
+			};
+			
+			document.addEventListener('mouseup', scale_stop, { once: true });
+			document.addEventListener('mousemove', scale_update);
+		},
+
+		start_translate_circle(zone, event) {
+			const pos_x_initial = zone.position.x;
+			const pos_y_initial = zone.position.y;
+
+			const canvas = this.$refs.canvas;
+			const canvas_bounds = canvas.getBoundingClientRect();
+
+			const translate_start_x = event.clientX - canvas_bounds.left;
+			const translate_start_y = event.clientY - canvas_bounds.top;
+
+			const translate_stop = () => document.removeEventListener('mousemove', translate_update);
+			const translate_update = (event) => {
+				zone.position.x = (((event.clientX - canvas_bounds.left) - translate_start_x) / canvas_bounds.width) + pos_x_initial;
+				zone.position.y = (((event.clientY - canvas_bounds.top) - translate_start_y) / canvas_bounds.height) + pos_y_initial;
+			};
+
+			document.addEventListener('mouseup', translate_stop, { once: true });
+			document.addEventListener('mousemove', translate_update);
+		},
+
 		start_scale(zone, event) {
 			const canvas = this.$refs.canvas;
 			const bounds = canvas.getBoundingClientRect();
@@ -1527,7 +1603,7 @@ const zone_editor_component = {
 		 
 			document.addEventListener('mouseup', rotate_stop, { once: true });
 			document.addEventListener('mousemove', rotate_update);
-		 },
+		},
 
 		start_translate_point(point, event) {
 			const point_x_initial = point.x;
@@ -1594,14 +1670,19 @@ const zone_editor_component = {
 				const zone = this.zones[i];
 				const is_selected_zone = this.selected === zone;
 
-				const corners = zone.corners;
+				if (zone.type === 'circle') {
+					ctx.beginPath();
+					ctx.arc(zone.position.x * width, zone.position.y * height, zone.radius * height, 0, Math.PI * 2);
+				} else {
+					const corners = zone.corners;
 
-				ctx.beginPath();
-				ctx.moveTo(corners[0].x * width, corners[0].y * height);
-				ctx.lineTo(corners[1].x * width, corners[1].y * height);
-				ctx.lineTo(corners[2].x * width, corners[2].y * height);
-				ctx.lineTo(corners[3].x * width, corners[3].y * height);
-				ctx.closePath();
+					ctx.beginPath();
+					ctx.moveTo(corners[0].x * width, corners[0].y * height);
+					ctx.lineTo(corners[1].x * width, corners[1].y * height);
+					ctx.lineTo(corners[2].x * width, corners[2].y * height);
+					ctx.lineTo(corners[3].x * width, corners[3].y * height);
+					ctx.closePath();
+				}
 
 				if (this.maskMode) {
 					ctx.fillStyle = zone.invert ? 'white' : 'black';
@@ -1629,7 +1710,7 @@ const zone_editor_component = {
 		},
 
 		compute_center(a, b) {
-			return (a + b) / 2
+			return (a + b) / 2;
 		}
 	}
 };

@@ -380,7 +380,8 @@
 									</listbox-component>
 									<div class="spacer"></div>
 									<div class="button-tray">
-										<input type="button" value="ADD" @click="mask_region_add"/>
+										<input type="button" value="RECT" @click="mask_region_add('rect')"/>
+										<input type="button" value="CIRC" @click="mask_region_add('circle')"/>
 										<input type="button" value="DEL" @click="mask_region_delete"/>
 										<input type="button" value="UP" @click="mask_region_move_up"/>
 										<input type="button" value="DOWN" @click="mask_region_move_down"/>
