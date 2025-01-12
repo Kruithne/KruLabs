@@ -291,41 +291,40 @@ function handle_playback_volume_event(volume) {
 }
 
 // MARK: :live
-let live_canvas_width = 1;
-let live_canvas_height = 1;
-
 let live_data = null;
 const live_zones = new Set();
 
 function handle_live_camera_frame(frame) {
-	if (live_data === null)
-		return;
+	if (!live_data) return;
 
-	const image_data = live_data.ctx.createImageData(live_data.canvas.width, live_data.canvas.height);
-	image_data.data.set(frame);
+	const [width, height] = new Uint16Array(frame.buffer, 0, 2);
+	const frame_data = new Uint8Array(frame.buffer, 4);
 
-	live_data.ctx.putImageData(image_data, 0, 0);
-
-	for (const zone of live_zones)
-		zone.plane.material.map.needsUpdate = true;
-}
-
-function handle_live_camera_dimensions(event) {
-	live_canvas_width = event.width;
-	live_canvas_height = event.height;
-
-	if (live_data) {
-		live_data.canvas.width = live_canvas_width;
-		live_data.canvas.height = live_canvas_height;
+	const canvas = live_data.canvas;
+	if (canvas.width !== width || canvas.height !== height) {
+		canvas.width = width;
+		canvas.height = height;
+		
+		live_data.texture.dispose();
+		live_data.texture = new THREE.CanvasTexture(canvas);
+		live_data.material.map = live_data.texture;
+		
+		for (const zone of live_zones)
+			zone.plane.material.map = live_data.texture;
 	}
+
+	const image_data = live_data.ctx.createImageData(width, height);
+	image_data.data.set(frame_data);
+	live_data.ctx.putImageData(image_data, 0, 0);
+	live_data.texture.needsUpdate = true;
 }
 
 function handle_start_live_event(event) {
 	const canvas = document.createElement('canvas');
-	canvas.width = live_canvas_width;
-	canvas.height = live_canvas_height;
-
 	const ctx = canvas.getContext('2d');
+
+	canvas.width = 1;
+	canvas.height = 1;
 
 	const zone_id = event.zone_id.toLowerCase();
 	const texture = new THREE.CanvasTexture(canvas);
@@ -556,7 +555,6 @@ function clear_active_masks() {
 	socket.on(PACKET.LIVE_CAMERA_FRAME, handle_live_camera_frame);
 	socket.on(PACKET.CUE_EVENT_START_LIVE, handle_start_live_event);
 	socket.on(PACKET.CUE_EVENT_STOP_LIVE, handle_stop_live_event);
-	socket.on(PACKET.LIVE_CAMERA_DIMENSIONS, handle_live_camera_dimensions);
 	socket.on(PACKET.CUE_EVENT_CREATE_TIMER, handle_timer_create_event);
 	socket.on(PACKET.CUE_EVENT_SET_TIMER, handle_timer_set_event);
 	socket.on(PACKET.CUE_EVENT_START_TIMER, handle_timer_start_event);

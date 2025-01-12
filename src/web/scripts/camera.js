@@ -48,11 +48,6 @@ import { PACKET } from './packet.js';
 	const update_canvas_dimensions = () => {
 		$canvas.width = video.videoWidth;
 		$canvas.height = video.videoHeight;
-
-		socket.send_object(PACKET.LIVE_CAMERA_DIMENSIONS, {
-			width: video.videoWidth,
-			height: video.videoHeight
-		});
 	};
 
 	await update_stream();
@@ -65,8 +60,12 @@ import { PACKET } from './packet.js';
 			context.drawImage(video, 0, 0, $canvas.width, $canvas.height);
 
 			if (is_live) {
-				const data = context.getImageData(0, 0, $canvas.width, $canvas.height).data;
-				socket.send_binary(PACKET.LIVE_CAMERA_FRAME, new Uint8Array(data.buffer));
+				const frame_data = context.getImageData(0, 0, $canvas.width, $canvas.height).data;
+				const header = new Uint16Array([$canvas.width, $canvas.height]);
+				const packet = new Uint8Array(header.buffer.byteLength + frame_data.buffer.byteLength);
+				packet.set(new Uint8Array(header.buffer), 0);
+				packet.set(new Uint8Array(frame_data.buffer), header.buffer.byteLength);
+				socket.send_binary(PACKET.LIVE_CAMERA_FRAME, packet);
 			}
 
 			last_frame = timestamp;

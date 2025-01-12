@@ -104,8 +104,8 @@ export const PACKET = {
 	/** [CLIENT -> ALL] Fired when a STOP_LIVE cue event is triggered. */
 	CUE_EVENT_STOP_LIVE: 0x22,
 
-	/** [CLIENT -> ALL] Contains updated dimensions from a live camera. */
-	LIVE_CAMERA_DIMENSIONS: 0x23,
+	/** REUSE ME */
+	UNUSED: 0x23,
 
 	/** [CLIENT -> ALL] Unregister a packet with the server. */
 	REQ_UNREGISTER: 0x24,
