@@ -430,7 +430,7 @@ function handle_timer_start_event(event) {
 		timer.running = true;
 }
 
-function handle_timer_stop_event(event) {
+function handle_timer_remove_event(event) {
 	delete_timer(event.timer_id.toLowerCase());
 }
 
@@ -509,7 +509,7 @@ function format_timespan(span) {
 	socket.on(PACKET.CUE_EVENT_CREATE_TIMER, handle_timer_create_event);
 	socket.on(PACKET.CUE_EVENT_SET_TIMER, handle_timer_set_event);
 	socket.on(PACKET.CUE_EVENT_START_TIMER, handle_timer_start_event);
-	socket.on(PACKET.CUE_EVENT_STOP_TIMER, handle_timer_stop_event);
+	socket.on(PACKET.CUE_EVENT_REMOVE_TIMER, handle_timer_remove_event);
 	socket.on(PACKET.REMOVE_ALL_TIMERS, handle_timer_remove_all_event);
 	
 	let first_time = true;

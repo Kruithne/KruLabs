@@ -119,8 +119,8 @@ export const PACKET = {
 	/** [CLIENT -> ALL] Starts a timer. */
 	CUE_EVENT_START_TIMER: 0x27,
 
-	/** [CLIENT -> ALL] Stops a timer. */
-	CUE_EVENT_STOP_TIMER: 0x28,
+	/** [CLIENT -> ALL] Removes a timer. */
+	CUE_EVENT_REMOVE_TIMER: 0x28,
 
 	/** [CLIENT -> ALL] Requests removal of all timers. */
 	REMOVE_ALL_TIMERS: 0x29,

@@ -27,7 +27,7 @@ const CEV_STOP_LIVE = 0x6;
 const CEV_CREATE_TIMER = 0x7;
 const CEV_SET_TIMER = 0x8;
 const CEV_START_TIMER = 0x9;
-const CEV_STOP_TIMER = 0xA;
+const CEV_REMOVE_TIMER = 0xA;
 
 // cue event labels. short appears in cue stack, long appears in config
 const CEV_LABELS = {
@@ -41,7 +41,7 @@ const CEV_LABELS = {
 	[CEV_CREATE_TIMER]: { short: 'TIMER', long: 'CREATE TIMER' },
 	[CEV_SET_TIMER]: { short: 'T-SET', long: 'SET TIMER VALUE' },
 	[CEV_START_TIMER]: { short: 'T-START', long: 'START TIMER' },
-	[CEV_STOP_TIMER]: { short: 'T-STOP', long: 'STOP TIMER' }
+	[CEV_REMOVE_TIMER]: { short: 'T-RMV', long: 'REMOVE TIMER' }
 };
 
 // assign cue events packets to fire
@@ -53,7 +53,7 @@ const CEV_PACKETS = {
 	[CEV_CREATE_TIMER]: PACKET.CUE_EVENT_CREATE_TIMER,
 	[CEV_SET_TIMER]: PACKET.CUE_EVENT_SET_TIMER,
 	[CEV_START_TIMER]: PACKET.CUE_EVENT_START_TIMER,
-	[CEV_STOP_TIMER]: PACKET.CUE_EVENT_STOP_TIMER
+	[CEV_REMOVE_TIMER]: PACKET.CUE_EVENT_REMOVE_TIMER
 };
 
 // default meta structure for cue events
@@ -89,7 +89,7 @@ const CEV_EVENT_META = {
 	[CEV_START_TIMER]: {
 		timer_id: ''
 	},
-	[CEV_STOP_TIMER]: {
+	[CEV_REMOVE_TIMER]: {
 		timer_id: ''
 	}
 };
@@ -492,7 +492,7 @@ const reactive_state = {
 		set_project_state(state) {
 			if (this.selected_track !== null)
 				socket.send_empty(PACKET.REMOVE_ALL_TIMERS);
-			
+
 			this.selected_track = null;
 			this.project_state = state;
 		},
