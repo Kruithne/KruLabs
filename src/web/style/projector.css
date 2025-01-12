@@ -58,3 +58,15 @@ canvas {
 	background-repeat: no-repeat;
 	background-size: cover;
 }
+
+.mask-overlay {
+	background: black;
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	z-index: 17;
+	mask-mode: luminance;
+	mask-size: contain;
+}

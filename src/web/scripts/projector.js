@@ -264,6 +264,8 @@ function handle_reset_media_event() {
 
 	for (const media of active_media.values())
 		dispose_media(media);
+
+	clear_active_masks();
 }
 
 function handle_media_preload_event(event) {
@@ -478,6 +480,49 @@ function format_timespan(span) {
 	return `${pad_time_unit(hours)}:${pad_time_unit(minutes)}:${pad_time_unit(seconds)}`;
 }
 
+// MARK: :masks
+const masks = new Map();
+const mask_overlays = new Map();
+
+function handle_update_masks_event(event) {
+	masks.clear();
+
+	for (const mask of event) {
+		masks.set(mask.id, mask.mask);
+
+		const overlay = mask_overlays.get(mask.id);
+		if (overlay) {
+			console.log('updating existing mask');
+			set_mask_overlay(overlay, mask.mask);
+		}
+	}
+}
+
+function set_mask_overlay(overlay, mask) {
+	overlay.style.maskImage = 'url(' + mask + ')';
+}
+
+function handle_show_mask_event(event) {
+	const overlay = document.createElement('div');
+	overlay.classList.add('mask-overlay');
+	set_mask_overlay(overlay, masks.get(event.mask_id));
+	document.body.appendChild(overlay);
+
+	mask_overlays.set(event.mask_id, overlay);
+}
+
+function handle_hide_mask_event(event) {
+	mask_overlays.get(event.mask_id)?.remove();
+	mask_overlays.delete(event.mask_id);
+}
+
+function clear_active_masks() {
+	for (const overlay of mask_overlays.values())
+		overlay.remove();
+
+	mask_overlays.clear();
+}
+
 // MARK: :init
 (async () => {
 	if (document.readyState === 'loading')
@@ -518,12 +563,16 @@ function format_timespan(span) {
 	socket.on(PACKET.CUE_EVENT_REMOVE_TIMER, handle_timer_remove_event);
 	socket.on(PACKET.REMOVE_ALL_TIMERS, handle_timer_remove_all_event);
 	socket.on(PACKET.CUE_EVENT_PAUSE_TIMER, handle_timer_pause_event);
+	socket.on(PACKET.UPDATE_MASKS, handle_update_masks_event);
+	socket.on(PACKET.CUE_EVENT_SHOW_MASK, handle_show_mask_event);
+	socket.on(PACKET.CUE_EVENT_HIDE_MASK, handle_hide_mask_event);
 	
 	let first_time = true;
 	socket.on('statechange', state => {
 		if (state === socket.SOCKET_STATE_CONNECTED) {
 			socket.send_empty(PACKET.REQ_ZONES);
 			socket.send_empty(PACKET.REQ_PLAYBACK_VOLUME);
+			socket.send_empty(PACKET.REQ_MASKS);
 
 			if (first_time) {
 				// display an activator overlay that disappears when clicking, this is visual feedback to

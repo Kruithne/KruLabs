@@ -127,6 +127,18 @@ export const PACKET = {
 
 	/** [CLIENT -> ALL] Pauses a timer */
 	CUE_EVENT_PAUSE_TIMER: 0x2A,
+
+	/** [CLIENT -> ALL] Contains updated masks. */
+	UPDATE_MASKS: 0x2B,
+
+	/** [CLIENT -> ALL] Requests updated masks. Expects UPDATE_MASKS. */
+	REQ_MASKS: 0x2C,
+
+	/** [CLIENT -> ALL] Fired when a SHOW_MASK cue event is triggered. */
+	CUE_EVENT_SHOW_MASK: 0x2D,
+
+	/** [CLIENT -> ALL] Fired when a HIDE_MASK cue event is triggered. */
+	CUE_EVENT_HIDE_MASK: 0x2E,
 };
 
 export const PACKET_UNK = 'UNKNOWN';

@@ -6,6 +6,7 @@ import { PACKET } from './packet.js';
 const PROJECT_MANAGEMENT_TIMEOUT = 10000; // timeout in ms that state callback timeout (load, save, etc)
 const MIN_LOADING_ELAPSED = 500; // minimum time in ms a loading message is visible for
 const MEDIA_PRELOAD_TIMEOUT = 2000; // time in ms for media preload to timeout
+const MASK_DISPATCH_DEBOUNCE = 300; // time in ms to debounce mask dispatch
 
 const ARRAY_EMPTY = Object.freeze([]);
 const NOOP = () => {};
@@ -29,6 +30,8 @@ const CEV_SET_TIMER = 0x8;
 const CEV_START_TIMER = 0x9;
 const CEV_REMOVE_TIMER = 0xA;
 const CEV_PAUSE_TIMER = 0xB;
+const CEV_SHOW_MASK = 0xC;
+const CEV_HIDE_MASK = 0xD;
 
 // cue event labels. short appears in cue stack, long appears in config
 const CEV_LABELS = {
@@ -43,7 +46,9 @@ const CEV_LABELS = {
 	[CEV_SET_TIMER]: { short: 'T-SET', long: 'SET TIMER VALUE' },
 	[CEV_START_TIMER]: { short: 'T-START', long: 'START TIMER' },
 	[CEV_REMOVE_TIMER]: { short: 'T-RMV', long: 'REMOVE TIMER' },
-	[CEV_PAUSE_TIMER]: { short: 'T-PAUSE', long: 'PAUSE TIMER' }
+	[CEV_PAUSE_TIMER]: { short: 'T-PAUSE', long: 'PAUSE TIMER' },
+	[CEV_SHOW_MASK]: { short: 'MASK', long: 'SHOW MASK' },
+	[CEV_HIDE_MASK]: { short: 'MASK HIDE', long: 'HIDE MASK' }
 };
 
 // assign cue events packets to fire
@@ -56,7 +61,9 @@ const CEV_PACKETS = {
 	[CEV_SET_TIMER]: PACKET.CUE_EVENT_SET_TIMER,
 	[CEV_START_TIMER]: PACKET.CUE_EVENT_START_TIMER,
 	[CEV_REMOVE_TIMER]: PACKET.CUE_EVENT_REMOVE_TIMER,
-	[CEV_PAUSE_TIMER]: PACKET.CUE_EVENT_PAUSE_TIMER
+	[CEV_PAUSE_TIMER]: PACKET.CUE_EVENT_PAUSE_TIMER,
+	[CEV_SHOW_MASK]: PACKET.CUE_EVENT_SHOW_MASK,
+	[CEV_HIDE_MASK]: PACKET.CUE_EVENT_HIDE_MASK,
 };
 
 // default meta structure for cue events
@@ -98,6 +105,12 @@ const CEV_EVENT_META = {
 	},
 	[CEV_PAUSE_TIMER]: {
 		timer_id: ''
+	},
+	[CEV_SHOW_MASK]: {
+		mask_id: ''
+	},
+	[CEV_HIDE_MASK]: {
+		mask_id: ''
 	}
 };
 
@@ -108,7 +121,8 @@ const DEFAULT_PROJECT_STATE = {
 	preload_media: true,
 	playback_volume: 1,
 	tracks: [],
-	zones: []
+	zones: [],
+	masks: []
 };
 
 const DEFAULT_CUE = {
@@ -121,6 +135,23 @@ const DEFAULT_TRACK = {
 	name: 'New Track',
 	duration: 30000,
 	cues: []
+};
+
+const DEFAULT_MASK = {
+	id: '',
+	name: 'Mask',
+	regions: []
+};
+
+const DEFAULT_MASK_REGION = {
+	name: 'Mask Region',
+	invert: false,
+	corners: [
+		{ x: 0.1, y: 0.1 },
+		{ x: 0.9, y: 0.1 },
+		{ x: 0.9, y: 0.9 },
+		{ x: 0.1, y: 0.9 }
+	]
 };
 
 const DEFAULT_ZONE = {
@@ -136,6 +167,12 @@ const DEFAULT_ZONE = {
 	]
 };
 
+const MASK_RENDER_CANVAS = document.createElement('canvas');
+const MASK_RENDER_CONTEXT = MASK_RENDER_CANVAS.getContext('2d');
+
+MASK_RENDER_CANVAS.width = 1920;
+MASK_RENDER_CANVAS.height = 1080;
+
 // MARK: :state
 let modal_confirm_resolver = null;
 let app_state = null;
@@ -143,7 +180,7 @@ let app_state = null;
 const reactive_state = {
 	data() {
 		return {
-			nav_pages: ['project', 'cues', 'zones', 'config'],
+			nav_pages: ['project', 'cues', 'zones', 'masks', 'config'],
 			nav_page: '',
 			
 			socket_state: 0x0,
@@ -156,6 +193,7 @@ const reactive_state = {
 				confirm_track_deletion: true,
 				confirm_cue_deletion: true,
 				confirm_zone_deletion: true,
+				confirm_mask_deletion: true,
 			},
 			
 			project_state: structuredClone(DEFAULT_PROJECT_STATE),
@@ -163,6 +201,10 @@ const reactive_state = {
 			selected_track: null,
 			selected_cue: null,
 			selected_zone: null,
+
+			selected_mask_index: -1,
+			selected_mask_region: null,
+			mask_dispatch_timer: -1,
 
 			edit_mode: 'NONE', // NONE | TRACK | CUE
 
@@ -364,6 +406,21 @@ const reactive_state = {
 				this.save_config(new_config);
 			}
 		},
+
+		selected_mask() {
+			this.selected_mask_region = null;
+		},
+
+		'project_state.masks': {
+			deep: true,
+			handler() {
+				clearTimeout(this.mask_dispatch_timer);
+
+				this.mask_dispatch_timer = setTimeout(() => {
+					this.dispatch_mask_updates();
+				}, MASK_DISPATCH_DEBOUNCE);
+			}
+		}
 	},
 	
 	// MARK: :computed
@@ -411,6 +468,10 @@ const reactive_state = {
 		playback_total_remaining() {
 			return format_timespan_ms(this.selected_track ? this.playback_track_denominator - Math.min(this.playback_track_denominator, this.playback_time) : 0);
 		},
+
+		selected_mask() {
+			return this.project_state.masks[this.selected_mask_index] ?? null;
+		}
 	},
 	
 	// MARK: :methods
@@ -584,6 +645,114 @@ const reactive_state = {
 
 				await this.hide_loading_message(load_start_ts);
 			}
+		},
+
+		// MARK: :mask methods
+		mask_add(source = DEFAULT_MASK) {
+			const new_mask = object_clone(source);
+			new_mask.id = crypto.randomUUID();
+
+			this.project_state.masks.push(new_mask);
+			this.selected_mask_index = this.project_state.masks.length - 1;
+		},
+
+		async mask_delete() {
+			const mask = this.selected_mask;
+			if (mask === null)
+				return;
+
+			if (this.config.confirm_mask_deletion) {
+				const user_confirm = await show_confirm_modal('CONFIRM MASK DELETE', `Are you sure you wish to delete mask "${mask.name}"? This action cannot be reversed.`);
+				if (!user_confirm)
+					return;
+			}
+
+			const masks = this.project_state.masks;
+			const mask_index = masks.indexOf(mask);
+			masks.splice(mask_index, 1);
+
+			this.selected_mask_index = mask_index > 0 ? mask_index - 1 : 0;
+		},
+
+		mask_region_add() {
+			if (this.selected_mask === null)
+				return;
+
+			const new_region = object_clone(DEFAULT_MASK_REGION);
+
+			this.selected_mask.regions.unshift(new_region);
+			this.selected_mask_region = new_region;
+		},
+
+		mask_region_delete() {
+			const region = this.selected_mask_region;
+			if (region === null)
+				return;
+
+			const regions = this.selected_mask.regions;
+			const region_index = regions.indexOf(region);
+			regions.splice(region_index, 1);
+
+			this.selected_mask_region = regions[region_index > 0 ? region_index - 1 : 0] ?? null;
+		},
+
+		mask_region_move_up() {
+			if (this.selected_mask_region === null)
+				return;
+
+			move_element(this.selected_mask.regions, this.selected_mask_region, -1);
+		},
+
+		mask_region_move_down() {
+			if (this.selected_mask_region === null)
+				return;
+
+			move_element(this.selected_mask.regions, this.selected_mask_region, 1);
+		},
+
+		mask_region_duplicate() {
+			const region = this.selected_mask_region;
+			if (region === null)
+				return;
+
+			this.mask_region_add(this.selected_mask_region);
+		},
+
+		generate_mask_image(mask) {
+			const ctx = MASK_RENDER_CONTEXT;
+			const canvas = MASK_RENDER_CANVAS;
+
+			const width = canvas.width;
+			const height = canvas.height;
+
+			ctx.fillStyle = 'black';
+			ctx.fillRect(0, 0, width, height);
+			
+			const regions = mask.regions;
+			for (let i = regions.length - 1; i >= 0; i--) {
+				const region = regions[i];
+				const corners = region.corners;
+
+				ctx.beginPath();
+				ctx.moveTo(corners[0].x * width, corners[0].y * height);
+				ctx.lineTo(corners[1].x * width, corners[1].y * height);
+				ctx.lineTo(corners[2].x * width, corners[2].y * height);
+				ctx.lineTo(corners[3].x * width, corners[3].y * height);
+				ctx.closePath();
+
+				ctx.fillStyle = region.invert ? 'black' : 'white';
+				ctx.fill();
+			}
+
+			return canvas.toDataURL();
+		},
+
+		dispatch_mask_updates() {
+			const payload = [];
+			for (const mask of this.project_state.masks)
+				payload.push({ id: mask.id, mask: this.generate_mask_image(mask) });
+
+			socket.send_object(PACKET.UPDATE_MASKS, payload);
 		},
 
 		// MARK: :zone methods
@@ -1216,9 +1385,13 @@ const listbox_component = {
 
 // MARK: :zone editor
 const zone_editor_component = {
-	props: ['zones', 'selected'],
+	props: [
+		'zones',
+		'selected',
+		'maskMode'
+	],
 	template: `
-		<div class="zone-editor">
+		<div class="zone-editor" :class="{ 'mask-mode': this.maskMode }">
 			<template v-if="selected">
 				<div
 					class="zone-editor-point"
@@ -1407,7 +1580,15 @@ const zone_editor_component = {
 			const width = canvas.width;
 			const height = canvas.height;
 
-			ctx.clearRect(0, 0, width, height);
+			if (this.maskMode) {
+				ctx.fillStyle = 'white';
+				ctx.fillRect(0, 0, width, height);
+			} else {
+				ctx.clearRect(0, 0, width, height);
+			}
+
+			if (!this.zones)
+				return;
 
 			for (let i = this.zones.length - 1; i >= 0; i--) {
 				const zone = this.zones[i];
@@ -1422,14 +1603,19 @@ const zone_editor_component = {
 				ctx.lineTo(corners[3].x * width, corners[3].y * height);
 				ctx.closePath();
 
-				if (zone.visible) {
-					ctx.fillStyle = is_selected_zone ? '#4bf34b' : 'orange';
+				if (this.maskMode) {
+					ctx.fillStyle = zone.invert ? 'white' : 'black';
 					ctx.fill();
 				} else {
-					ctx.setLineDash([5, 15]);
-					ctx.strokeStyle = is_selected_zone ? 'orange' : 'grey';
-					ctx.stroke();
-					ctx.setLineDash(ARRAY_EMPTY);
+					if (zone.visible) {
+						ctx.fillStyle = is_selected_zone ? '#4bf34b' : 'orange';
+						ctx.fill();
+					} else {
+						ctx.setLineDash([5, 15]);
+						ctx.strokeStyle = is_selected_zone ? 'orange' : 'grey';
+						ctx.stroke();
+						ctx.setLineDash(ARRAY_EMPTY);
+					}
 				}
 			}
 		},
@@ -1476,6 +1662,7 @@ const zone_editor_component = {
 	socket.on(PACKET.ACK_SERVER_ADDR, addr => app_state.server_addr = addr);
 	socket.on(PACKET.ACK_PROJECT_LIST, data => app_state.available_projects = data.projects);
 	socket.on(PACKET.REQ_ZONES, () => app_state.dispatch_zone_updates());
+	socket.on(PACKET.REQ_MASKS, () => app_state.dispatch_mask_updates());
 	socket.on(PACKET.ACK_SOURCE_LIST, data => app_state.source_list = data);
 	socket.on(PACKET.CONFIRM_MEDIA_END, uuid => app_state.playback_confirm_media.delete(uuid));
 	socket.on(PACKET.PROJECTOR_CLIENT_NEEDS_ACTIVATION, state => app_state.projector_client_requires_activation = state);
