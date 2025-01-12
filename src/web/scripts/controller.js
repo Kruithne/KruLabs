@@ -490,6 +490,9 @@ const reactive_state = {
 		},
 
 		set_project_state(state) {
+			if (this.selected_track !== null)
+				socket.send_empty(PACKET.REMOVE_ALL_TIMERS);
+			
 			this.selected_track = null;
 			this.project_state = state;
 		},

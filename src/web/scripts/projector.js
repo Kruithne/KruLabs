@@ -355,10 +355,7 @@ function handle_stop_live_event() {
 const timers = new Map();
 function handle_timer_create_event(event) {
 	const timer_id = event.timer_id.toLowerCase();
-	const existing = timers.get(timer_id);
-
-	if (existing)
-		dispose_timer(existing);
+	delete_timer(timer_id);
 
 	const canvas = document.createElement('canvas');
 	const ctx = canvas.getContext('2d');
@@ -375,7 +372,7 @@ function handle_timer_create_event(event) {
 	
 	const timer = {
 		canvas, ctx, material, texture,
-		value: 0, running: false, id: timer_id,
+		value: 0, running: false,
 		font: event.font, color: event.color
 	};
 	
@@ -389,6 +386,14 @@ function handle_timer_create_event(event) {
 	}
 }
 
+function delete_timer(timer_id) {
+	const timer = timers.get(timer_id);
+	if (timer) {
+		dispose_timer(timer);
+		timers.delete(timer_id);
+	}
+}
+
 function dispose_timer(timer) {
 	for (const zone of zones.values()) {
 		if (zone.plane.material == timer.material)
@@ -397,8 +402,6 @@ function dispose_timer(timer) {
 
 	timer.material.dispose();
 	timer.texture.dispose();
-
-	timers.remove(timer.id);
 }
 
 function update_timer(timer, value) {
@@ -428,9 +431,14 @@ function handle_timer_start_event(event) {
 }
 
 function handle_timer_stop_event(event) {
-	const timer = timers.get(event.timer_id.toLowerCase());
-	if (timer)
+	delete_timer(event.timer_id.toLowerCase());
+}
+
+function handle_timer_remove_all_event() {
+	for (const timer of timers.values())
 		dispose_timer(timer);
+
+	timers.clear();
 }
 
 let last_timer_update = null;
@@ -502,6 +510,7 @@ function format_timespan(span) {
 	socket.on(PACKET.CUE_EVENT_SET_TIMER, handle_timer_set_event);
 	socket.on(PACKET.CUE_EVENT_START_TIMER, handle_timer_start_event);
 	socket.on(PACKET.CUE_EVENT_STOP_TIMER, handle_timer_stop_event);
+	socket.on(PACKET.REMOVE_ALL_TIMERS, handle_timer_remove_all_event);
 	
 	let first_time = true;
 	socket.on('statechange', state => {
