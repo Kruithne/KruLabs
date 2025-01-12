@@ -377,7 +377,7 @@ function handle_timer_create_event(event) {
 	};
 	
 	timers.set(timer_id, timer);
-	update_timer(timer, 0);
+	update_timer(timer, event.value);
 	
 	const zone_id = event.zone_id.toLowerCase();
 	for (const zone of zones.values()) {
