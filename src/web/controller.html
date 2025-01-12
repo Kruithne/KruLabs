@@ -196,8 +196,8 @@
 													<input type="number" v-model="selected_cue.event_meta.value"/>
 												</label>
 											</template>
-											<!-- CUE EVENT: START_TIMER, STOP_TIMER -->
-											<template v-else-if="selected_cue.event_type == 0x9 || selected_cue.event_type == 0xA">
+											<!-- CUE EVENT: START_TIMER, STOP_TIMER, PAUSE_TIMER -->
+											<template v-else-if="selected_cue.event_type == 0x9 || selected_cue.event_type == 0xA || selected_cue.event_type == 0xB">
 												<label>
 													[EVENT] TIMER ID
 													<input type="text" v-model="selected_cue.event_meta.timer_id"/>

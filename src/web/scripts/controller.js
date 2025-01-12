@@ -28,6 +28,7 @@ const CEV_CREATE_TIMER = 0x7;
 const CEV_SET_TIMER = 0x8;
 const CEV_START_TIMER = 0x9;
 const CEV_REMOVE_TIMER = 0xA;
+const CEV_PAUSE_TIMER = 0xB;
 
 // cue event labels. short appears in cue stack, long appears in config
 const CEV_LABELS = {
@@ -41,7 +42,8 @@ const CEV_LABELS = {
 	[CEV_CREATE_TIMER]: { short: 'TIMER', long: 'CREATE TIMER' },
 	[CEV_SET_TIMER]: { short: 'T-SET', long: 'SET TIMER VALUE' },
 	[CEV_START_TIMER]: { short: 'T-START', long: 'START TIMER' },
-	[CEV_REMOVE_TIMER]: { short: 'T-RMV', long: 'REMOVE TIMER' }
+	[CEV_REMOVE_TIMER]: { short: 'T-RMV', long: 'REMOVE TIMER' },
+	[CEV_PAUSE_TIMER]: { short: 'T-PAUSE', long: 'PAUSE TIMER' }
 };
 
 // assign cue events packets to fire
@@ -53,7 +55,8 @@ const CEV_PACKETS = {
 	[CEV_CREATE_TIMER]: PACKET.CUE_EVENT_CREATE_TIMER,
 	[CEV_SET_TIMER]: PACKET.CUE_EVENT_SET_TIMER,
 	[CEV_START_TIMER]: PACKET.CUE_EVENT_START_TIMER,
-	[CEV_REMOVE_TIMER]: PACKET.CUE_EVENT_REMOVE_TIMER
+	[CEV_REMOVE_TIMER]: PACKET.CUE_EVENT_REMOVE_TIMER,
+	[CEV_PAUSE_TIMER]: PACKET.CUE_EVENT_PAUSE_TIMER
 };
 
 // default meta structure for cue events
@@ -80,7 +83,8 @@ const CEV_EVENT_META = {
 		timer_id: '',
 		zone_id: '',
 		font: '',
-		color: ''
+		color: '',
+		value: 0
 	},
 	[CEV_SET_TIMER]: {
 		timer_id: '',
@@ -90,6 +94,9 @@ const CEV_EVENT_META = {
 		timer_id: ''
 	},
 	[CEV_REMOVE_TIMER]: {
+		timer_id: ''
+	},
+	[CEV_PAUSE_TIMER]: {
 		timer_id: ''
 	}
 };

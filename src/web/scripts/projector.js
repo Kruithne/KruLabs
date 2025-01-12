@@ -372,7 +372,7 @@ function handle_timer_create_event(event) {
 	
 	const timer = {
 		canvas, ctx, material, texture,
-		value: 0, running: false,
+		value: event.value, running: false,
 		font: event.font, color: event.color
 	};
 	
@@ -432,6 +432,12 @@ function handle_timer_start_event(event) {
 
 function handle_timer_remove_event(event) {
 	delete_timer(event.timer_id.toLowerCase());
+}
+
+function handle_timer_pause_event(event) {
+	const timer = timers.get(event.timer_id.toLowerCase());
+	if (timer)
+		timer.running = false;
 }
 
 function handle_timer_remove_all_event() {
@@ -511,6 +517,7 @@ function format_timespan(span) {
 	socket.on(PACKET.CUE_EVENT_START_TIMER, handle_timer_start_event);
 	socket.on(PACKET.CUE_EVENT_REMOVE_TIMER, handle_timer_remove_event);
 	socket.on(PACKET.REMOVE_ALL_TIMERS, handle_timer_remove_all_event);
+	socket.on(PACKET.CUE_EVENT_PAUSE_TIMER, handle_timer_pause_event);
 	
 	let first_time = true;
 	socket.on('statechange', state => {

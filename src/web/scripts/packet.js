@@ -124,6 +124,9 @@ export const PACKET = {
 
 	/** [CLIENT -> ALL] Requests removal of all timers. */
 	REMOVE_ALL_TIMERS: 0x29,
+
+	/** [CLIENT -> ALL] Pauses a timer */
+	CUE_EVENT_PAUSE_TIMER: 0x2A,
 };
 
 export const PACKET_UNK = 'UNKNOWN';
