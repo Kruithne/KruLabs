@@ -854,6 +854,13 @@ const reactive_state = {
 			this.edit_mode = 'CUE';
 		},
 
+		cue_move() {
+			if (!this.selected_track || !this.selected_cue)
+				return;
+
+			this.selected_cue.time = this.playback_time;
+		},
+
 		async cue_delete() {
 			const cue = this.selected_cue;
 			const track = this.selected_track;
@@ -1753,7 +1760,7 @@ const zone_editor_component = {
 			const $buttons = document.querySelectorAll(`[data-key-bind="${event.key}"]`);
 			if ($buttons.length > 0)
 				event.preventDefault();
-			
+
 			for (const $button of $buttons)
 				$button.click();
 		}
