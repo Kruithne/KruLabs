@@ -1016,6 +1016,7 @@ const reactive_state = {
 		},
 
 		playback_reset() {
+			this.playback_seeking = true;
 			this.playback_time = 0;
 		},
 
@@ -1110,6 +1111,8 @@ const reactive_state = {
 		remote_seek(ofs) {
 			if (!this.selected_track)
 				return;
+
+			this.playback_seeking = true;
 
 			const new_time = ofs === 0 ? 0 : this.playback_time + ofs;
 			this.playback_time = Math.min(this.selected_track.duration, Math.max(new_time, 0));
