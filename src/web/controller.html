@@ -297,8 +297,8 @@
 											<input type="button" value="HOLD" @click="playback_hold" :class="{ active: !playback_live }"/>
 											<input type="button" value="RESET" @click="playback_reset"/>
 											<input type="button" value="BLACKOUT" @click="state_blackout = !state_blackout" :class="{ active: state_blackout }"/>
-											<input type="button" value="LOOP" @click="playback_loop = !playback_loop" :class="{ active: playback_loop }"/>
-											<input type="button" value="AUTO" @click="playback_auto = !playback_auto" :class="{ active: playback_auto }"/>
+											<input type="button" value="LOOP" @click="playback_mode = 'LOOP'" :class="{ active: playback_mode == 'LOOP' }"/>
+											<input type="button" value="AUTO" @click="playback_mode = 'AUTO'" :class="{ active: playback_mode == 'AUTO' }"/>
 											<input type="button" value="F-HOLD" @click="vol_fade_hold" :class="{ active: vol_fade_active }"/>
 											<input type="button" value="F-OUT" @click="vol_fade_out" :class="{ active: vol_fade_active }"/>
 											<input type="button" value="F-BACK" @click="vol_fade_back" :class="{ active: vol_fade_active }"/>

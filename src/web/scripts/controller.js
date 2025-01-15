@@ -11,6 +11,10 @@ const MASK_DISPATCH_DEBOUNCE = 300; // time in ms to debounce mask dispatch
 const ARRAY_EMPTY = Object.freeze([]);
 const NOOP = () => {};
 
+const PLAYBACK_MODE_NONE = 'NONE';
+const PLAYBACK_MODE_LOOP = 'LOOP';
+const PLAYBACK_MODE_AUTO = 'AUTO';
+
 const TYPE_STRING = 'string';
 
 // local storage keys
@@ -220,8 +224,7 @@ const reactive_state = {
 
 			edit_mode: 'NONE', // NONE | TRACK | CUE
 
-			playback_loop: false,
-			playback_auto: false,
+			playback_mode: PLAYBACK_MODE_NONE,
 			playback_auto_next: false,
 			playback_live: false,
 			playback_last_update: 0,
@@ -310,16 +313,6 @@ const reactive_state = {
 
 				this.playback_seeking = false;
 			}
-		},
-
-		playback_loop(state) {
-			if (state)
-				this.playback_auto = false;
-		},
-
-		playback_auto(state) {
-			if (state)
-				this.playback_loop = false;
 		},
 
 		nav_page(new_page) {
@@ -1023,10 +1016,10 @@ const reactive_state = {
 				if (this.playback_time >= this.selected_track.duration && this.playback_confirm_media.size === 0) {
 					this.playback_hold();
 
-					if (this.playback_loop) {
+					if (this.playback_mode == PLAYBACK_MODE_LOOP) {
 						this.playback_seek(0);
 						this.playback_go();
-					} else if (this.playback_auto) {
+					} else if (this.playback_mode == PLAYBACK_MODE_AUTO) {
 						this.playback_auto_next = true;
 						this.playback_next_track();
 					}
