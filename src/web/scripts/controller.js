@@ -1746,4 +1746,16 @@ const zone_editor_component = {
 	socket.on(PACKET.REQ_PLAYBACK_VOLUME, () => socket.send_object(PACKET.PLAYBACK_VOLUME, app_state.project_state.playback_volume));
 
 	socket.init();
+
+	// keybound buttons
+	document.addEventListener('keydown', event => {
+		if (event.ctrlKey) {
+			const $buttons = document.querySelectorAll(`[data-key-bind="${event.key}"]`);
+			if ($buttons.length > 0)
+				event.preventDefault();
+			
+			for (const $button of $buttons)
+				$button.click();
+		}
+	});
 })();
