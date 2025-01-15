@@ -137,6 +137,7 @@ const DEFAULT_CUE = {
 };
 
 const DEFAULT_TRACK = {
+	id: '',
 	name: 'New Track',
 	duration: 30000,
 	cues: []
@@ -328,8 +329,9 @@ const reactive_state = {
 				socket.send_empty(PACKET.REQ_SOURCE_LIST);
 		},
 
-		selected_track() {
+		selected_track(track) {
 			socket.send_empty(PACKET.RESET_MEDIA);
+			socket.send_object(PACKET.ACK_REMOTE_TRACK, track.id);
 
 			this.selected_cue = null;
 			this.playback_hold();
@@ -383,6 +385,7 @@ const reactive_state = {
 		'project_state.tracks': {
 			deep: true,
 			handler() {
+				this.remote_dispatch_tracks();
 				this.calculate_track_denominator();
 
 				if (this.selected_track) {
@@ -913,6 +916,8 @@ const reactive_state = {
 			const new_track = structuredClone(DEFAULT_TRACK);
 			const tracks = this.project_state.tracks;
 
+			new_track.id = crypto.randomUUID();
+
 			let new_index = tracks.length;
 			if (this.selected_track !== null)
 				new_index = tracks.indexOf(this.selected_track) + 1;
@@ -1089,6 +1094,25 @@ const reactive_state = {
 
 			this.media_preload_resolver?.();
 			this.media_preload_resolver = null;
+		},
+
+		// MARK: :remote methods
+		remote_dispatch_tracks() {
+			socket.send_object(PACKET.ACK_REMOTE_TRAKCS, this.project_state.tracks);
+		},
+
+		remote_select_track(id) {
+			const track = this.project_state.tracks.find(e => e.id == id);
+			if (track)
+				this.selected_track = track;
+		},
+		
+		remote_seek(ofs) {
+			if (!this.selected_track)
+				return;
+
+			const new_time = ofs === 0 ? 0 : this.playback_time + ofs;
+			this.playback_time = Math.min(this.selected_track.duration, Math.max(new_time, 0));
 		},
 
 		// MARK: :config methods
@@ -1751,6 +1775,12 @@ const zone_editor_component = {
 	socket.on(PACKET.CONFIRM_MEDIA_END, uuid => app_state.playback_confirm_media.delete(uuid));
 	socket.on(PACKET.PROJECTOR_CLIENT_NEEDS_ACTIVATION, state => app_state.projector_client_requires_activation = state);
 	socket.on(PACKET.REQ_PLAYBACK_VOLUME, () => socket.send_object(PACKET.PLAYBACK_VOLUME, app_state.project_state.playback_volume));
+
+	socket.on(PACKET.REQ_REMOTE_TRACKS, () => app_state.remote_dispatch_tracks());
+	socket.on(PACKET.REQ_REMOTE_TRACK, id => app_state.remote_select_track(id));
+	socket.on(PACKET.REQ_REMOTE_GO, () => app_state.playback_go());
+	socket.on(PACKET.REQ_REMOTE_HOLD, () => app_state.playback_hold());
+	socket.on(PACKET.REQ_REMOTE_SEEK, offset => app_state.remote_seek(offset));
 
 	socket.init();
 

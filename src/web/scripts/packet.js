@@ -139,6 +139,27 @@ export const PACKET = {
 
 	/** [CLIENT -> ALL] Fired when a HIDE_MASK cue event is triggered. */
 	CUE_EVENT_HIDE_MASK: 0x2E,
+
+	/** [CLIENT -> ALL] Request track list from controller. Expects ACK_REMOTE_TRACKS. */
+	REQ_REMOTE_TRACKS: 0x2F,
+
+	/** [CLIENT -> ALL] Response to REQ_REMOTE_TRACKS with track list. */
+	ACK_REMOTE_TRAKCS: 0x30,
+
+	/** [CLIENT -> ALL] Request track from controller. */
+	REQ_REMOTE_TRACK: 0x31,
+
+	/** [CLIENT -> ALL] Fired when the selected track changes on the controller. */
+	ACK_REMOTE_TRACK: 0x32,
+
+	/** [CLIENT -> ALL] Requests controller to GO. */
+	REQ_REMOTE_GO: 0x33,
+
+	/** [CLIENT -> ALL] Requests controller to HOLD. */
+	REQ_REMOTE_HOLD: 0x34,
+
+	/** [CLIENT -> ALL] Requests controller to SEEK. */
+	REQ_REMOTE_SEEK: 0x35,
 };
 
 export const PACKET_UNK = 'UNKNOWN';
