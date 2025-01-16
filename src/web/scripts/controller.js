@@ -303,8 +303,10 @@ const reactive_state = {
 				for (let i = this.last_cue_index, n = cue_stack.length; i < n; i++) {
 					const cue = cue_stack[i];
 					if (time >= cue.time) {
-						if (!this.playback_seeking)
+						if (!this.playback_seeking) {
+							console.log('FIRE');
 							this.fire_cue_event(cue);
+						}
 	
 						this.last_cue_index++;
 					} else {
@@ -335,6 +337,7 @@ const reactive_state = {
 
 			this.selected_cue = null;
 			this.playback_hold();
+
 			this.playback_time = 0;
 
 			this.calculate_track_denominator();
@@ -1030,15 +1033,17 @@ const reactive_state = {
 				if (this.playback_time >= this.selected_track.duration && this.playback_confirm_media.size === 0) {
 					this.playback_hold();
 
-					if (this.playback_mode == PLAYBACK_MODE_LOOP) {
-						this.playback_seek(0);
-						this.playback_go();
-					} else if (this.playback_mode == PLAYBACK_MODE_AUTO_GO) {
-						this.playback_auto_next = true;
-						this.playback_next_track();
-					} else if (this.playback_mode == PLAYBACK_MODE_AUTO_TRACK) {
-						this.playback_next_track();
-					}
+					this.$nextTick(() => {
+						if (this.playback_mode == PLAYBACK_MODE_LOOP) {
+							this.playback_seek(0);
+							this.playback_go();
+						} else if (this.playback_mode == PLAYBACK_MODE_AUTO_GO) {
+							this.playback_auto_next = true;
+							this.playback_next_track();
+						} else if (this.playback_mode == PLAYBACK_MODE_AUTO_TRACK) {
+							this.playback_next_track();
+						}
+					});
 				}
 			}
 			requestAnimationFrame(ts => this.playback_update(ts));
