@@ -12,7 +12,6 @@ const PREFIX_WEBSOCKET = 'WEBSOCKET';
 const PREFIX_HTTP = 'HTTP';
 
 const HTTP_SERVE_DIRECTORY = './src/web';
-const MEDIA_SOURCE_DIRECTORY = './src/web/sources';
 
 const PARTIAL_DEFAULT_CHUNK = 2 * 1024 * 1024;
 
