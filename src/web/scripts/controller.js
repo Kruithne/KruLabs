@@ -236,7 +236,7 @@ const reactive_state = {
 
 		'project_state.playback_volume': {
 			handler(playback_volume) {
-				// todo: interface directly with system volume
+				socket.send_object(PACKET.SET_SYSTEM_VOLUME, playback_volume);
 			}
 		},
 

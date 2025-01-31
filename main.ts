@@ -5,7 +5,7 @@ import node_os from 'node:os';
 import node_fs from 'node:fs/promises';
 import { PACKET, get_packet_name, build_packet, parse_packet, PACKET_TYPE, PACKET_UNK } from './src/web/scripts/packet.js';
 
-import type { WebSocketHandler, ServerWebSocket } from 'bun';
+import type { WebSocketHandler, ServerWebSocket, Subprocess } from 'bun';
 
 // MARK: :constants
 const PREFIX_WEBSOCKET = 'WEBSOCKET';
@@ -18,6 +18,8 @@ const PARTIAL_DEFAULT_CHUNK = 2 * 1024 * 1024;
 const PROJECT_STATE_DIRECTORY = './state';
 const PROJECT_STATE_EXT = '.json';
 const PROJECT_STATE_INDEX = node_path.join(PROJECT_STATE_DIRECTORY, 'index.json');
+
+const VOLMGR_WIN_EXE = './volmgr/bin/Release/net8.0/win-x64/publish/volmgr.exe';
 
 const TYPE_NUMBER = 'number';
 const TYPE_STRING = 'string';
@@ -92,6 +94,62 @@ function log_verbose(message: string, prefix = 'DEBUG') {
 /** Prints a warning message (no formatting) to stdout. */
 function log_warn(message: string) {
 	process.stdout.write('\x1b[93mWARNING: \x1b[31m' + message + '\x1b[0m\n');
+}
+
+// MARK: :volmgr
+let volmgr_proc: Subprocess<"pipe", "pipe", "inherit"> | null = null;
+
+function volmgr_init() {
+	if (process.platform !== 'win32')
+		return log_warn(`Volume control not supported on {${process.platform}}`);
+
+	const exe = Bun.file(VOLMGR_WIN_EXE);
+	if (exe.size === 0) {
+		log_warn('{volmgr} not compiled, volume control disabled');
+		return;
+	}
+
+	volmgr_proc = Bun.spawn([VOLMGR_WIN_EXE], {
+		stdin: "pipe",
+		stdout: "pipe"
+	});
+
+	log_verbose(`{volmgr} sub-process started with PID {${volmgr_proc.pid}}`);
+}
+
+function volmgr_send(msg: object) {
+	if (volmgr_proc === null)
+		return;
+
+	volmgr_proc.stdin.write(JSON.stringify(msg) + "\n");
+	volmgr_proc.stdin.flush();
+}
+
+async function get_system_volume() {
+	if (volmgr_proc === null)
+		return 1.0;
+
+	try {
+		volmgr_send({ cmd: 'get' });
+
+		const decoder = new TextDecoder();
+		for await (const chunk of volmgr_proc.stdout)
+			return JSON.parse(decoder.decode(chunk)).value;
+
+		throw new Error('no data received from sub-process');
+	} catch (e) {
+		const error = e as Error;
+		log_warn(`volmgr failed to get system volume due to {${error.name}}: ${error.message}`);
+	}
+	
+	return 1.0;
+}
+
+function set_system_volume(value: number) {
+	if (volmgr_proc === null)
+		return;
+
+	volmgr_send({ cmd: 'set', value });
 }
 
 // MARK: :projects
@@ -273,6 +331,9 @@ async function handle_packet(ws: ClientSocket, packet_id: number, packet_data: a
 		send_object(PACKET.ACK_PROJECT_LIST, { projects: project_list });
 	} else if (packet_id === PACKET.REQ_SERVER_ADDR) {
 		send_string(PACKET.ACK_SERVER_ADDR, get_local_ipv4(), ws);
+	} else if (packet_id === PACKET.SET_SYSTEM_VOLUME) {
+		validate_number(packet_data, 'packet_data');
+		set_system_volume(packet_data);
 	} else {
 		// dispatch all other packets to listeners
 		const listeners = get_listening_clients(packet_id);
@@ -506,3 +567,5 @@ if (CLI_ARGS.verbose)
 	log_warn('Verbose logging enabled (--verbose)');
 
 print_service_links('controller', 'remote');
+
+volmgr_init();

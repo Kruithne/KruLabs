@@ -67,6 +67,9 @@ export const PACKET = {
 
 	/** [CLIENT -> ALL] Requests controller to SEEK. */
 	REQ_REMOTE_SEEK: 0x16,
+
+	/** [CLIENT -> SERVER] Sets the system volume. */
+	SET_SYSTEM_VOLUME: 0x17,
 };
 
 export const PACKET_UNK = 'UNKNOWN';
