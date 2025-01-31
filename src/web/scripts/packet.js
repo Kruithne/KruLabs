@@ -95,14 +95,14 @@ export const PACKET = {
 	/** [CLIENT -> ALL] Requests updated volume from controller. Expects PLAYBACK_VOLUME. */
 	REQ_PLAYBACK_VOLUME: 0x1F,
 
-	/** [CLIENT -> ALL] Contains a frame from a live camera. */
-	LIVE_CAMERA_FRAME: 0x20,
+	/** REUSE ME */
+	UNUSED_1: 0x20,
 
-	/** [CLIENT -> ALL] Fired when a START_LIVE cue event is triggered. */
-	CUE_EVENT_START_LIVE: 0x21,
+	/** REUSE ME */
+	UNUSED_2: 0x21,
 
-	/** [CLIENT -> ALL] Fired when a STOP_LIVE cue event is triggered. */
-	CUE_EVENT_STOP_LIVE: 0x22,
+	/** REUSE ME */
+	UNUSED_3: 0x22,
 
 	/** REUSE ME */
 	UNUSED: 0x23,
