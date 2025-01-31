@@ -5,8 +5,6 @@ import { PACKET } from './packet.js';
 // MARK: :constants
 const PROJECT_MANAGEMENT_TIMEOUT = 10000; // timeout in ms that state callback timeout (load, save, etc)
 const MIN_LOADING_ELAPSED = 500; // minimum time in ms a loading message is visible for
-const MEDIA_PRELOAD_TIMEOUT = 2000; // time in ms for media preload to timeout
-const MASK_DISPATCH_DEBOUNCE = 300; // time in ms to debounce mask dispatch
 
 const ARRAY_EMPTY = Object.freeze([]);
 const NOOP = () => {};
@@ -24,110 +22,35 @@ const LSK_SYS_CONFIG = 'system_config';
 
 // cue event ids
 const CEV_BASIC = 0x0;
-const CEV_PLAY_MEDIA = 0x1;
-const CEV_STOP_MEDIA = 0x2;
+// 0x1
+// 0x2
 const CEV_GOTO = 0x3;
 const CEV_HOLD = 0x4;
-const CEV_START_LIVE = 0x5;
-const CEV_STOP_LIVE = 0x6;
-const CEV_CREATE_TIMER = 0x7;
-const CEV_SET_TIMER = 0x8;
-const CEV_START_TIMER = 0x9;
-const CEV_REMOVE_TIMER = 0xA;
-const CEV_PAUSE_TIMER = 0xB;
-const CEV_SHOW_MASK = 0xC;
-const CEV_HIDE_MASK = 0xD;
 
 // cue event labels. short appears in cue stack, long appears in config
 const CEV_LABELS = {
-	[CEV_BASIC]: { short: 'CUE', long: 'BASIC CUE' },
+	[CEV_BASIC]: { short: 'CUE', long: 'MARKER CUE' },
 	[CEV_GOTO]: { short: 'GOTO', long: 'GO TO CUE' },
 	[CEV_HOLD]: { short: 'HOLD', long: 'HOLD' },
-	[CEV_PLAY_MEDIA]: { short: 'MEDIA', long: 'PLAY MEDIA TRACK' },
-	[CEV_STOP_MEDIA]: { short: 'MEDIA STOP', long: 'STOP MEDIA TRACK' },
-	[CEV_START_LIVE]: { short: 'LIVE', long: 'START LIVE STREAM' },
-	[CEV_STOP_LIVE]: { short: 'LIVE STOP', long: 'STOP LIVE STREAM' },
-	[CEV_CREATE_TIMER]: { short: 'TIMER', long: 'CREATE TIMER' },
-	[CEV_SET_TIMER]: { short: 'T-SET', long: 'SET TIMER VALUE' },
-	[CEV_START_TIMER]: { short: 'T-START', long: 'START TIMER' },
-	[CEV_REMOVE_TIMER]: { short: 'T-RMV', long: 'REMOVE TIMER' },
-	[CEV_PAUSE_TIMER]: { short: 'T-PAUSE', long: 'PAUSE TIMER' },
-	[CEV_SHOW_MASK]: { short: 'MASK', long: 'SHOW MASK' },
-	[CEV_HIDE_MASK]: { short: 'MASK HIDE', long: 'HIDE MASK' }
 };
 
 // assign cue events packets to fire
 const CEV_PACKETS = {
-	[CEV_PLAY_MEDIA]: PACKET.CUE_EVENT_PLAY_MEDIA,
-	[CEV_STOP_MEDIA]: PACKET.CUE_EVENT_STOP_MEDIA,
-	[CEV_START_LIVE]: PACKET.CUE_EVENT_START_LIVE,
-	[CEV_STOP_LIVE]: PACKET.CUE_EVENT_STOP_LIVE,
-	[CEV_CREATE_TIMER]: PACKET.CUE_EVENT_CREATE_TIMER,
-	[CEV_SET_TIMER]: PACKET.CUE_EVENT_SET_TIMER,
-	[CEV_START_TIMER]: PACKET.CUE_EVENT_START_TIMER,
-	[CEV_REMOVE_TIMER]: PACKET.CUE_EVENT_REMOVE_TIMER,
-	[CEV_PAUSE_TIMER]: PACKET.CUE_EVENT_PAUSE_TIMER,
-	[CEV_SHOW_MASK]: PACKET.CUE_EVENT_SHOW_MASK,
-	[CEV_HIDE_MASK]: PACKET.CUE_EVENT_HIDE_MASK,
+	//[CEV_PLAY_MEDIA]: PACKET.CUE_EVENT_PLAY_MEDIA,
 };
 
 // default meta structure for cue events
 const CEV_EVENT_META = {
-	[CEV_PLAY_MEDIA]: {
-		uuid: '',
-		src: '',
-		channel: 'master',
-		volume: 1,
-		confirm: false,
-		loop: false,
-		zone_id: ''
-	},
-	[CEV_STOP_MEDIA]: {
-		channel: 'master'
-	},
 	[CEV_GOTO]: {
 		target_name: ''
 	},
-	[CEV_START_LIVE]: {
-		zone_id: ''
-	},
-	[CEV_CREATE_TIMER]: {
-		timer_id: '',
-		zone_id: '',
-		font: '',
-		color: '',
-		value: 0
-	},
-	[CEV_SET_TIMER]: {
-		timer_id: '',
-		value: 0
-	},
-	[CEV_START_TIMER]: {
-		timer_id: ''
-	},
-	[CEV_REMOVE_TIMER]: {
-		timer_id: ''
-	},
-	[CEV_PAUSE_TIMER]: {
-		timer_id: ''
-	},
-	[CEV_SHOW_MASK]: {
-		mask_id: ''
-	},
-	[CEV_HIDE_MASK]: {
-		mask_id: ''
-	}
 };
 
 const DEFAULT_PROJECT_STATE = {
 	name: 'Untitled Project',
-	blackout_time: 2000,
-	vol_fade_time: 2000,
-	preload_media: true,
 	playback_volume: 1,
+	vol_fade_time: 2000,
 	tracks: [],
-	zones: [],
-	masks: []
 };
 
 const DEFAULT_CUE = {
@@ -143,54 +66,6 @@ const DEFAULT_TRACK = {
 	cues: []
 };
 
-const DEFAULT_MASK = {
-	id: '',
-	name: 'Mask',
-	regions: []
-};
-
-const DEFAULT_MASK_REGION_RECT = {
-	name: 'Mask Rect',
-	type: 'rect',
-	invert: false,
-	corners: [
-		{ x: 0.1, y: 0.1 },
-		{ x: 0.9, y: 0.1 },
-		{ x: 0.9, y: 0.9 },
-		{ x: 0.1, y: 0.9 }
-	]
-};
-
-const DEFAULT_MASK_REGION_CIRC = {
-	name: 'Mask Circle',
-	type: 'circle',
-	invert: false,
-	position: {
-		x: 0.5,
-		y: 0.5
-	},
-	radius: 0.1
-};
-
-const DEFAULT_ZONE = {
-	id: '',
-	name: 'Zone',
-	accessor_id: '',
-	visible: true,
-	corners: [
-		{ x: 0.1, y: 0.1 },
-		{ x: 0.9, y: 0.1 },
-		{ x: 0.9, y: 0.9 },
-		{ x: 0.1, y: 0.9 }
-	]
-};
-
-const MASK_RENDER_CANVAS = document.createElement('canvas');
-const MASK_RENDER_CONTEXT = MASK_RENDER_CANVAS.getContext('2d');
-
-MASK_RENDER_CANVAS.width = 1920;
-MASK_RENDER_CANVAS.height = 1080;
-
 // MARK: :state
 let modal_confirm_resolver = null;
 let app_state = null;
@@ -198,7 +73,7 @@ let app_state = null;
 const reactive_state = {
 	data() {
 		return {
-			nav_pages: ['project', 'cues', 'zones', 'masks', 'config'],
+			nav_pages: ['project', 'cues', 'config'],
 			nav_page: '',
 			
 			socket_state: 0x0,
@@ -210,19 +85,12 @@ const reactive_state = {
 			config: {
 				confirm_track_deletion: true,
 				confirm_cue_deletion: true,
-				confirm_zone_deletion: true,
-				confirm_mask_deletion: true,
 			},
 			
 			project_state: structuredClone(DEFAULT_PROJECT_STATE),
 
 			selected_track: null,
 			selected_cue: null,
-			selected_zone: null,
-
-			selected_mask_index: -1,
-			selected_mask_region: null,
-			mask_dispatch_timer: -1,
 
 			edit_mode: 'NONE', // NONE | TRACK | CUE
 
@@ -233,20 +101,24 @@ const reactive_state = {
 			playback_time: 0,
 			playback_track_denominator: 0,
 			playback_seeking: false,
-			playback_confirm_media: new Set(),
 			last_cue_index: 0,
 
 			vol_fade_active: false,
 			vol_previous: 1,
-
-			media_preloading: false,
-			media_preload_resolver: null,
 
 			source_list: [],
 
 			local_time: Date.now(),
 			server_addr: 'IPv4 Unknown',
 
+
+			state_test_screen: false,
+			state_blackout: false,
+			state_zone_debug: false,
+			
+			projector_client_requires_activation: false,
+			
+			
 			state_test_screen: false,
 			state_blackout: false,
 			state_zone_debug: false,
@@ -272,20 +144,9 @@ const reactive_state = {
 				for (const cue of this.cue_stack_sorted) {
 					if (cue.time > time)
 						break;
-
-					if (cue.event_type == CEV_PLAY_MEDIA) {
-						media.push({
-							time: time - cue.time,
-							event: cue.event_meta
-						});
-					}
 				}
 
-				socket.send_object(PACKET.PLAYBACK_MEDIA_SEEK, {
-					delta: time - prev_time,
-					state: this.playback_live,
-					media
-				});
+				// todo: seek obs media here?
 			}
 			
 			const cue_stack = this.cue_stack_sorted;
@@ -303,10 +164,8 @@ const reactive_state = {
 				for (let i = this.last_cue_index, n = cue_stack.length; i < n; i++) {
 					const cue = cue_stack[i];
 					if (time >= cue.time) {
-						if (!this.playback_seeking) {
-							console.log('FIRE');
+						if (!this.playback_seeking)
 							this.fire_cue_event(cue);
-						}
 	
 						this.last_cue_index++;
 					} else {
@@ -327,12 +186,10 @@ const reactive_state = {
 		},
 
 		edit_mode(mode) {
-			if (mode === 'CUE')
-				socket.send_empty(PACKET.REQ_SOURCE_LIST);
+			// todo: edit mode on track, get scene list from obs?
 		},
 
 		selected_track(track) {
-			socket.send_empty(PACKET.RESET_MEDIA);
 			socket.send_object(PACKET.ACK_REMOTE_TRACK, track.id);
 
 			this.selected_cue = null;
@@ -342,25 +199,10 @@ const reactive_state = {
 
 			this.calculate_track_denominator();
 
-			if (this.project_state.preload_media)
-				this.preload_media();
-
 			if (this.playback_auto_next) {
 				this.playback_auto_next = false;
 				this.playback_go();
 			}
-		},
-
-		state_test_screen(state) {
-			socket.send_object(PACKET.SET_TEST_SCREEN, state);
-		},
-
-		state_blackout(state) {
-			socket.send_object(PACKET.SET_BLACKOUT_STATE, { state, time: this.project_state.blackout_time });
-		},
-
-		state_zone_debug(state) {
-			socket.send_object(PACKET.SET_ZONE_DEBUG_STATE, state);
 		},
 
 		'selected_cue.event_type': {
@@ -399,16 +241,9 @@ const reactive_state = {
 			}
 		},
 
-		'project_state.zones': {
-			deep: true,
-			handler() {
-				this.dispatch_zone_updates();
-			}
-		},
-
 		'project_state.playback_volume': {
 			handler(playback_volume) {
-				socket.send_object(PACKET.PLAYBACK_VOLUME, playback_volume);
+				// todo: interface directly with system volume
 			}
 		},
 
@@ -418,21 +253,6 @@ const reactive_state = {
 				this.save_config(new_config);
 			}
 		},
-
-		selected_mask() {
-			this.selected_mask_region = null;
-		},
-
-		'project_state.masks': {
-			deep: true,
-			handler() {
-				clearTimeout(this.mask_dispatch_timer);
-
-				this.mask_dispatch_timer = setTimeout(() => {
-					this.dispatch_mask_updates();
-				}, MASK_DISPATCH_DEBOUNCE);
-			}
-		}
 	},
 	
 	// MARK: :computed
@@ -480,10 +300,6 @@ const reactive_state = {
 		playback_total_remaining() {
 			return format_timespan_ms(this.selected_track ? this.playback_track_denominator - Math.min(this.playback_track_denominator, this.playback_time) : 0);
 		},
-
-		selected_mask() {
-			return this.project_state.masks[this.selected_mask_index] ?? null;
-		}
 	},
 	
 	// MARK: :methods
@@ -659,181 +475,6 @@ const reactive_state = {
 			}
 		},
 
-		// MARK: :mask methods
-		mask_add(source = DEFAULT_MASK) {
-			const new_mask = object_clone(source);
-			new_mask.id = crypto.randomUUID();
-
-			this.project_state.masks.push(new_mask);
-			this.selected_mask_index = this.project_state.masks.length - 1;
-		},
-
-		async mask_delete() {
-			const mask = this.selected_mask;
-			if (mask === null)
-				return;
-
-			if (this.config.confirm_mask_deletion) {
-				const user_confirm = await show_confirm_modal('CONFIRM MASK DELETE', `Are you sure you wish to delete mask "${mask.name}"? This action cannot be reversed.`);
-				if (!user_confirm)
-					return;
-			}
-
-			const masks = this.project_state.masks;
-			const mask_index = masks.indexOf(mask);
-			masks.splice(mask_index, 1);
-
-			this.selected_mask_index = mask_index > 0 ? mask_index - 1 : 0;
-		},
-
-		mask_region_add(type = 'rect') {
-			if (this.selected_mask === null)
-				return;
-
-			const new_region = object_clone(type === 'rect' ? DEFAULT_MASK_REGION_RECT : DEFAULT_MASK_REGION_CIRC);
-
-			this.selected_mask.regions.unshift(new_region);
-			this.selected_mask_region = new_region;
-		},
-
-		mask_region_delete() {
-			const region = this.selected_mask_region;
-			if (region === null)
-				return;
-
-			const regions = this.selected_mask.regions;
-			const region_index = regions.indexOf(region);
-			regions.splice(region_index, 1);
-
-			this.selected_mask_region = regions[region_index > 0 ? region_index - 1 : 0] ?? null;
-		},
-
-		mask_region_move_up() {
-			if (this.selected_mask_region === null)
-				return;
-
-			move_element(this.selected_mask.regions, this.selected_mask_region, -1);
-		},
-
-		mask_region_move_down() {
-			if (this.selected_mask_region === null)
-				return;
-
-			move_element(this.selected_mask.regions, this.selected_mask_region, 1);
-		},
-
-		mask_region_duplicate() {
-			const region = this.selected_mask_region;
-			if (region === null)
-				return;
-
-			this.mask_region_add(this.selected_mask_region);
-		},
-
-		generate_mask_image(mask) {
-			const ctx = MASK_RENDER_CONTEXT;
-			const canvas = MASK_RENDER_CANVAS;
-
-			const width = canvas.width;
-			const height = canvas.height;
-
-			ctx.fillStyle = 'black';
-			ctx.fillRect(0, 0, width, height);
-			
-			const regions = mask.regions;
-			for (let i = regions.length - 1; i >= 0; i--) {
-				const region = regions[i];
-				const corners = region.corners;
-
-				if (region.type === 'rect') {
-					ctx.beginPath();
-					ctx.moveTo(corners[0].x * width, corners[0].y * height);
-					ctx.lineTo(corners[1].x * width, corners[1].y * height);
-					ctx.lineTo(corners[2].x * width, corners[2].y * height);
-					ctx.lineTo(corners[3].x * width, corners[3].y * height);
-					ctx.closePath();
-				} else {
-					ctx.beginPath();
-					ctx.arc(region.position.x * width, region.position.y * height, region.radius * height, 0, Math.PI * 2);
-				}
-
-				ctx.fillStyle = region.invert ? 'black' : 'white';
-				ctx.fill();
-			}
-
-			return canvas.toDataURL();
-		},
-
-		dispatch_mask_updates() {
-			const payload = [];
-			for (const mask of this.project_state.masks)
-				payload.push({ id: mask.id, mask: this.generate_mask_image(mask) });
-
-			socket.send_object(PACKET.UPDATE_MASKS, payload);
-		},
-
-		// MARK: :zone methods
-		zone_add(source = DEFAULT_ZONE) {
-			const new_zone = object_clone(source);
-			new_zone.id = crypto.randomUUID();
-
-			this.project_state.zones.unshift(new_zone);
-			this.selected_zone = new_zone;
-		},
-
-		zone_duplicate() {
-			const zone = this.selected_zone;
-			if (zone === null)
-				return;
-
-			this.zone_add(this.selected_zone);
-		},
-
-		async zone_delete() {
-			const zone = this.selected_zone;
-			if (zone === null)
-				return;
-
-			if (this.config.confirm_zone_deletion) {
-				const user_confirm = await show_confirm_modal('CONFIRM ZONE DELETE', `Are you sure you wish to delete zone "${zone.name}"? This action cannot be reversed.`);
-				if (!user_confirm)
-					return;
-			}
-
-			const zones = this.project_state.zones;
-			const zone_index = zones.indexOf(zone);
-			zones.splice(zone_index, 1);
-
-			this.selected_zone = zones[zone_index > 0 ? zone_index - 1 : 0] ?? null;
-		},
-
-		zone_move_down() {
-			if (this.selected_zone === null)
-				return;
-
-			move_element(this.project_state.zones, this.selected_zone, 1);
-		},
-
-		zone_move_up() {
-			if (this.selected_zone === null)
-				return;
-
-			move_element(this.project_state.zones, this.selected_zone, -1);
-		},
-
-		dispatch_zone_updates() {
-			const payload = {};
-
-			for (const zone of this.project_state.zones) {
-				payload[zone.id] = {
-					accessor_id: zone.accessor_id,
-					corners: zone.corners
-				};
-			}
-			
-			socket.send_object(PACKET.ZONES_UPDATED, payload);
-		},
-
 		// MARK: :cue methods
 		cue_goto(cue) {
 			if (!this.selected_track || !cue)
@@ -908,9 +549,6 @@ const reactive_state = {
 				}
 			} else if (event_type == CEV_HOLD) {
 				this.playback_hold();
-			} else if (event_type == CEV_PLAY_MEDIA) {
-				if (event_meta.confirm)
-					this.playback_confirm_media.add(event_meta.uuid);
 			}
 		},
 
@@ -966,46 +604,9 @@ const reactive_state = {
 			move_element(this.project_state.tracks, this.selected_track, -1);
 		},
 
-		async calculate_track_duration() {
-			if (this.selected_track === null)
-				return;
-
-			let failed = false;
-			let duration = 0;
-
-			const load_start_ts = this.show_loading_message('CALCULATING TRACK DURATION');
-
-			for (const cue of this.selected_track.cues) {
-				duration = Math.max(cue.time, duration);
-
-				if (cue.event_type == CEV_PLAY_MEDIA) {
-					socket.send_string(PACKET.REQ_MEDIA_LENGTH, cue.event_meta.src);
-
-					try {
-						const res = await socket.expect(PACKET.ACK_MEDIA_LENGTH, 3000);
-						duration += res;
-					} catch (e) {
-						failed = true;
-					}
-				}
-			}
-
-			this.selected_track.duration = duration;
-			await this.hide_loading_message(load_start_ts);
-
-			if (failed)
-				show_info_modal('TRACK CALCULATION', 'Failed to get duration for one or more media cues in this track. Ensure projector client is active.');
-		},
-
 		// MARK: :playback methods
 		async playback_go() {
 			if (this.selected_track) {
-				if (this.media_preload_resolver !== null)
-					return;
-	
-				if (this.media_preloading)
-					await new Promise(res => this.media_preload_resolver = res);
-
 				socket.send_empty(PACKET.PLAYBACK_GO);
 
 				this.playback_last_update = performance.now();
@@ -1086,20 +687,6 @@ const reactive_state = {
 			}
 
 			this.playback_track_denominator = total;
-		},
-
-		async preload_media() {
-			this.media_preloading = true;
-			
-			const media = this.cue_stack_sorted.filter(e => e.event_type == CEV_PLAY_MEDIA).map(e => e.event_meta);
-			socket.send_object(PACKET.REQ_MEDIA_PRELOAD, media);
-
-			await socket.expect(PACKET.ACK_MEDIA_PRELOAD, MEDIA_PRELOAD_TIMEOUT).catch(NOOP);
-
-			this.media_preloading = false;
-
-			this.media_preload_resolver?.();
-			this.media_preload_resolver = null;
 		},
 
 		// MARK: :remote methods
@@ -1777,12 +1364,6 @@ const zone_editor_component = {
 
 	socket.on(PACKET.ACK_SERVER_ADDR, addr => app_state.server_addr = addr);
 	socket.on(PACKET.ACK_PROJECT_LIST, data => app_state.available_projects = data.projects);
-	socket.on(PACKET.REQ_ZONES, () => app_state.dispatch_zone_updates());
-	socket.on(PACKET.REQ_MASKS, () => app_state.dispatch_mask_updates());
-	socket.on(PACKET.ACK_SOURCE_LIST, data => app_state.source_list = data);
-	socket.on(PACKET.CONFIRM_MEDIA_END, uuid => app_state.playback_confirm_media.delete(uuid));
-	socket.on(PACKET.PROJECTOR_CLIENT_NEEDS_ACTIVATION, state => app_state.projector_client_requires_activation = state);
-	socket.on(PACKET.REQ_PLAYBACK_VOLUME, () => socket.send_object(PACKET.PLAYBACK_VOLUME, app_state.project_state.playback_volume));
 
 	socket.on(PACKET.REQ_REMOTE_TRACKS, () => app_state.remote_dispatch_tracks());
 	socket.on(PACKET.REQ_REMOTE_TRACK, id => app_state.remote_select_track(id));

@@ -26,140 +26,47 @@ export const PACKET = {
 	/** [SERVER -> CLIENT] Response to REQ_PROJECT_LIST containing available projects. */
 	ACK_PROJECT_LIST: 0x8,
 
-	/** [CLIENT -> ALL] Contains updated zone configuration. */
-	ZONES_UPDATED: 0x9,
-
-	/** [CLIENT -> ALL] Requests zone configuration. */
-	REQ_ZONES: 0xA,
-
 	/** [CLIENT -> SERVER] Request the server IPv4 address. Expects ACK_SERVER_ADDR. */
-	REQ_SERVER_ADDR: 0xB,
+	REQ_SERVER_ADDR: 0x9,
 
 	/** [SERVER -> CLIENT] Response to REQ_SERVER_ADDR containing the server IPv4 address. */
-	ACK_SERVER_ADDR: 0xC,
-
-	/** [CLIENT -> ALL] Set test screen state (true/false). */
-	SET_TEST_SCREEN: 0xD,
-
-	/** [CLIENT -> ALL] Set blackout state (true/false) with transition duration. */
-	SET_BLACKOUT_STATE: 0xE,
+	ACK_SERVER_ADDR: 0xA,
 
 	/** [CLIENT -> SERVER] Request list of available source files. Expects ACK_SOURCE_LIST. */
-	REQ_SOURCE_LIST: 0xF,
+	REQ_SOURCE_LIST: 0xB,
 
 	/** [SERVER -> CLIENT] Response to REQ_SOURCE_LIST containing available source files. */
-	ACK_SOURCE_LIST: 0x10,
-
-	/** [CLIENT -> ALL] Fired when a PLAY_MEDIA cue event is triggered. */
-	CUE_EVENT_PLAY_MEDIA: 0x11,
-
-	/** [CLIENT -> ALL] Fired when a STOP_MEDIA cue event is triggered. */
-	CUE_EVENT_STOP_MEDIA: 0x12,
-
-	/** [CLIENT -> ALL] Fired when media has naturally ended. */
-	CONFIRM_MEDIA_END: 0x13,
-
-	/** [CLIENT -> ALL] Request length of media track. Expects ACK_MEDIA_LENGTH. */
-	REQ_MEDIA_LENGTH: 0x14,
-
-	/** [CLIENT -> ALL] Response to REQ_MEDIA_LENGTH containing media track length. */
-	ACK_MEDIA_LENGTH: 0x15,
-
-	/* [CLIENT -> ALL] Sent by projector client to request activation.  */
-	PROJECTOR_CLIENT_NEEDS_ACTIVATION: 0x16,
+	ACK_SOURCE_LIST: 0xC,
 
 	/* [CLIENT -> ALL] Sent by controller to indicate playback has held. */
-	PLAYBACK_HOLD: 0x17,
+	PLAYBACK_HOLD: 0xD,
 
 	/* [CLIENT -> ALL] Sent by controller to indicate playback has resumed. */
-	PLAYBACK_GO: 0x18,
-
-	/* [CLIENT -> ALL] Informs a projector client to reset media. */
-	RESET_MEDIA: 0x19,
-
-	/* [CLIENT -> ALL] Toggles zone debugging state. */
-	SET_ZONE_DEBUG_STATE: 0x1A,
-
-	/** [CLIENT -> ALL] Sent by controller to indicate playback seek. */
-	PLAYBACK_MEDIA_SEEK: 0x1B,
-
-	/** [CLIENT -> ALL] Sent by controller to request media preload. Expects ACK_MEDIA_PRELOAD. */
-	REQ_MEDIA_PRELOAD: 0x1C,
-
-	/** [CLIENT -> ALL] Response to ACK_MEDIA_PRELOAD, confirming media is preloaded. */
-	ACK_MEDIA_PRELOAD: 0x1D,
-
-	/** [CLIENT -> ALL] Sent by controller to indicate global playback volume. */
-	PLAYBACK_VOLUME: 0x1E,
-
-	/** [CLIENT -> ALL] Requests updated volume from controller. Expects PLAYBACK_VOLUME. */
-	REQ_PLAYBACK_VOLUME: 0x1F,
-
-	/** REUSE ME */
-	UNUSED_1: 0x20,
-
-	/** REUSE ME */
-	UNUSED_2: 0x21,
-
-	/** REUSE ME */
-	UNUSED_3: 0x22,
-
-	/** REUSE ME */
-	UNUSED: 0x23,
+	PLAYBACK_GO: 0xE,
 
 	/** [CLIENT -> ALL] Unregister a packet with the server. */
-	REQ_UNREGISTER: 0x24,
-
-	/** [CLIENT -> ALL] Requests creation of a timer zone. */
-	CUE_EVENT_CREATE_TIMER: 0x25,
-
-	/** [CLIENT -> ALL] Sets the current time of a timer. */
-	CUE_EVENT_SET_TIMER: 0x26,
-
-	/** [CLIENT -> ALL] Starts a timer. */
-	CUE_EVENT_START_TIMER: 0x27,
-
-	/** [CLIENT -> ALL] Removes a timer. */
-	CUE_EVENT_REMOVE_TIMER: 0x28,
-
-	/** [CLIENT -> ALL] Requests removal of all timers. */
-	REMOVE_ALL_TIMERS: 0x29,
-
-	/** [CLIENT -> ALL] Pauses a timer */
-	CUE_EVENT_PAUSE_TIMER: 0x2A,
-
-	/** [CLIENT -> ALL] Contains updated masks. */
-	UPDATE_MASKS: 0x2B,
-
-	/** [CLIENT -> ALL] Requests updated masks. Expects UPDATE_MASKS. */
-	REQ_MASKS: 0x2C,
-
-	/** [CLIENT -> ALL] Fired when a SHOW_MASK cue event is triggered. */
-	CUE_EVENT_SHOW_MASK: 0x2D,
-
-	/** [CLIENT -> ALL] Fired when a HIDE_MASK cue event is triggered. */
-	CUE_EVENT_HIDE_MASK: 0x2E,
+	REQ_UNREGISTER: 0xF,
 
 	/** [CLIENT -> ALL] Request track list from controller. Expects ACK_REMOTE_TRACKS. */
-	REQ_REMOTE_TRACKS: 0x2F,
+	REQ_REMOTE_TRACKS: 0x10,
 
 	/** [CLIENT -> ALL] Response to REQ_REMOTE_TRACKS with track list. */
-	ACK_REMOTE_TRACKS: 0x30,
+	ACK_REMOTE_TRACKS: 0x11,
 
 	/** [CLIENT -> ALL] Request track from controller. */
-	REQ_REMOTE_TRACK: 0x31,
+	REQ_REMOTE_TRACK: 0x12,
 
 	/** [CLIENT -> ALL] Fired when the selected track changes on the controller. */
-	ACK_REMOTE_TRACK: 0x32,
+	ACK_REMOTE_TRACK: 0x13,
 
 	/** [CLIENT -> ALL] Requests controller to GO. */
-	REQ_REMOTE_GO: 0x33,
+	REQ_REMOTE_GO: 0x14,
 
 	/** [CLIENT -> ALL] Requests controller to HOLD. */
-	REQ_REMOTE_HOLD: 0x34,
+	REQ_REMOTE_HOLD: 0x15,
 
 	/** [CLIENT -> ALL] Requests controller to SEEK. */
-	REQ_REMOTE_SEEK: 0x35,
+	REQ_REMOTE_SEEK: 0x16,
 };
 
 export const PACKET_UNK = 'UNKNOWN';

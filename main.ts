@@ -274,11 +274,6 @@ async function handle_packet(ws: ClientSocket, packet_id: number, packet_data: a
 		send_object(PACKET.ACK_PROJECT_LIST, { projects: project_list });
 	} else if (packet_id === PACKET.REQ_SERVER_ADDR) {
 		send_string(PACKET.ACK_SERVER_ADDR, get_local_ipv4(), ws);
-	} else if (packet_id === PACKET.REQ_SOURCE_LIST) {
-		const files = await node_fs.readdir(MEDIA_SOURCE_DIRECTORY, { withFileTypes: true });
-		const filtered = files.filter(e => e.isFile() && !e.name.startsWith('.')).map(e => e.name);
-
-		send_object(PACKET.ACK_SOURCE_LIST, filtered, ws);
 	} else {
 		// dispatch all other packets to listeners
 		const listeners = get_listening_clients(packet_id);
@@ -511,4 +506,4 @@ log_info(`Web server running on port {${server.port}}`);
 if (CLI_ARGS.verbose)
 	log_warn('Verbose logging enabled (--verbose)');
 
-print_service_links('controller', 'remote', 'projector');
+print_service_links('controller', 'remote');

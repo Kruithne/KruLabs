@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 	<head>
-		<title>KruLabs v2 :: Controller</title>
+		<title>KruLabs v3 :: Controller</title>
 		<link rel="icon" type="image/png" href="/meta/favicon-96x96.png" sizes="96x96"/>
 		<link rel="icon" type="image/svg+xml" href="/meta/favicon.svg" />
 		<link rel="shortcut icon" href="/meta/favicon.ico" />
@@ -33,7 +33,7 @@
 						<div class="modal-message">{{ modal_message }}</div>
 						<div class="modal-buttons">
 							<template v-if="modal_type === 'CONFIRM'">
-								<input type="button" class="alert" @click="modal_cancel" value="CANCEL"/>
+								<input type="button" class="alerthandle_packet" @click="modal_cancel" value="CANCEL"/>
 								<input type="button" class="alert" @click="modal_confirm" value="CONFIRM"/>
 							</template>
 							<template v-else-if="modal_type === 'OK'">
@@ -78,16 +78,8 @@
 											<input type="text" v-model="project_state.name"/>
 										</label>
 										<label>
-											BLACKOUT FADE TIME (MS):
-											<input type="number" v-model="project_state.blackout_time"/>
-										</label>
-										<label>
 											VOLUME FADE TIME (MS):
 											<input type="number" v-model="project_state.vol_fade_time"/>
-										</label>
-										<label class="inline">
-											<input type="checkbox" v-model="project_state.preload_media"/>
-											PRE-LOAD TRACK MEDIA
 										</label>
 									</div>
 								</div>
@@ -112,104 +104,11 @@
 													<option v-for="[event_id, labels] in Object.entries(CEV_LABELS)" :value="event_id">{{ labels.long }}</option>
 												</select>
 											</label>
-											<!-- CUE EVENT: PLAY_AUDIO -->
-											<template v-if="selected_cue.event_type == 0x1">
-												<label>
-													[EVENT] TRACK SOURCE
-													<select v-model="selected_cue.event_meta.src">
-														<option v-for="src in source_list" :value="src">{{ src }}</option>
-													</select>
-												</label>
-												<label>
-													[EVENT] PLAYBACK CHANNEL
-													<input type="text" v-model="selected_cue.event_meta.channel"/>
-												</label>
-												<label>
-													[EVENT] PROJECTION ZONE ID
-													<input type="text" v-model="selected_cue.event_meta.zone_id"/>
-												</label>
-												<label>
-													[EVENT] TRACK VOLUME
-													<input type="number" v-model="selected_cue.event_meta.volume"/>
-												</label>
-												<label class="inline">
-													<input type="checkbox" v-model="selected_cue.event_meta.loop"/>
-													[EVENT] LOOP TRACK
-												</label>
-												<label class="inline">
-													<input type="checkbox" v-model="selected_cue.event_meta.confirm"/>
-													[EVENT] CONFIRM PLAYBACK END
-												</label>
-											</template>
 											<!-- CUE EVENT: GOTO -->
-											<template v-else-if="selected_cue.event_type == 0x3">
+											<template v-if="selected_cue.event_type == 0x3">
 												<label>
 													[EVENT] TARGET CUE NAME
 													<input type="text" v-model="selected_cue.event_meta.target_name"/>
-												</label>
-											</template>
-											<!-- CUE EVENT: STOP_MEDIA -->
-											<template v-else-if="selected_cue.event_type == 0x2">
-												<label>
-													[EVENT] CHANNEL
-													<input type="text" v-model="selected_cue.event_meta.channel"/>
-												</label>
-											</template>
-											<!-- CUE EVENT: START_LIVE -->
-											<template v-else-if="selected_cue.event_type == 0x5">
-												<label>
-													[EVENT] PROJECTION ZONE ID
-													<input type="text" v-model="selected_cue.event_meta.zone_id"/>
-												</label>
-											</template>
-											<!-- CUE EVENT: CREATE_TIMER -->
-											<template v-else-if="selected_cue.event_type == 0x7">
-												<label>
-													[EVENT] TIMER ID
-													<input type="text" v-model="selected_cue.event_meta.timer_id"/>
-												</label>
-												<label>
-													[EVENT] INITIAL VALUE
-													<input type="number" v-model="selected_cue.event_meta.value"/>
-												</label>
-												<label>
-													[EVENT] PROJECTION ZONE ID
-													<input type="text" v-model="selected_cue.event_meta.zone_id"/>
-												</label>
-												<label>
-													[EVENT] TIMER FONT (CSS)
-													<input type="text" v-model="selected_cue.event_meta.font"/>
-												</label>
-												<label>
-													[EVENT] TIMER COLOR (CSS)
-													<input type="text" v-model="selected_cue.event_meta.color"/>
-												</label>
-											</template>
-											<!-- CUE EVENT: SET_TIMER -->
-											<template v-else-if="selected_cue.event_type == 0x8">
-												<label>
-													[EVENT] TIMER ID
-													<input type="text" v-model="selected_cue.event_meta.timer_id"/>
-												</label>
-												<label>
-													[EVENT] VALUE
-													<input type="number" v-model="selected_cue.event_meta.value"/>
-												</label>
-											</template>
-											<!-- CUE EVENT: START_TIMER, STOP_TIMER, PAUSE_TIMER -->
-											<template v-else-if="selected_cue.event_type == 0x9 || selected_cue.event_type == 0xA || selected_cue.event_type == 0xB">
-												<label>
-													[EVENT] TIMER ID
-													<input type="text" v-model="selected_cue.event_meta.timer_id"/>
-												</label>
-											</template>
-											<!-- CUE EVENT: SHOW_MASK, HIDE_MASK -->
-											<template v-else-if="selected_cue.event_type == 0xC || selected_cue.event_type == 0xD">
-												<label>
-													[EVENT] MASK ID
-													<select v-model="selected_cue.event_meta.mask_id">
-														<option v-for="mask in project_state.masks" :value="mask.id">{{ mask.name }}</option>
-													</select>
 												</label>
 											</template>
 											<div class="spacer"></div>
@@ -246,13 +145,8 @@
 												TRACK NAME:
 												<input type="text" v-model="selected_track.name"/>
 											</label>
-											<label>
-												TRACK DURATION:
-												<time-input :value="selected_track.duration" @updated="selected_track.duration = $event"></time-input>
-											</label>
 											<div class="spacer"></div>
 											<div class="button-tray">
-												<input type="button" value="CALCULATE DURATION" @click="calculate_track_duration"/>
 												<input type="button" value="RETURN TO CUES" @click="edit_mode = 'NONE'"/>
 											</div>
 										</div>
@@ -294,7 +188,7 @@
 									</div>
 									<div>
 										<div class="button-tray">
-											<input type="button" data-key-bind="F1" value="GO" @click="playback_go" :class="{ active: playback_live || media_preload_resolver !== null }"/>
+											<input type="button" data-key-bind="F1" value="GO" @click="playback_go" :class="{ active: playback_live }"/>
 											<input type="button" data-key-bind="F2" value="HOLD" @click="playback_hold" :class="{ active: !playback_live }"/>
 											<input type="button" data-key-bind="F3"  value="RESET" @click="playback_reset"/>
 											<input type="button" data-key-bind="F4" value="BLACKOUT" @click="state_blackout = !state_blackout" :class="{ active: state_blackout }"/>
@@ -310,105 +204,6 @@
 								</div>
 							</div>
 						</template>
-						<template v-else-if="nav_page === 'zones'">
-							<div class="panel-split panel-split-compact">
-								<div>
-									<listbox-component :items="project_state.zones">
-										<template v-slot="{ item, index }">
-											<div :class="{ selected: selected_zone === item }" @click="selected_zone = item">
-												<span>{{ format_index(index) }} {{ item.name }} [{{ item.accessor_id }}]</span>
-												<span><input type="checkbox" v-model="item.visible"/></span>
-											</div>
-										</template>
-									</listbox-component>
-									<div class="spacer"></div>
-									<div class="button-tray">
-										<input type="button" value="ADD" @click="zone_add()"/>
-										<input type="button" value="EDIT" @click="edit_mode = 'ZONE'"/>
-										<input type="button" value="DEL" @click="zone_delete"/>
-										<input type="button" value="UP" @click="zone_move_up"/>
-										<input type="button" value="DOWN" @click="zone_move_down"/>
-										<input type="button" value="DUPE" @click="zone_duplicate"/>
-									</div>
-								</div>
-								<div>
-									<template v-if="edit_mode === 'ZONE' && selected_zone">
-										<div class="form">
-											<label>
-												CUE NAME:
-												<input type="text" v-model="selected_zone.name"/>
-											</label>
-											<label>
-												ACCESSOR ID:
-												<input type="text" v-model="selected_zone.accessor_id"/>
-											</label>
-											<label class="inline">
-												<input type="checkbox" v-model="selected_zone.visible"/>
-												VISIBLE
-											</label>
-											<div class="spacer"></div>
-											<div class="button-tray">
-												<input type="button" value="RETURN TO ZONE EDITOR" @click="edit_mode = 'NONE'"/>
-											</div>
-										</div>
-									</template>
-									<template v-else>
-										<zone-editor :zones="project_state.zones" :selected="selected_zone"></zone-editor>
-									</template>
-								</div>
-							</div>
-						</template>
-						<template v-else-if="nav_page === 'masks'">
-							<div class="panel-split panel-split-compact">
-								<div>
-									<select v-model="selected_mask_index">
-										<option value="-1">No Mask Selected</option>
-										<option v-for="(mask, index) in project_state.masks" :value="index">{{ mask.name }}</option>
-									</select>
-									<div class="spacer"></div>
-									<div class="button-tray">
-										<input type="button" value="ADD" @click="mask_add()"/>
-										<input type="button" value="EDIT" @click="edit_mode = 'MASK'"/>
-										<input type="button" value="DEL" @click="mask_delete"/>
-									</div>
-									<div class="spacer"></div>
-									<listbox-component :items="selected_mask?.regions">
-										<template v-slot="{ item, index }">
-											<div :class="{ selected: selected_mask_region === item }" @click="selected_mask_region = item">
-												<span>{{ format_index(index) }} {{ item.name }}</span>
-												<span><input type="checkbox" v-model="item.invert"/></span>
-											</div>
-										</template>
-									</listbox-component>
-									<div class="spacer"></div>
-									<div class="button-tray">
-										<input type="button" value="RECT" @click="mask_region_add('rect')"/>
-										<input type="button" value="CIRC" @click="mask_region_add('circle')"/>
-										<input type="button" value="DEL" @click="mask_region_delete"/>
-										<input type="button" value="UP" @click="mask_region_move_up"/>
-										<input type="button" value="DOWN" @click="mask_region_move_down"/>
-										<input type="button" value="DUPE" @click="mask_region_duplicate"/>
-									</div>
-								</div>
-								<div>
-									<template v-if="edit_mode === 'MASK' && selected_mask">
-										<div class="form">
-											<label>
-												MASK NAME:
-												<input type="text" v-model="selected_mask.name"/>
-											</label>
-											<div class="spacer"></div>
-											<div class="button-tray">
-												<input type="button" value="RETURN TO MASK EDITOR" @click="edit_mode = 'NONE'"/>
-											</div>
-										</div>
-									</template>
-									<template v-else>
-										<zone-editor :zones="selected_mask?.regions" :selected="selected_mask_region" mask-mode="true"></zone-editor>
-									</template>
-								</div>
-							</div>
-						</template>
 						<template v-else-if="nav_page === 'config'">
 							<div id="config-panel" class="form">
 								<label class="inline">
@@ -419,14 +214,6 @@
 									<input type="checkbox" v-model="config.confirm_cue_deletion"/>
 									Require confirmation when deleting cues?
 								</label>
-								<label class="inline">
-									<input type="checkbox" v-model="config.confirm_zone_deletion"/>
-									Require confirmation when deleting zones?
-								</label>
-								<label class="inline">
-									<input type="checkbox" v-model="config.confirm_mask_deletion"/>
-									Require confirmation when deleting masks?
-								</label>
 							</div>
 						</template>
 					</div>
@@ -434,13 +221,6 @@
 						<div>{{ socket_state_text }}</div>
 						<div>{{ server_addr }}</div>
 						<div>{{ local_time_formatted }}</div>
-						<template v-if="project_state.preload_media">
-							<div class="text-err" v-if="media_preloading">MEDIA PRE-LOADING</div>
-							<div class="text-active" v-else>MEDIA PRE-LOADED</div>
-						</template>
-						<div class="pointer" :class="{ 'text-active': state_test_screen }" @click="state_test_screen = !state_test_screen">TEST SCREEN</div>
-						<div class="pointer" :class="{ 'text-active': state_zone_debug }" @click="state_zone_debug = !state_zone_debug">ZONE DEBUG</div>
-						<div class="text-err" v-if="projector_client_requires_activation">PROJECTOR REQUIRES ACTIVATION</div>
 					</div>
 				</div>
 			</div>
