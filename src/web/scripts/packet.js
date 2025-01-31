@@ -144,7 +144,7 @@ export const PACKET = {
 	REQ_REMOTE_TRACKS: 0x2F,
 
 	/** [CLIENT -> ALL] Response to REQ_REMOTE_TRACKS with track list. */
-	ACK_REMOTE_TRAKCS: 0x30,
+	ACK_REMOTE_TRACKS: 0x30,
 
 	/** [CLIENT -> ALL] Request track from controller. */
 	REQ_REMOTE_TRACK: 0x31,

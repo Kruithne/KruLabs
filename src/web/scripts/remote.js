@@ -47,7 +47,7 @@ const reactive_state = {
 		}
 	});
 
-	socket.on(PACKET.ACK_REMOTE_TRAKCS, tracks => app_state.tracks = tracks);
+	socket.on(PACKET.ACK_REMOTE_TRACKS, tracks => app_state.tracks = tracks);
 	socket.on(PACKET.ACK_REMOTE_TRACK, id => app_state.selected_track = id);
 
 	socket.init();
