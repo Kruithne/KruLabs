@@ -1,8 +1,5 @@
 # bun modules
 node_modules
 
-# tls certs
-/cert
-
 # todo/scratch
 TODO

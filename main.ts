@@ -50,7 +50,6 @@ type Packet = { id: number, data: null|object|string };
 // MARK: :state
 const CLI_ARGS = {
 	port: 19531,
-	secure_port: 19532,
 	verbose: false
 } as Record<string, CLIValue>;
 
@@ -352,8 +351,7 @@ async function http_request_handler(req: Request): Promise<Response|undefined> {
 	let pathname = url.pathname;
 
 	if (pathname === '/api/pipe') {
-		const is_secure = req.url.startsWith('https');
-		(is_secure ? https_server : http_server).upgrade(req);
+		server.upgrade(req);
 		return;
 	}
 
@@ -435,7 +433,7 @@ function print_service_links(...paths: string[]) {
 
 	log_info('Service links:');
 	for (const path of paths)
-		log_info(`    {${path.padStart(longest_length, ' ')}} :: {http://localhost:${http_server.port}/${path}}`);
+		log_info(`    {${path.padStart(longest_length, ' ')}} :: {http://localhost:${server.port}/${path}}`);
 }
 
 /** Returns file size as a human-readable string. Supports up to megabytes. */
@@ -499,7 +497,7 @@ for (const arg of args) {
 }
 
 // server init
-const http_server = Bun.serve({
+const server = Bun.serve({
 	port: CLI_ARGS.port as number,
 	development: false,
 	fetch: http_request_handler,
@@ -507,21 +505,8 @@ const http_server = Bun.serve({
 	websocket: websocket_handlers
 });
 
-const https_server = Bun.serve({
-	port: CLI_ARGS.secure_port as number,
-	development: false,
-	fetch: http_request_handler,
-	error: http_error_handler,
-	websocket: websocket_handlers,
-	tls: {
-		cert: Bun.file('./cert/certificate.crt'),
-		key: Bun.file('./cert/private.key')
-	}
-});
-
 log_info(`KruLabs {v${package_json.version}} server initiated`);
-log_info(`Web server running on port {${http_server.port}}`);
-log_info(`Secure web server running on port {${https_server.port}}`);
+log_info(`Web server running on port {${server.port}}`);
 
 if (CLI_ARGS.verbose)
 	log_warn('Verbose logging enabled (--verbose)');
