@@ -299,8 +299,8 @@ const websocket_handlers: WebSocketHandler<ClientSocketData> = {
 				throw new Error('Socket sent non-binary payload');
 
 			const [packet, packet_type] = parse_packet(message) as [Packet, number];
-			const packet_id = packet.id;
-			const packet_name = get_packet_name(packet_id);
+			packet_id = packet.id;
+			packet_name = get_packet_name(packet_id);
 
 			if (packet_name === PACKET_UNK)
 				throw new Error('Unknown packet ID ' + packet_id);
