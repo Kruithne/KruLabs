@@ -631,7 +631,7 @@ const reactive_state = {
 				this.playback_time += elapsed;
 				this.playback_last_update = now;
 		
-				if (this.playback_time >= this.selected_track.duration && this.playback_confirm_media.size === 0) {
+				if (this.playback_time >= this.selected_track.duration) {
 					this.playback_hold();
 
 					this.$nextTick(() => {
@@ -691,7 +691,7 @@ const reactive_state = {
 
 		// MARK: :remote methods
 		remote_dispatch_tracks() {
-			socket.send_object(PACKET.ACK_REMOTE_TRAKCS, this.project_state.tracks);
+			socket.send_object(PACKET.ACK_REMOTE_TRACKS, this.project_state.tracks);
 		},
 
 		remote_select_track(id) {
