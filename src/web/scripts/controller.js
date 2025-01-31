@@ -5,6 +5,7 @@ import { PACKET } from './packet.js';
 // MARK: :constants
 const PROJECT_MANAGEMENT_TIMEOUT = 10000; // timeout in ms that state callback timeout (load, save, etc)
 const MIN_LOADING_ELAPSED = 500; // minimum time in ms a loading message is visible for
+const SEEK_PADDING = 10; // time in milliseconds to pad before cues
 
 const ARRAY_EMPTY = Object.freeze([]);
 const NOOP = () => {};
@@ -55,7 +56,7 @@ const DEFAULT_PROJECT_STATE = {
 
 const DEFAULT_CUE = {
 	name: 'New Cue',
-	time: 10,
+	time: SEEK_PADDING,
 	event_type: CEV_BASIC
 };
 
@@ -216,14 +217,6 @@ const reactive_state = {
 					this.selected_cue.event_meta = event_meta;
 					this.selected_cue.event_meta.id = event_type;
 				}
-			}
-		},
-
-		'selected_cue.time': {
-			handler(time) {
-				// prevent cue starting at 10ms or less so GOTO can seek -1ms before cue
-				if (time < 10)
-					this.$nextTick(() => this.selected_cue.time = 10);
 			}
 		},
 
@@ -482,8 +475,8 @@ const reactive_state = {
 
 			this.playback_seeking = true;
 
-			// seek to 10 millisecond before the cue so that it fires
-			this.playback_time = Math.min(this.selected_track.duration, cue.time - 10);
+			// seek before the cue so that it fires
+			this.playback_time = Math.min(this.selected_track.duration, cue.time - SEEK_PADDING);
 		},
 
 		cue_add() {
@@ -493,7 +486,7 @@ const reactive_state = {
 
 			const new_cue = structuredClone(DEFAULT_CUE);
 
-			new_cue.time = this.playback_time;
+			new_cue.time = Math.max(SEEK_PADDING, this.playback_time);
 
 			track.cues.push(new_cue);
 			this.selected_cue = new_cue;
@@ -505,7 +498,7 @@ const reactive_state = {
 			if (!this.selected_track || !this.selected_cue)
 				return;
 
-			this.selected_cue.time = this.playback_time;
+			this.selected_cue.time = Math.max(SEEK_PADDING, this.playback_time);
 		},
 
 		async cue_delete() {
