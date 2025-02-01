@@ -44,6 +44,7 @@ const reactive_state = {
 	socket.on('statechange', state => {
 		if (state === socket.SOCKET_STATE_CONNECTED) {
 			socket.send_empty(PACKET.REQ_REMOTE_TRACKS);
+			socket.send_empty(PACKET.REQ_CURRENT_TRACK);
 		}
 	});
 

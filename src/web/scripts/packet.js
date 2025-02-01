@@ -70,6 +70,9 @@ export const PACKET = {
 
 	/** [CLIENT -> SERVER] Sets the system volume. */
 	SET_SYSTEM_VOLUME: 0x17,
+
+	/** [CLIENT -> ALL] Requests the current track. Expects ACK_REMOTE_TRACK. */
+	REQ_CURRENT_TRACK: 0x18,
 };
 
 export const PACKET_UNK = 'UNKNOWN';

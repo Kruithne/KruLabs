@@ -687,6 +687,10 @@ const reactive_state = {
 			socket.send_object(PACKET.ACK_REMOTE_TRACKS, this.project_state.tracks);
 		},
 
+		remote_dispatch_track() {
+			socket.send_object(PACKET.ACK_REMOTE_TRACK, this.selected_track?.id ?? '');
+		},
+
 		remote_select_track(id) {
 			const track = this.project_state.tracks.find(e => e.id == id);
 			if (track)
@@ -1363,6 +1367,7 @@ const zone_editor_component = {
 	socket.on(PACKET.REQ_REMOTE_GO, () => app_state.playback_go());
 	socket.on(PACKET.REQ_REMOTE_HOLD, () => app_state.playback_hold());
 	socket.on(PACKET.REQ_REMOTE_SEEK, offset => app_state.remote_seek(offset));
+	socket.on(PACKET.REQ_CURRENT_TRACK, () => app_state.remote_dispatch_track());
 
 	socket.init();
 
