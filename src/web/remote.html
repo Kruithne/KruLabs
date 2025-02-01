@@ -33,6 +33,10 @@
 				<div id="track-list">
 					<div v-for="track in tracks" :class="{ active: selected_track == track.id }" @click="request_track(track.id)">{{ track.name }}</div>
 				</div>
+				<div id="status-tray">
+					<div v-if="playback_state" class="text-active">PLAYBACK ACTIVE</div>
+					<div v-else-if class="text-err">PLAYBACK HOLD</div>
+				</div>
 			</div>
 		</div>
 	</body>

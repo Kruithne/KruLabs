@@ -30,3 +30,11 @@ body {
 [v-cloak] {
 	display: none;
 }
+
+.text-err {
+	color: var(--alert-color);
+}
+
+.text-active {
+	color: var(--active-color);
+}

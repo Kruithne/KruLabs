@@ -2,6 +2,7 @@ body {
 	background: radial-gradient(circle, #22160a 0%, #0f0a02 100%);
 	background-attachment: fixed;
 	padding-top: 80px;
+	padding-bottom: 80px;
 }
 
 *:focus {
@@ -52,4 +53,16 @@ input[type="button"] {
 	cursor: pointer;
 	display: inline-block;
 	background: transparent;
+}
+
+#status-tray {
+	background: var(--invert-color);
+	justify-content: center;
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	padding: 20px;
+	display: flex;
+	gap: 10px;
 }

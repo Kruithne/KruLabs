@@ -34,14 +34,6 @@ h1 {
 	background-color: var(--primary-color);
 }
 
-.text-err {
-	color: var(--alert-color);
-}
-
-.text-active {
-	color: var(--active-color);
-}
-
 .pointer {
 	cursor: pointer;
 }

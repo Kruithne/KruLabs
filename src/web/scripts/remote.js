@@ -10,7 +10,8 @@ const reactive_state = {
 	data() {
 		return {
 			tracks: [],
-			selected_track: ''
+			selected_track: '',
+			playback_state: false
 		};
 	},
 
@@ -45,11 +46,13 @@ const reactive_state = {
 		if (state === socket.SOCKET_STATE_CONNECTED) {
 			socket.send_empty(PACKET.REQ_REMOTE_TRACKS);
 			socket.send_empty(PACKET.REQ_CURRENT_TRACK);
+			socket.send_empty(PACKET.REQ_PLAYBACK_STATE);
 		}
 	});
 
 	socket.on(PACKET.ACK_REMOTE_TRACKS, tracks => app_state.tracks = tracks);
 	socket.on(PACKET.ACK_REMOTE_TRACK, id => app_state.selected_track = id);
+	socket.on(PACKET.PLAYBACK_STATE, state => app_state.playback_state = state);
 
 	socket.init();
 })();

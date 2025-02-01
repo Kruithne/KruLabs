@@ -38,11 +38,11 @@ export const PACKET = {
 	/** [SERVER -> CLIENT] Response to REQ_SOURCE_LIST containing available source files. */
 	ACK_SOURCE_LIST: 0xC,
 
-	/* [CLIENT -> ALL] Sent by controller to indicate playback has held. */
-	PLAYBACK_HOLD: 0xD,
+	/* [CLIENT -> ALL] Sent by controller to indicate playback state. */
+	PLAYBACK_STATE: 0xD,
 
-	/* [CLIENT -> ALL] Sent by controller to indicate playback has resumed. */
-	PLAYBACK_GO: 0xE,
+	/* [CLIENT -> ALL] Request playback state. Expects PLAYBACK_STATE. */
+	REQ_PLAYBACK_STATE: 0xE,
 
 	/** [CLIENT -> ALL] Unregister a packet with the server. */
 	REQ_UNREGISTER: 0xF,

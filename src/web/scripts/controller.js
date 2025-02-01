@@ -600,7 +600,7 @@ const reactive_state = {
 		// MARK: :playback methods
 		async playback_go() {
 			if (this.selected_track) {
-				socket.send_empty(PACKET.PLAYBACK_GO);
+				socket.send_object(PACKET.PLAYBACK_STATE, 1);
 
 				this.playback_last_update = performance.now();
 				this.playback_live = true;
@@ -608,7 +608,7 @@ const reactive_state = {
 		},
 
 		playback_hold() {
-			socket.send_empty(PACKET.PLAYBACK_HOLD);
+			socket.send_object(PACKET.PLAYBACK_STATE, 0);
 			this.playback_live = false;
 		},
 
@@ -683,6 +683,10 @@ const reactive_state = {
 		},
 
 		// MARK: :remote methods
+		remote_dispatch_playback_state() {
+			socket.send_object(PACKET.PLAYBACK_STATE, this.playback_live ? 1 : 0);
+		},
+
 		remote_dispatch_tracks() {
 			socket.send_object(PACKET.ACK_REMOTE_TRACKS, this.project_state.tracks);
 		},
@@ -1368,6 +1372,7 @@ const zone_editor_component = {
 	socket.on(PACKET.REQ_REMOTE_HOLD, () => app_state.playback_hold());
 	socket.on(PACKET.REQ_REMOTE_SEEK, offset => app_state.remote_seek(offset));
 	socket.on(PACKET.REQ_CURRENT_TRACK, () => app_state.remote_dispatch_track());
+	socket.on(PACKET.REQ_PLAYBACK_STATE, () => app_state.remote_dispatch_playback_state());
 
 	socket.init();
 
