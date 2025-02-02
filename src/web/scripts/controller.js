@@ -20,7 +20,6 @@ const TYPE_STRING = 'string';
 
 // local storage keys
 const LSK_LAST_PROJECT_ID = 'last_project_id';
-const LSK_SYS_CONFIG = 'system_config';
 
 // cue event ids
 const CEV_BASIC = 0x0;
