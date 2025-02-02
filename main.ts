@@ -61,7 +61,7 @@ const socket_clients = new Set<ClientSocket>();
 
 let next_client_id = 1;
 
-let system_config = default_config;
+let system_config = Object.assign({}, default_config);
 
 // MARK: :prototype
 declare global {
@@ -160,7 +160,9 @@ function set_system_volume(value: number) {
 async function load_system_config() {
 	try {
 		const config_file = Bun.file(SYSTEM_CONFIG_FILE);
-		system_config = await config_file.json();
+		const saved_config = await config_file.json();
+
+		system_config = Object.assign({}, default_config, saved_config);
 
 		log_info('successfully loaded system configuration');
 		for (const [key, value] of Object.entries(system_config))
