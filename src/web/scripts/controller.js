@@ -8,6 +8,8 @@ const PROJECT_MANAGEMENT_TIMEOUT = 10000; // timeout in ms that state callback t
 const MIN_LOADING_ELAPSED = 500; // minimum time in ms a loading message is visible for
 const SEEK_PADDING = 10; // time in milliseconds to pad before cues
 
+const CONFIG_UPDATE_DEBOUNCE = 500; // time in milliseconds to debounce sending config changes to server
+
 const ARRAY_EMPTY = Object.freeze([]);
 const NOOP = () => {};
 
@@ -70,6 +72,8 @@ const DEFAULT_TRACK = {
 // MARK: :state
 let modal_confirm_resolver = null;
 let app_state = null;
+
+let config_update_debounce_timer = -1;
 
 const reactive_state = {
 	data() {
@@ -240,7 +244,10 @@ const reactive_state = {
 		config: {
 			deep: true,
 			handler(new_config) {
-				socket.send_object(PACKET.UPDATE_SYSTEM_CONFIG, new_config);
+				clearTimeout(config_update_debounce_timer);
+				config_update_debounce_timer = setTimeout(() => {
+					socket.send_object(PACKET.UPDATE_SYSTEM_CONFIG, new_config);
+				}, CONFIG_UPDATE_DEBOUNCE);
 			}
 		},
 	},
