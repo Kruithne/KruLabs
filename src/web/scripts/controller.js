@@ -111,7 +111,7 @@ const reactive_state = {
 
 			local_time: Date.now(),
 			server_addr: 'IPv4 Unknown',
-
+			n_connected_clients: 0,
 
 			state_test_screen: false,
 			state_blackout: false,
@@ -293,6 +293,10 @@ const reactive_state = {
 		playback_total_remaining() {
 			return format_timespan_ms(this.selected_track ? this.playback_track_denominator - Math.min(this.playback_track_denominator, this.playback_time) : 0);
 		},
+
+		connected_clients_formatted() {
+			return this.n_connected_clients + (this.n_connected_clients === 1 ? ' CLIENT' : ' CLIENTS');
+		}
 	},
 	
 	// MARK: :methods
@@ -1359,8 +1363,10 @@ const zone_editor_component = {
 	socket.on('statechange', state => {
 		app_state.socket_state = state;
 
-		if (state === socket.SOCKET_STATE_CONNECTED)
+		if (state === socket.SOCKET_STATE_CONNECTED) {
 			socket.send_empty(PACKET.REQ_SERVER_ADDR);
+			socket.send_empty(PACKET.REQ_CLIENT_COUNT);
+		}
 	});
 
 	socket.on(PACKET.ACK_SERVER_ADDR, addr => app_state.server_addr = addr);
@@ -1373,6 +1379,7 @@ const zone_editor_component = {
 	socket.on(PACKET.REQ_REMOTE_SEEK, offset => app_state.remote_seek(offset));
 	socket.on(PACKET.REQ_CURRENT_TRACK, () => app_state.remote_dispatch_track());
 	socket.on(PACKET.REQ_PLAYBACK_STATE, () => app_state.remote_dispatch_playback_state());
+	socket.on(PACKET.INFO_CLIENT_COUNT, count => app_state.n_connected_clients = count);
 
 	socket.init();
 

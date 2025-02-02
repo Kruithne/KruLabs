@@ -73,6 +73,12 @@ export const PACKET = {
 
 	/** [CLIENT -> ALL] Requests the current track. Expects ACK_REMOTE_TRACK. */
 	REQ_CURRENT_TRACK: 0x18,
+
+	/** [SERVER -> CLIENT] Total amount of connected clients. */
+	INFO_CLIENT_COUNT: 0x19,
+
+	/** [CLIENT -> SERVER] Request client count. Expects INFO_CLIENT_COUNT. */
+	REQ_CLIENT_COUNT: 0x1A,
 };
 
 export const PACKET_UNK = 'UNKNOWN';

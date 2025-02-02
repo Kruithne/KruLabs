@@ -45,7 +45,7 @@ type ClientSocketData = { sck_id: string };
 type ClientSocket = ServerWebSocket<ClientSocketData>;
 
 type PacketTarget = ClientSocket | Iterable<ClientSocket>;
-type PacketDataType = null | object | string;
+type PacketDataType = null | object | string | number;
 type Packet = { id: number, data: null|object|string };
 
 // MARK: :state
@@ -236,7 +236,7 @@ function send_string(packet_id: number, str: string, ws: PacketTarget|null = nul
 	send_packet(ws, packet_id, PACKET_TYPE.STRING, str, originator);
 }
 
-function send_object(packet_id: number, obj: object, ws: PacketTarget|null = null, originator: ClientSocket|null = null) {
+function send_object(packet_id: number, obj: object | number, ws: PacketTarget|null = null, originator: ClientSocket|null = null) {
 	send_packet(ws, packet_id, PACKET_TYPE.OBJECT, obj, originator);
 }
 
@@ -334,6 +334,8 @@ async function handle_packet(ws: ClientSocket, packet_id: number, packet_data: a
 	} else if (packet_id === PACKET.SET_SYSTEM_VOLUME) {
 		validate_number(packet_data, 'packet_data');
 		set_system_volume(packet_data);
+	} else if (packet_id === PACKET.REQ_CLIENT_COUNT) {
+		send_object(PACKET.INFO_CLIENT_COUNT, socket_clients.size);
 	} else {
 		// dispatch all other packets to listeners
 		const listeners = get_listening_clients(packet_id);
@@ -378,12 +380,14 @@ const websocket_handlers: WebSocketHandler<ClientSocketData> = {
 		ws.binaryType = 'arraybuffer';
 		log_info(`socket {${ws.data.sck_id}} connected from {${ws.remoteAddress}}`, PREFIX_WEBSOCKET);
 		socket_clients.add(ws);
+		send_object(PACKET.INFO_CLIENT_COUNT, socket_clients.size);
 	},
 
 	close(ws: ClientSocket, code: number, reason: string) {
 		log_info(`socket {${ws.data.sck_id}} disconnected {${code}} {${reason}}`, PREFIX_WEBSOCKET);
 		socket_clients.delete(ws);
 		remove_listeners(ws);
+		send_object(PACKET.INFO_CLIENT_COUNT, socket_clients.size);
 	}
 }
 
