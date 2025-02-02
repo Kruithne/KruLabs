@@ -1,6 +1,7 @@
 import { createApp } from './vue.js';
 import * as socket from './socket.js';
 import { PACKET } from './packet.js';
+import default_config from './default_config.js';
 
 // MARK: :constants
 const PROJECT_MANAGEMENT_TIMEOUT = 10000; // timeout in ms that state callback timeout (load, save, etc)
@@ -83,10 +84,7 @@ const reactive_state = {
 			selected_project_id: null,
 			available_projects: [],
 
-			config: {
-				confirm_track_deletion: true,
-				confirm_cue_deletion: true,
-			},
+			config: default_config,
 			
 			project_state: structuredClone(DEFAULT_PROJECT_STATE),
 
@@ -243,7 +241,7 @@ const reactive_state = {
 		config: {
 			deep: true,
 			handler(new_config) {
-				this.save_config(new_config);
+				socket.send_object(PACKET.UPDATE_SYSTEM_CONFIG, new_config);
 			}
 		},
 	},
@@ -714,17 +712,6 @@ const reactive_state = {
 			const new_time = ofs === 0 ? 0 : this.playback_time + ofs;
 			this.playback_time = Math.min(this.selected_track.duration, Math.max(new_time, 0));
 		},
-
-		// MARK: :config methods
-		save_config(config) {
-			localStorage.setItem(LSK_SYS_CONFIG, JSON.stringify(config));
-		},
-
-		load_config() {
-			const config = localStorage.getItem(LSK_SYS_CONFIG);
-			if (config)
-				this.config = JSON.parse(config);
-		}
 	}
 };
 
@@ -1356,7 +1343,6 @@ const zone_editor_component = {
 
 	setInterval(() => app_state.local_time = Date.now(), 1000);
 
-	app_state.load_config();
 	app_state.update_project_hash();
 	app_state.playback_update();
 	
@@ -1366,6 +1352,7 @@ const zone_editor_component = {
 		if (state === socket.SOCKET_STATE_CONNECTED) {
 			socket.send_empty(PACKET.REQ_SERVER_ADDR);
 			socket.send_empty(PACKET.REQ_CLIENT_COUNT);
+			socket.send_empty(PACKET.REQ_SYSTEM_CONFIG);
 		}
 	});
 
@@ -1380,6 +1367,7 @@ const zone_editor_component = {
 	socket.on(PACKET.REQ_CURRENT_TRACK, () => app_state.remote_dispatch_track());
 	socket.on(PACKET.REQ_PLAYBACK_STATE, () => app_state.remote_dispatch_playback_state());
 	socket.on(PACKET.INFO_CLIENT_COUNT, count => app_state.n_connected_clients = count);
+	socket.on(PACKET.ACK_SYSTEM_CONFIG, config => app_state.config = config);
 
 	socket.init();
 

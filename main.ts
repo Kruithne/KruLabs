@@ -3,6 +3,7 @@ import node_http from 'node:http';
 import node_path from 'node:path';
 import node_os from 'node:os';
 import node_fs from 'node:fs/promises';
+import default_config from './src/web/scripts/default_config.js';
 import { PACKET, get_packet_name, build_packet, parse_packet, PACKET_TYPE, PACKET_UNK } from './src/web/scripts/packet.js';
 
 import type { WebSocketHandler, ServerWebSocket, Subprocess } from 'bun';
@@ -18,6 +19,7 @@ const PARTIAL_DEFAULT_CHUNK = 2 * 1024 * 1024;
 const PROJECT_STATE_DIRECTORY = './state';
 const PROJECT_STATE_EXT = '.json';
 const PROJECT_STATE_INDEX = node_path.join(PROJECT_STATE_DIRECTORY, 'index.json');
+const SYSTEM_CONFIG_FILE = node_path.join(PROJECT_STATE_DIRECTORY, 'sys_config.json');
 
 const VOLMGR_WIN_EXE = './volmgr/bin/Release/net8.0/win-x64/publish/volmgr.exe';
 
@@ -58,6 +60,8 @@ const socket_packet_listeners = new Map<number, ClientSocket[]>();
 const socket_clients = new Set<ClientSocket>();
 
 let next_client_id = 1;
+
+let system_config = default_config;
 
 // MARK: :prototype
 declare global {
@@ -150,6 +154,30 @@ function set_system_volume(value: number) {
 		return;
 
 	volmgr_send({ cmd: 'set', value });
+}
+
+// MARK: :config
+async function load_system_config() {
+	try {
+		const config_file = Bun.file(SYSTEM_CONFIG_FILE);
+		system_config = await config_file.json();
+
+		log_info('successfully loaded system configuration');
+		for (const [key, value] of Object.entries(system_config))
+			log_info(`\t{${key}} -> {${value}}`);
+	} catch (e) {
+		log_warn('Failed to load system configuration, using defaults');
+	}
+}
+
+async function save_system_config() {
+	try {
+		const bytes_written = await Bun.write(SYSTEM_CONFIG_FILE, JSON.stringify(system_config));
+		log_verbose(`Saved system configuration [{${format_file_size(bytes_written)}}]`);
+	} catch (e) {
+		const error = e as Error;
+		log_warn(`Failed to save system configuration: ${error.message}`);
+	}
 }
 
 // MARK: :projects
@@ -336,6 +364,13 @@ async function handle_packet(ws: ClientSocket, packet_id: number, packet_data: a
 		set_system_volume(packet_data);
 	} else if (packet_id === PACKET.REQ_CLIENT_COUNT) {
 		send_object(PACKET.INFO_CLIENT_COUNT, socket_clients.size);
+	} else if (packet_id === PACKET.REQ_SYSTEM_CONFIG) {
+		send_object(PACKET.ACK_SYSTEM_CONFIG, system_config, ws);
+	} else if (packet_id === PACKET.UPDATE_SYSTEM_CONFIG) {
+		validate_object(packet_data, 'data');
+		system_config = packet_data;
+
+		save_system_config();
 	} else {
 		// dispatch all other packets to listeners
 		const listeners = get_listening_clients(packet_id);
@@ -556,6 +591,8 @@ for (const arg of args) {
 }
 
 // server init
+await load_system_config();
+
 const server = Bun.serve({
 	port: CLI_ARGS.port as number,
 	development: false,

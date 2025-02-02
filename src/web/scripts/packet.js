@@ -79,6 +79,15 @@ export const PACKET = {
 
 	/** [CLIENT -> SERVER] Request client count. Expects INFO_CLIENT_COUNT. */
 	REQ_CLIENT_COUNT: 0x1A,
+
+	/** [CLIENT -> SERVER] Request system configuration. Expects ACK_SYSTEM_CONFIG. */
+	REQ_SYSTEM_CONFIG: 0x1B,
+
+	/** [SERVER -> CLIENT] Response to REQ_SYSTEM_CONFIG with system configuration. */
+	ACK_SYSTEM_CONFIG: 0x1C,
+
+	/** [CLIENT -> SERVER] Send updated system configuration to the server. */
+	UPDATE_SYSTEM_CONFIG: 0x1D,
 };
 
 export const PACKET_UNK = 'UNKNOWN';
