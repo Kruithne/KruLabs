@@ -117,6 +117,7 @@ let system_config = Object.assign({}, default_config);
 let obs_identified = false;
 let obs_socket: WebSocket|null = null;
 let obs_reconnect_timer: Timer|null = null;
+let obs_last_disconnect_code = -1;
 
 // MARK: :prototype
 declare global {
@@ -251,11 +252,19 @@ function obs_connect() {
 		}
 	});
 
+	obs_socket.addEventListener('open', () => {
+		obs_last_disconnect_code = 0;
+		obs_send_status();
+	});
+
 	obs_socket.addEventListener('close', event => {
 		obs_identified = false;
 		obs_socket = null;
 
 		log_info(`Disconnected from host: {${event.code}} ${event.reason}`, PREFIX_OBS);
+		obs_last_disconnect_code = event.code;
+
+		obs_send_status();
 
 		if (system_config.obs_enable) {
 			log_info(`Reconnecting to OBS host in {${OBS_RECONNECT_DELAY}ms}`, PREFIX_OBS);
@@ -286,6 +295,10 @@ function obs_send(op: number, message: OBSMessageData) {
 	obs_socket?.send(payload_json);
 
 	log_verbose(`SEND {${OBS_OP_CODE_TO_STR[op]}} size {${format_file_size(payload_size)}}`, PREFIX_OBS);
+}
+
+function obs_send_status() {
+	send_object(PACKET.OBS_STATUS, obs_last_disconnect_code);
 }
 
 function obs_create_auth_string(password: string, salt: string, challenge: string): string {

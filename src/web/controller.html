@@ -239,6 +239,10 @@
 						<div>{{ server_addr }}</div>
 						<div>{{ connected_clients_formatted }}</div>
 						<div>{{ local_time_formatted }}</div>
+						<template v-if="config.obs_enable">
+							<div v-if="obs_status == 0" class="text-active">OBS CONNECTED</div>
+							<div v-else class="text-err">OBS DISCONNECTED [{{ obs_status > -1 ? obs_status : 'N/A' }}]</div>
+						</template>
 					</div>
 				</div>
 			</div>

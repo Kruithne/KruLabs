@@ -88,6 +88,12 @@ export const PACKET = {
 
 	/** [CLIENT -> SERVER] Send updated system configuration to the server. */
 	UPDATE_SYSTEM_CONFIG: 0x1D,
+
+	/** [SERVER -> CLIENT] Sends the OBS connection status. */
+	OBS_STATUS: 0x1E,
+
+	/** [CLIENT -> SERVER] Requests OBS connection status. Expects OBS_STATUS. */
+	REQ_OBS_STATUS: 0x1F,
 };
 
 export const PACKET_UNK = 'UNKNOWN';

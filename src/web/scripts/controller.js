@@ -105,6 +105,8 @@ const reactive_state = {
 			playback_seeking: false,
 			last_cue_index: 0,
 
+			obs_status: -1, // -1 disconnected (naturally), 0 connected, > 0 disconnect code
+
 			vol_fade_active: false,
 			vol_previous: 1,
 
@@ -1030,6 +1032,9 @@ const listbox_component = {
 			socket.send_empty(PACKET.REQ_SERVER_ADDR);
 			socket.send_empty(PACKET.REQ_CLIENT_COUNT);
 			socket.send_empty(PACKET.REQ_SYSTEM_CONFIG);
+
+			if (app_state.config.obs_enable)
+				socket.send_empty(PACKET.REQ_OBS_STATUS);
 		}
 	});
 
@@ -1045,6 +1050,7 @@ const listbox_component = {
 	socket.on(PACKET.REQ_PLAYBACK_STATE, () => app_state.remote_dispatch_playback_state());
 	socket.on(PACKET.INFO_CLIENT_COUNT, count => app_state.n_connected_clients = count);
 	socket.on(PACKET.ACK_SYSTEM_CONFIG, config => app_state.config = config);
+	socket.on(PACKET.OBS_STATUS, status => app_state.obs_status = status);
 
 	socket.init();
 
