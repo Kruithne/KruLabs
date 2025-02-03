@@ -204,15 +204,33 @@
 							</div>
 						</template>
 						<template v-else-if="nav_page === 'config'">
-							<div id="config-panel" class="form">
-								<label class="inline">
-									<input type="checkbox" v-model="config.confirm_track_deletion"/>
-									Require confirmation when deleting tracks?
-								</label>
-								<label class="inline">
-									<input type="checkbox" v-model="config.confirm_cue_deletion"/>
-									Require confirmation when deleting cues?
-								</label>
+							<div id="config-panel">
+								<div class="form">
+									<h1>General Configuration</h1>
+									<label class="inline">
+										<input type="checkbox" v-model="config.confirm_track_deletion"/>
+										Require confirmation when deleting tracks?
+									</label>
+									<label class="inline">
+										<input type="checkbox" v-model="config.confirm_cue_deletion"/>
+										Require confirmation when deleting cues?
+									</label>
+								</div>
+								<div class="form">
+									<h1>OBS Studio Integration</h1>
+									<label class="inline">
+										<input type="checkbox" v-model="config.obs_enable"/>
+										Enable OBS Studio Integration
+									</label>
+									<label>
+										OBS Host
+										<input type="text" v-model="config.obs_host"/>
+									</label>
+									<label>
+										OBS Password
+										<input type="password" v-model="config.obs_password"/>
+									</label>
+								</div>
 							</div>
 						</template>
 					</div>

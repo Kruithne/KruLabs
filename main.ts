@@ -3,6 +3,7 @@ import node_http from 'node:http';
 import node_path from 'node:path';
 import node_os from 'node:os';
 import node_fs from 'node:fs/promises';
+import { createHash } from 'crypto';
 import default_config from './src/web/scripts/default_config.js';
 import { PACKET, get_packet_name, build_packet, parse_packet, PACKET_TYPE, PACKET_UNK } from './src/web/scripts/packet.js';
 
@@ -10,7 +11,10 @@ import type { WebSocketHandler, ServerWebSocket, Subprocess } from 'bun';
 
 // MARK: :constants
 const PREFIX_WEBSOCKET = 'WEBSOCKET';
+const PREFIX_OBS = 'OBS';
 const PREFIX_HTTP = 'HTTP';
+
+const OBS_RECONNECT_DELAY = 2500;
 
 const HTTP_SERVE_DIRECTORY = './src/web';
 
@@ -31,6 +35,42 @@ const CHAR_TAB = '\t';
 
 const ARRAY_EMPTY = Object.freeze([]);
 
+const OBS_EVENT_SUB = {
+	NONE: 0,
+	GENERAL: 1 << 0,
+	CONFIG: 1 << 1,
+	SCENES: 1 << 2,
+	INPUTS: 1 << 3,
+	TRANSITIONS: 1 << 4,
+	FILTERS: 1 << 5,
+	OUTPUTS: 1 << 6,
+	SCENE_ITEMS: 1 << 7,
+	MEDIA_INPUTS: 1 << 8,
+	VENDORS: 1 << 9,
+	USER_INTERFACE: 1 << 10,
+	ALL: (1 << 0) | (1 << 1) | (1 << 2) | (1 << 3) | (1 << 4) | (1 << 5) | (1 << 6) | (1 << 7) | (1 << 8) | (1 << 9) | (1 << 10),
+	INPUT_VOLUME_METERS: 1 << 16,
+	INPUT_ACTIVE_STATE_CHANGED: 1 << 17,
+	INPUT_SHOW_STATE_CHANGED: 1 << 18,
+	SCENE_ITEM_TRANSFORM_CHANGED: 1 << 19
+};
+
+const OBS_OP_CODE = {
+	HELLO: 0,
+	IDENTIFY: 1,
+	IDENTIFIED: 2,
+	REIDENTIFY: 3,
+	EVENT: 5,
+	REQUEST: 6,
+	REQUEST_RESPONSE: 7,
+	REQUEST_BATCH: 8,
+	REQUEST_BATCH_RESPONSE: 9
+};
+
+const OBS_OP_CODE_TO_STR = Object.fromEntries(
+	Object.entries(OBS_OP_CODE).map(([key, value]) => [value, key])
+) as Record<OBSOpCode, string>;
+
 // MARK: :errors
 class AssertionError extends Error {
 	constructor(message: string, key: string) {
@@ -50,6 +90,17 @@ type PacketTarget = ClientSocket | Iterable<ClientSocket>;
 type PacketDataType = null | object | string | number;
 type Packet = { id: number, data: null|object|string };
 
+type SystemConfig = typeof default_config;
+
+type OBSOpCode = typeof OBS_OP_CODE[keyof typeof OBS_OP_CODE];
+
+type OBSMessageData = Record<string, any>;
+
+interface OBSMessage {
+	op: number;
+	d: OBSMessageData;
+}
+
 // MARK: :state
 const CLI_ARGS = {
 	port: 19531,
@@ -62,6 +113,10 @@ const socket_clients = new Set<ClientSocket>();
 let next_client_id = 1;
 
 let system_config = Object.assign({}, default_config);
+
+let obs_identified = false;
+let obs_socket: WebSocket|null = null;
+let obs_reconnect_timer: Timer|null = null;
 
 // MARK: :prototype
 declare global {
@@ -155,14 +210,101 @@ function set_system_volume(value: number) {
 
 	volmgr_send({ cmd: 'set', value });
 }
+// MARK: :obs
+function obs_connect() {
+	obs_disconnect();
+
+	obs_socket = new WebSocket(system_config.obs_host);
+	obs_socket.addEventListener('message', event => {
+		try {
+			const event_data = event.data as string;
+			validate_string(event_data, 'event.data');
+
+			const message: OBSMessage = JSON.parse(event_data);
+			const message_size = Buffer.byteLength(event_data);
+
+			log_verbose(`RECV {${OBS_OP_CODE_TO_STR[message.op]}} size {${format_file_size(message_size)}}`, PREFIX_OBS);
+
+			if (message.op === OBS_OP_CODE.HELLO) {
+				const auth = message.d.authentication;
+				const payload: OBSMessageData = {
+					rpcVersion: message.d.rpcVersion,
+					eventSubscriptions: OBS_EVENT_SUB.ALL
+				};
+
+				if (auth) {
+					payload.authentication = obs_create_auth_string(
+						system_config.obs_password,
+						auth.salt,
+						auth.challenge
+					);
+				}
+
+				obs_send(OBS_OP_CODE.IDENTIFY, payload);
+			} else if (message.op === OBS_OP_CODE.IDENTIFIED) {
+				obs_identified = true;
+				log_verbose(`Successfully identified with OBS host`, PREFIX_OBS);
+			}
+		} catch (e) {
+			const error = e as Error;
+			log_warn(`Failed to parse OBS message due to ${error.name}: ${error.message}`);
+		}
+	});
+
+	obs_socket.addEventListener('close', event => {
+		obs_identified = false;
+		obs_socket = null;
+
+		log_info(`Disconnected from host: {${event.code}} ${event.reason}`, PREFIX_OBS);
+
+		if (system_config.obs_enable) {
+			log_info(`Reconnecting to OBS host in {${OBS_RECONNECT_DELAY}ms}`, PREFIX_OBS);
+			obs_reconnect_timer = setTimeout(() => obs_connect(), OBS_RECONNECT_DELAY);
+		}
+	});
+
+	obs_socket.addEventListener('error', error => {
+		log_warn(`${error.type} raised in OBS socket: ${error.message}`);
+	});
+}
+
+function obs_disconnect() {
+	if (obs_reconnect_timer !== null)
+		clearTimeout(obs_reconnect_timer);
+
+	obs_socket?.close();
+
+	obs_socket = null;
+	obs_identified = false;
+}
+
+function obs_send(op: number, message: OBSMessageData) {
+	const payload = { op, d: message } as OBSMessage;
+	const payload_json = JSON.stringify(payload);
+	const payload_size = Buffer.byteLength(payload_json);
+
+	obs_socket?.send(payload_json);
+
+	log_verbose(`SEND {${OBS_OP_CODE_TO_STR[op]}} size {${format_file_size(payload_size)}}`, PREFIX_OBS);
+}
+
+function obs_create_auth_string(password: string, salt: string, challenge: string): string {
+	const secret = createHash('sha256').update(password + salt).digest('base64');
+	return createHash('sha256').update(secret + challenge).digest('base64');
+}
 
 // MARK: :config
+function update_system_config(config: SystemConfig) {
+	system_config = config;
+	config.obs_enable ? obs_connect() : obs_disconnect();
+}
+
 async function load_system_config() {
 	try {
 		const config_file = Bun.file(SYSTEM_CONFIG_FILE);
 		const saved_config = await config_file.json();
 
-		system_config = Object.assign({}, default_config, saved_config);
+		update_system_config(Object.assign({}, default_config, saved_config));
 
 		log_info('successfully loaded system configuration');
 		for (const [key, value] of Object.entries(system_config))
@@ -370,7 +512,7 @@ async function handle_packet(ws: ClientSocket, packet_id: number, packet_data: a
 		send_object(PACKET.ACK_SYSTEM_CONFIG, system_config, ws);
 	} else if (packet_id === PACKET.UPDATE_SYSTEM_CONFIG) {
 		validate_object(packet_data, 'data');
-		system_config = packet_data;
+		update_system_config(packet_data);
 
 		save_system_config();
 	} else {
