@@ -309,9 +309,18 @@ function obs_create_auth_string(password: string, salt: string, challenge: strin
 }
 
 // MARK: :config
-function update_system_config(config: SystemConfig) {
-	system_config = config;
-	config.obs_enable ? obs_connect() : obs_disconnect();
+function update_system_config(new_config: SystemConfig) {
+	const old_config = system_config as Record<string, any>;
+	system_config = new_config;
+
+	for (const [key, value] of Object.entries(new_config))
+		if (old_config[key] !== value)
+			handle_config_key_change(key, value);
+}
+
+function handle_config_key_change(key: string, value: any) {
+	if (key === 'obs_enable')
+		value ? obs_connect() : obs_disconnect();
 }
 
 async function load_system_config() {
