@@ -227,7 +227,6 @@ function obs_connect() {
 			log_verbose(`RECV {${OBS_OP_CODE_TO_STR[message.op]}} size {${format_file_size(message_size)}}`, PREFIX_OBS);
 
 			if (message.op === OBS_OP_CODE.HELLO) {
-				console.log(message);
 				const auth = message.d.authentication;
 				const payload: OBSMessageData = {
 					rpcVersion: message.d.rpcVersion,
