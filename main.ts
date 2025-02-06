@@ -332,7 +332,7 @@ async function load_system_config() {
 
 		update_system_config(Object.assign({}, default_config, saved_config));
 
-		log_info('successfully loaded system configuration');
+		log_info('Successfully loaded system configuration');
 
 		if (CLI_ARGS.verbose) {
 			for (const [key, value] of Object.entries(system_config)) {
@@ -766,6 +766,12 @@ for (const arg of args) {
 }
 
 // server init
+log_info(`KruLabs {v${package_json.version}} server initiated`);
+log_info(`Web server running on port {${CLI_ARGS.port}}`);
+
+if (CLI_ARGS.verbose)
+	log_warn('Verbose logging enabled (--verbose)');
+
 await load_system_config();
 
 const server = Bun.serve({
@@ -775,12 +781,6 @@ const server = Bun.serve({
 	error: http_error_handler,
 	websocket: websocket_handlers
 });
-
-log_info(`KruLabs {v${package_json.version}} server initiated`);
-log_info(`Web server running on port {${server.port}}`);
-
-if (CLI_ARGS.verbose)
-	log_warn('Verbose logging enabled (--verbose)');
 
 print_service_links('controller', 'remote');
 
