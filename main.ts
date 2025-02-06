@@ -225,8 +225,11 @@ function obs_connect() {
 
 			const message: OBSMessage = JSON.parse(event_data);
 			const message_size = Buffer.byteLength(event_data);
-
-			log_verbose(`RECV {${OBS_OP_CODE_TO_STR[message.op]}} size {${format_file_size(message_size)}}`, PREFIX_OBS);
+		
+			if (message.op === OBS_OP_CODE.EVENT)
+				log_verbose(`RECV {${OBS_OP_CODE_TO_STR[message.op]}} [{${message.d.eventType}}] size {${format_file_size(message_size)}}`, PREFIX_OBS);
+			else
+				log_verbose(`RECV {${OBS_OP_CODE_TO_STR[message.op]}} size {${format_file_size(message_size)}}`, PREFIX_OBS);
 
 			if (message.op === OBS_OP_CODE.HELLO) {
 				const auth = message.d.authentication;
@@ -247,6 +250,8 @@ function obs_connect() {
 			} else if (message.op === OBS_OP_CODE.IDENTIFIED) {
 				obs_identified = true;
 				log_info(`Successfully identified with OBS host using RPC version {${message.d.negotiatedRpcVersion}}`, PREFIX_OBS);
+			} else if (message.op === OBS_OP_CODE.EVENT) {
+				// TODO: implement
 			}
 		} catch (e) {
 			const error = e as Error;
