@@ -263,7 +263,7 @@ function obs_connect() {
 		obs_identified = false;
 		obs_socket = null;
 
-		log_info(`Disconnected from host: {${event.code}} ${event.reason}`, PREFIX_OBS);
+		log_info(`Disconnected from OBS host: {${event.code}} ${event.reason}`, PREFIX_OBS);
 		obs_last_disconnect_code = event.code;
 
 		obs_send_status();
