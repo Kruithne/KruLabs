@@ -227,6 +227,7 @@ function obs_connect() {
 			log_verbose(`RECV {${OBS_OP_CODE_TO_STR[message.op]}} size {${format_file_size(message_size)}}`, PREFIX_OBS);
 
 			if (message.op === OBS_OP_CODE.HELLO) {
+				console.log(message);
 				const auth = message.d.authentication;
 				const payload: OBSMessageData = {
 					rpcVersion: message.d.rpcVersion,
@@ -244,7 +245,7 @@ function obs_connect() {
 				obs_send(OBS_OP_CODE.IDENTIFY, payload);
 			} else if (message.op === OBS_OP_CODE.IDENTIFIED) {
 				obs_identified = true;
-				log_verbose(`Successfully identified with OBS host`, PREFIX_OBS);
+				log_verbose(`Successfully identified with OBS host using RPC version {${message.d.negotiatedRpcVersion}}`, PREFIX_OBS);
 			}
 		} catch (e) {
 			const error = e as Error;
