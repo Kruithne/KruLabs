@@ -253,6 +253,8 @@ function obs_connect() {
 	});
 
 	obs_socket.addEventListener('open', () => {
+		log_info(`Connected to OBS host {${system_config.obs_host}}`, PREFIX_OBS);
+
 		obs_last_disconnect_code = 0;
 		obs_send_status();
 	});
