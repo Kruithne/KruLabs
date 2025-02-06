@@ -333,9 +333,12 @@ async function load_system_config() {
 		update_system_config(Object.assign({}, default_config, saved_config));
 
 		log_info('successfully loaded system configuration');
-		for (const [key, value] of Object.entries(system_config)) {
-			const print_value = CONFIG_MASK_KEYS.includes(key) ? '*'.repeat(value.toString().length) : value;
-			log_info(`\t{${key}} -> {${print_value}}`);
+
+		if (CLI_ARGS.verbose) {
+			for (const [key, value] of Object.entries(system_config)) {
+				const print_value = CONFIG_MASK_KEYS.includes(key) ? '*'.repeat(value.toString().length) : value;
+				log_verbose(`\t{${key}} -> {${print_value}}`);
+			}
 		}
 	} catch (e) {
 		log_warn('Failed to load system configuration, using defaults');
