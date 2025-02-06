@@ -245,7 +245,7 @@ function obs_connect() {
 				obs_send(OBS_OP_CODE.IDENTIFY, payload);
 			} else if (message.op === OBS_OP_CODE.IDENTIFIED) {
 				obs_identified = true;
-				log_verbose(`Successfully identified with OBS host using RPC version {${message.d.negotiatedRpcVersion}}`, PREFIX_OBS);
+				log_info(`Successfully identified with OBS host using RPC version {${message.d.negotiatedRpcVersion}}`, PREFIX_OBS);
 			}
 		} catch (e) {
 			const error = e as Error;
