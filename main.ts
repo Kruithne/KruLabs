@@ -35,6 +35,8 @@ const CHAR_TAB = '\t';
 
 const ARRAY_EMPTY = Object.freeze([]);
 
+const CONFIG_MASK_KEYS = ['obs_password'];
+
 const OBS_EVENT_SUB = {
 	NONE: 0,
 	GENERAL: 1 << 0,
@@ -331,8 +333,10 @@ async function load_system_config() {
 		update_system_config(Object.assign({}, default_config, saved_config));
 
 		log_info('successfully loaded system configuration');
-		for (const [key, value] of Object.entries(system_config))
-			log_info(`\t{${key}} -> {${value}}`);
+		for (const [key, value] of Object.entries(system_config)) {
+			const print_value = CONFIG_MASK_KEYS.includes(key) ? '*'.repeat(value.toString().length) : value;
+			log_info(`\t{${key}} -> {${print_value}}`);
+		}
 	} catch (e) {
 		log_warn('Failed to load system configuration, using defaults');
 	}
