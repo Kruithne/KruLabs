@@ -893,14 +893,14 @@ async function handle_packet(ws: ClientSocket, packet_id: number, packet_data: a
 	} else if (packet_id === PACKET.REQ_SERVER_ADDR) {
 		send_string(PACKET.ACK_SERVER_ADDR, get_local_ipv4(), ws);
 	} else if (packet_id === PACKET.SET_SYSTEM_VOLUME) {
-		validate_number(packet_data, 'packet_data');
+		validate_number(packet_data, 'object');
 		set_system_volume(packet_data);
 	} else if (packet_id === PACKET.REQ_CLIENT_COUNT) {
 		send_object(PACKET.INFO_CLIENT_COUNT, socket_clients.size);
 	} else if (packet_id === PACKET.REQ_SYSTEM_CONFIG) {
 		send_object(PACKET.ACK_SYSTEM_CONFIG, system_config, ws);
 	} else if (packet_id === PACKET.UPDATE_SYSTEM_CONFIG) {
-		validate_object(packet_data, 'data');
+		validate_object(packet_data, 'object');
 		update_system_config(packet_data);
 
 		save_system_config();
