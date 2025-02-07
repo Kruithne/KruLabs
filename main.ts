@@ -489,7 +489,7 @@ function obs_connect() {
 	obs_disconnect();
 
 	obs_socket = new WebSocket(system_config.obs_host);
-	obs_socket.addEventListener('message', event => {
+	obs_socket.addEventListener('message', async event => {
 		try {
 			const event_data = event.data as string;
 			validate_string(event_data, 'event.data');
@@ -503,7 +503,14 @@ function obs_connect() {
 
 				log_verbose(`RECV {${OBS_OP_CODE_TO_STR[message.op]}} [{${event_type}}] size {${format_file_size(message_size)}}`, PREFIX_OBS);
 
-				// todo: handle events
+				if (event_type === OBS_EVENT_TYPE.MEDIA_INPUT_PLAYBACK_STARTED) {
+					const status_query = await obs_request(OBS_REQUEST.GET_MEDIA_INPUT_STATUS, {
+						inputUuid: event_data.inputUuid
+					});
+
+					if (status_query)
+						send_object(PACKET.OBS_MEDIA_STARTED, { duration: status_query.mediaDuration });
+				}
 			} else if (message.op === OBS_OP_CODE.REQUEST_BATCH_RESPONSE) {
 				const request_id = message.d.requestId;
 				const request_results = message.d.results;

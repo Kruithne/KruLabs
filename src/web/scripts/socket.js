@@ -118,20 +118,26 @@ function emit(event, data) {
 	}
 }
 
+function send(packet_id, packet_type, packet_data) {
+	const uid = generate_packet_uid();
+	queue_packet(build_packet(packet_id, packet_type, packet_data, uid));
+	return uid;
+}
+
 export function send_empty(packet_id) {
-	queue_packet(build_packet(packet_id, PACKET_TYPE.NONE, null, generate_packet_uid()));
+	return send(packet_id, PACKET_TYPE.NONE, null);
 }
 
 export function send_string(packet_id, str) {
-	queue_packet(build_packet(packet_id, PACKET_TYPE.STRING, str, generate_packet_uid()));
+	return send(packet_id, PACKET_TYPE.STRING, str);
 }
 
 export function send_object(packet_id, obj) {
-	queue_packet(build_packet(packet_id, PACKET_TYPE.OBJECT, obj, generate_packet_uid()));
+	return send(packet_id, PACKET_TYPE.OBJECT, obj);
 }
 
 export function send_binary(packet_id, data) {
-	queue_packet(build_packet(packet_id, PACKET_TYPE.BINARY, data, generate_packet_uid()));
+	return send(packet_id, PACKET_TYPE.BINARY, data);
 }
 
 function queue_packet(packet) {

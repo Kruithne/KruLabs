@@ -108,6 +108,7 @@ const reactive_state = {
 			last_cue_index: 0,
 
 			obs_status: -1, // -1 disconnected (naturally), 0 connected, > 0 disconnect code
+			obs_media_durations: [],
 
 			vol_fade_active: false,
 			vol_previous: 1,
@@ -190,13 +191,10 @@ const reactive_state = {
 
 			this.playback_time = 0;
 
-			if (obs_is_connected() && track.obs_scene.length > 0) {
+			if (obs_is_connected() && track.obs_scene.length > 0)
 				socket.send_object(PACKET.OBS_SET_SCENE, track.obs_scene);
 
-				if (track.obs_sync) {
-					// todo: send a 
-				}
-			}
+			this.obs_media_durations.length = 0;
 
 			this.calculate_track_denominator();
 
@@ -602,6 +600,16 @@ const reactive_state = {
 				return;
 
 			move_element(this.project_state.tracks, this.selected_track, -1);
+		},
+
+		sync_track_duration(data) {
+			if (!this.selected_track?.obs_sync)
+				return;
+
+			this.obs_media_durations.push(data.duration);
+
+			const max_duration = Math.max(...this.obs_media_durations, 1000);
+			this.selected_track.duration = max_duration;
 		},
 
 		// MARK: :playback methods
@@ -1064,6 +1072,7 @@ const listbox_component = {
 	socket.on(PACKET.INFO_CLIENT_COUNT, count => app_state.n_connected_clients = count);
 	socket.on(PACKET.ACK_SYSTEM_CONFIG, config => app_state.config = config);
 	socket.on(PACKET.OBS_STATUS, status => app_state.obs_status = status);
+	socket.on(PACKET.OBS_MEDIA_STARTED, data => app_state.sync_track_duration(data));
 
 	socket.init();
 

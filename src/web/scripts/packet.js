@@ -97,6 +97,9 @@ export const PACKET = {
 
 	/** [CLIENT -> SERVER -> OBS] Requests a scene change in OBS. */
 	OBS_SET_SCENE: 0x20,
+
+	/** [OBS -> SERVER -> CLIENT] Sent when media starts in OBS. */
+	OBS_MEDIA_STARTED: 0x21,
 };
 
 export const PACKET_UNK = 'UNKNOWN';
