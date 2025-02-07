@@ -629,7 +629,7 @@ function obs_send(op: number, message: OBSMessageData) {
 	log_verbose(`SEND {${OBS_OP_CODE_TO_STR[op]}} size {${format_file_size(payload_size)}}`, PREFIX_OBS);
 }
 
-async function obs_request(request_type: OBSRequestTypeValue, request_data: OBSMessageData = {}) {
+async function obs_request(request_type: OBSRequestTypeValue, request_data: OBSMessageData = {}): Promise<OBSMessageData> {
 	return new Promise(resolve => {
 		const request_uuid = Bun.randomUUIDv7();
 		obs_request_map.set(request_uuid, resolve);
@@ -644,9 +644,9 @@ async function obs_request(request_type: OBSRequestTypeValue, request_data: OBSM
 	});
 }
 
-async function obs_request_batch(batch: OBSRequestBatchEntry[], execution_type: OBSExecutionTypeValue = OBS_EXECUTION_TYPE.SERIAL_REALTIME, halt_on_fail = false) {
+async function obs_request_batch(batch: OBSRequestBatchEntry[], execution_type: OBSExecutionTypeValue = OBS_EXECUTION_TYPE.SERIAL_REALTIME, halt_on_fail = false): Promise<OBSMessageData[]> {
 	if (batch.length === 0)
-		return ARRAY_EMPTY;
+		return [];
 
 	return new Promise(resolve => {
 		const batch_uuid = Bun.randomUUIDv7();
