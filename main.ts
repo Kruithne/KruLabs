@@ -324,6 +324,18 @@ const OBS_REQUEST = {
 type OBSRequestTypeKey = keyof typeof OBS_REQUEST;
 type OBSRequestTypeValue = typeof OBS_REQUEST[OBSRequestTypeKey];
 
+type OBSRequestBatchEntry = { requestType: OBSRequestTypeValue, requestData?: OBSMessageData };
+
+const OBS_EXECUTION_TYPE = {
+    NONE: -1,              // Not a request batch
+    SERIAL_REALTIME: 0,    // Processes all requests serially, as fast as possible
+    SERIAL_FRAME: 1,       // Processes all requests serially, in sync with graphics thread
+    PARALLEL: 2            // Processes all requests using all available threads
+} as const;
+
+type OBSExecutionTypeKey = keyof typeof OBS_EXECUTION_TYPE;
+type OBSExecutionTypeValue = typeof OBS_EXECUTION_TYPE[OBSExecutionTypeKey];
+
 const OBS_MEDIA_INPUT_ACTION = {
     NONE: 'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_NONE',
     PLAY: 'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_PLAY',
@@ -502,6 +514,21 @@ function obs_connect() {
 				log_verbose(`RECV {${OBS_OP_CODE_TO_STR[message.op]}} [{${event_type}}] size {${format_file_size(message_size)}}`, PREFIX_OBS);
 
 				// todo: handle events
+			} else if (message.op === OBS_OP_CODE.REQUEST_BATCH_RESPONSE) {
+				const request_id = message.d.requestId;
+				const request_results = message.d.results;
+
+				log_verbose(`RECV {${OBS_OP_CODE_TO_STR[message.op]}} [BATCH * {${request_results.length}}] size {${format_file_size(message_size)}}`, PREFIX_OBS);
+
+				const resolver = obs_request_map.get(request_id);
+				if (resolver) {
+					log_verbose(`Received tracked batch response [{${request_id}}]`, PREFIX_OBS);
+					obs_request_map.delete(request_id);
+
+					resolver(request_results);
+				} else {
+					log_verbose(`Dropping non-tracked batch response [{${request_id}}]`, PREFIX_OBS);
+				}
 			} else if (message.op === OBS_OP_CODE.REQUEST_RESPONSE) {
 				const request_type = message.d.requestType;
 				const request_id = message.d.requestId;
@@ -605,7 +632,6 @@ function obs_send(op: number, message: OBSMessageData) {
 async function obs_request(request_type: OBSRequestTypeValue, request_data: OBSMessageData = {}) {
 	return new Promise(resolve => {
 		const request_uuid = Bun.randomUUIDv7();
-
 		obs_request_map.set(request_uuid, resolve);
 
 		log_verbose(`Preparing OBS request {${request_type}} ID {${request_uuid}}`, PREFIX_OBS);
@@ -614,6 +640,25 @@ async function obs_request(request_type: OBSRequestTypeValue, request_data: OBSM
 			requestType: request_type,
 			requestId: request_uuid,
 			requestData: request_data
+		});
+	});
+}
+
+async function obs_request_batch(batch: OBSRequestBatchEntry[], execution_type: OBSExecutionTypeValue = OBS_EXECUTION_TYPE.SERIAL_REALTIME, halt_on_fail = false) {
+	if (batch.length === 0)
+		return ARRAY_EMPTY;
+
+	return new Promise(resolve => {
+		const batch_uuid = Bun.randomUUIDv7();
+		obs_request_map.set(batch_uuid, resolve);
+
+		log_verbose(`Preparing OBS request batch containing {${batch.length}} ID {${batch_uuid}}`, PREFIX_OBS);
+
+		obs_send(OBS_OP_CODE.REQUEST_BATCH, {
+			requestId: batch_uuid,
+			executionType: execution_type,
+			haltOnFailure: halt_on_fail,
+			requests: batch
 		});
 	});
 }
