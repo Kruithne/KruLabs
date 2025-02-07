@@ -15,6 +15,7 @@ const PREFIX_OBS = 'OBS';
 const PREFIX_HTTP = 'HTTP';
 
 const OBS_RECONNECT_DELAY = 2500;
+const OBS_RESPONSE_TIMEOUT = 5000;
 
 const HTTP_SERVE_DIRECTORY = './src/web';
 
@@ -561,7 +562,7 @@ function obs_connect() {
 				} else if (message.op === OBS_OP_CODE.IDENTIFIED) {
 					obs_identified = true;
 					log_verbose(`Successfully identified with OBS host using RPC version {${message.d.negotiatedRpcVersion}}`, PREFIX_OBS);
-					obs_request(OBS_REQUEST.GET_VERSION).then(res => log_info(`OBS host running version {${res.obsVersion}} (${res.platformDescription})`, PREFIX_OBS));
+					obs_request(OBS_REQUEST.GET_VERSION).then(res => log_info(`OBS host running version {${res?.obsVersion}} (${res?.platformDescription})`, PREFIX_OBS));
 				}
 			}
 		} catch (e) {
@@ -619,8 +620,8 @@ function obs_send(op: number, message: OBSMessageData) {
 	log_verbose(`SEND {${OBS_OP_CODE_TO_STR[op]}} size {${format_file_size(payload_size)}}`, PREFIX_OBS);
 }
 
-async function obs_request(request_type: Enum<typeof OBS_REQUEST>, request_data: OBSMessageData = {}): Promise<OBSMessageData> {
-	return new Promise(resolve => {
+async function obs_request(request_type: Enum<typeof OBS_REQUEST>, request_data: OBSMessageData = {}, timeout = OBS_RESPONSE_TIMEOUT): Promise<OBSMessageData|null> {
+	return new Promise((resolve, reject) => {
 		const request_uuid = Bun.randomUUIDv7();
 		obs_request_map.set(request_uuid, resolve);
 
@@ -631,6 +632,14 @@ async function obs_request(request_type: Enum<typeof OBS_REQUEST>, request_data:
 			requestId: request_uuid,
 			requestData: request_data
 		});
+
+		if (timeout > 0) {
+			setTimeout(() => {
+				obs_request_map.delete(request_uuid);
+				log_warn(`Timed out waiting for ${request_type} response from OBS (timeout: ${timeout}ms)`);
+				resolve(null);
+			}, timeout);
+		}
 	});
 }
 
