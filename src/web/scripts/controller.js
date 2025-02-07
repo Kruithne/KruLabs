@@ -67,6 +67,7 @@ const DEFAULT_TRACK = {
 	name: 'New Track',
 	duration: 30000,
 	obs_scene: '',
+	obs_sync: true,
 	cues: []
 };
 
@@ -189,7 +190,13 @@ const reactive_state = {
 
 			this.playback_time = 0;
 
-			obs_set_scene(track.obs_scene);
+			if (obs_is_connected() && track.obs_scene.length > 0) {
+				socket.send_object(PACKET.OBS_SET_SCENE, track.obs_scene);
+
+				if (track.obs_sync) {
+					// todo: send a 
+				}
+			}
 
 			this.calculate_track_denominator();
 
@@ -716,11 +723,6 @@ const reactive_state = {
 // MARK: :obs
 function obs_is_connected() {
 	return app_state.config.obs_enable && app_state.obs_status === 0;
-}
-
-function obs_set_scene(scene_name) {
-	if (obs_is_connected() && scene_name?.length > 0)
-		socket.send_object(PACKET.OBS_SET_SCENE, scene_name);
 }
 
 // MARK: :modal

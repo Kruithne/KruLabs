@@ -122,8 +122,8 @@ export function get_packet_name(id) {
 	return PACKET_UNK;
 }
 
-export function build_packet(packet_id, packet_type, data) {
-	let size = 2;
+export function build_packet(packet_id, packet_type, data, uid = 0) {
+	let size = 2 + 4;
 	let payload = null;
 
 	if (data !== null) {
@@ -144,9 +144,10 @@ export function build_packet(packet_id, packet_type, data) {
 
 	// pack packet_id to 13-bit (MAX 8191) and type to 3-bit (MAX 7)
 	view.setUint16(0, (packet_id << 3) | packet_type);
+	view.setUint32(2, uid);
 
 	if (payload)
-		new Uint8Array(buffer).set(payload, 2);
+		new Uint8Array(buffer).set(payload, 6);
 
 	return buffer;
 }
@@ -156,13 +157,14 @@ export function parse_packet(buffer) {
 	const packed = view.getUint16(0);
 	const packet_id = packed >> 3;
 	const packet_type = packed & 0b111;
+	const uid = view.getUint32(2);
 
 	const parsed = { id: packet_id, data: null };
 	
-	if (buffer.byteLength <= 2 || packet_type === PACKET_TYPE.NONE) 
-		return [parsed, packet_type];
+	if (buffer.byteLength <= 6 || packet_type === PACKET_TYPE.NONE)
+		return [parsed, packet_type, uid];
 
-	const data = new Uint8Array(buffer.slice(2));
+	const data = new Uint8Array(buffer.slice(6));
 	if (packet_type === PACKET_TYPE.STRING)
 		parsed.data = new TextDecoder().decode(data);
 	else if (packet_type === PACKET_TYPE.OBJECT)
@@ -170,5 +172,5 @@ export function parse_packet(buffer) {
 	else
 		parsed.data = data;
 		
-	return [parsed, packet_type];
+	return [parsed, packet_type, uid];
  }

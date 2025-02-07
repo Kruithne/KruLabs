@@ -2,6 +2,7 @@ import { PACKET, build_packet, parse_packet, PACKET_TYPE } from './packet.js';
 
 // MARK: :constants
 const RECONNECT_TIME = 2000;
+const TRACKED_RESPONSE_TIMEOUT = 5000;
 
 export const SOCKET_STATE_DISCONNECTED = 0x0;
 export const SOCKET_STATE_CONNECTED = 0x1;
@@ -25,7 +26,10 @@ let is_dispatching = false;
 let dispatching_register_ids = [];
 let dispatching_packets = [];
 
+let last_tracked_packet_id = 1;
+
 const event_listeners = new Map();
+const tracked_listeners = new Map();
 
 const registered_packet_ids = [];
 
@@ -40,16 +44,40 @@ export function init() {
 	ws.addEventListener('open', handle_socket_open);
 }
 
+function get_tracked_id() {
+	if (last_tracked_packet_id === Number.MAX_SAFE_INTEGER)
+		last_tracked_packet_id = 1;
+
+	return last_tracked_packet_id++;
+}
+
+function timeout_fn(resolve, reject, timeout) {
+	const timeout_id = setTimeout(reject, timeout);
+
+	return (...params) => {
+		clearTimeout(timeout_id);
+		resolve(...params);
+	};
+}
+
+export async function response(tracked_id, timeout = TRACKED_RESPONSE_TIMEOUT) {
+	return new Promise(resolve => {
+		if (timeout > 0) {
+			tracked_listeners.set(tracked_id, timeout_fn(resolve, () => {
+				tracked_listeners.delete(tracked_id);
+				console.warn('Timed out waiting for tracked packet response %d', tracked_id);
+			}, timeout));
+		} else {
+			tracked_listeners.set(tracked_id, resolve);
+		}
+	});
+}
+
 export async function expect(packet_id, timeout = 0) {
 	register_packet(packet_id);
 	return new Promise((resolve, reject) => {
 		if (timeout > 0) {
-			const rejection_timer = setTimeout(reject, timeout);
-
-			once(packet_id, data => {
-				clearTimeout(rejection_timer);
-				resolve(data);
-			});
+			once(packet_id, timeout_fn(resolve, () => reject('Timed out waiting for expected packet ' + packet_id), timeout));
 		} else {
 			once(packet_id, resolve);
 		}
@@ -91,19 +119,19 @@ function emit(event, data) {
 }
 
 export function send_empty(packet_id) {
-	queue_packet(build_packet(packet_id, PACKET_TYPE.NONE, null));
+	queue_packet(build_packet(packet_id, PACKET_TYPE.NONE, null, get_tracked_id()));
 }
 
 export function send_string(packet_id, str) {
-	queue_packet(build_packet(packet_id, PACKET_TYPE.STRING, str));
+	queue_packet(build_packet(packet_id, PACKET_TYPE.STRING, st, get_tracked_id()));
 }
 
 export function send_object(packet_id, obj) {
-	queue_packet(build_packet(packet_id, PACKET_TYPE.OBJECT, obj));
+	queue_packet(build_packet(packet_id, PACKET_TYPE.OBJECT, obj, get_tracked_id()));
 }
 
 export function send_binary(packet_id, data) {
-	queue_packet(build_packet(packet_id, PACKET_TYPE.BINARY, data));
+	queue_packet(build_packet(packet_id, PACKET_TYPE.BINARY, data, get_tracked_id()));
 }
 
 function queue_packet(packet) {
@@ -178,7 +206,15 @@ async function handle_socket_message(event) {
 	if (data instanceof Blob)
 		data = await data.arrayBuffer();
 
-	const [packet, packet_type] = parse_packet(data);
+	const [packet, packet_type, uid] = parse_packet(data);
+
+	if (uid > 0) {
+		const tracked_resolver = tracked_listeners.get(uid);
+		if (tracked_resolver) {
+			tracked_resolver(packet.data);
+			tracked_listeners.delete(uid);
+		}
+	}
 
 	emit(packet.id, packet.data);
 	emit('*', packet.data);
