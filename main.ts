@@ -909,6 +909,8 @@ async function handle_packet(ws: ClientSocket, packet_id: number, packet_data: a
 		update_system_config(packet_data);
 
 		save_system_config();
+	} else if (packet_id === PACKET.REQ_OBS_STATUS) {
+		obs_send_status();
 	} else {
 		// dispatch all other packets to listeners
 		const listeners = get_listening_clients(packet_id);
