@@ -45,7 +45,7 @@ export function init() {
 }
 
 function get_tracked_id() {
-	if (last_tracked_packet_id === Number.MAX_SAFE_INTEGER)
+	if (last_tracked_packet_id === 0xFFFF)
 		last_tracked_packet_id = 1;
 
 	return last_tracked_packet_id++;
