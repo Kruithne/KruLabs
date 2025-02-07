@@ -346,7 +346,8 @@ const OBS_MEDIA_INPUT_ACTION = {
     PREVIOUS: 'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_PREVIOUS'
 } as const;
 
-type OBSMediaInputActionType = typeof OBS_MEDIA_INPUT_ACTION[keyof typeof OBS_MEDIA_INPUT_ACTION];
+type OBSMediaInputActionTypeKey = keyof typeof OBS_MEDIA_INPUT_ACTION;
+type OBSMediaInputActionTypeValue = typeof OBS_MEDIA_INPUT_ACTION[OBSMediaInputActionTypeKey];
 
 const OBS_OP_CODE_TO_STR = Object.fromEntries(
 	Object.entries(OBS_OP_CODE).map(([key, value]) => [value, key])
