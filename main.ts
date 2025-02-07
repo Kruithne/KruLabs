@@ -69,6 +69,9 @@ const OBS_OP_CODE = {
 	REQUEST_BATCH_RESPONSE: 9
 };
 
+type OBSOpCodeTypeKey = keyof typeof OBS_OP_CODE;
+type OBSOpCodeTypeValue = typeof OBS_OP_CODE[OBSOpCodeTypeKey];
+
 const OBS_EVENT_TYPE = {
     // General Events
     EXIT_STARTED: 'ExitStarted',
@@ -351,7 +354,7 @@ type OBSMediaInputActionTypeValue = typeof OBS_MEDIA_INPUT_ACTION[OBSMediaInputA
 
 const OBS_OP_CODE_TO_STR = Object.fromEntries(
 	Object.entries(OBS_OP_CODE).map(([key, value]) => [value, key])
-) as Record<OBSOpCode, string>;
+) as Record<OBSOpCodeTypeValue, string>;
 
 // MARK: :errors
 class AssertionError extends Error {
@@ -373,8 +376,6 @@ type PacketDataType = null | object | string | number;
 type Packet = { id: number, data: null|object|string };
 
 type SystemConfig = typeof default_config;
-
-type OBSOpCode = typeof OBS_OP_CODE[keyof typeof OBS_OP_CODE];
 
 type OBSMessageData = Record<string, any>;
 
