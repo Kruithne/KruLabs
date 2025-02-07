@@ -147,7 +147,7 @@ export function build_packet(packet_id, packet_type, data, uid = 0) {
 	view.setUint16(2, uid);
 
 	if (payload)
-		new Uint8Array(buffer).set(payload, 6);
+		new Uint8Array(buffer).set(payload, 4);
 
 	return buffer;
 }
