@@ -94,6 +94,9 @@ export const PACKET = {
 
 	/** [CLIENT -> SERVER] Requests OBS connection status. Expects OBS_STATUS. */
 	REQ_OBS_STATUS: 0x1F,
+
+	/** [CLIENT -> SERVER -> OBS] Requests a scene change in OBS. */
+	OBS_SET_SCENE: 0x20,
 };
 
 export const PACKET_UNK = 'UNKNOWN';

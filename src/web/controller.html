@@ -149,6 +149,10 @@
 												TRACK DURATION:
 												<time-input :value="selected_track.duration" @updated="selected_track.duration = $event" include-ms></time-input>
 											</label>
+											<label>
+												OBS SCENE LINK:
+												<input type="text" v-model="selected_track.obs_scene"/>
+											</label>
 											<div class="spacer"></div>
 											<div class="button-tray">
 												<input type="button" value="RETURN TO LIVE" @click="edit_mode = 'NONE'"/>

@@ -662,6 +662,12 @@ function obs_create_auth_string(password: string, salt: string, challenge: strin
 	return createHash('sha256').update(secret + challenge).digest('base64');
 }
 
+function obs_set_scene(scene_name: string) {
+	obs_request(OBS_REQUEST.SET_CURRENT_PROGRAM_SCENE, {
+		sceneName: scene_name
+	});
+}
+
 // MARK: :config
 function update_system_config(new_config: SystemConfig) {
 	const old_config = system_config as Record<string, any>;
@@ -900,6 +906,9 @@ async function handle_packet(ws: ClientSocket, packet_id: number, packet_data: a
 		save_system_config();
 	} else if (packet_id === PACKET.REQ_OBS_STATUS) {
 		obs_send_status();
+	} else if (packet_id === PACKET.OBS_SET_SCENE) {
+		validate_string(packet_data, 'object');
+		obs_set_scene(packet_data);
 	} else {
 		// dispatch all other packets to listeners
 		const listeners = get_listening_clients(packet_id);

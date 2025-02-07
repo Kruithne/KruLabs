@@ -66,6 +66,7 @@ const DEFAULT_TRACK = {
 	id: '',
 	name: 'New Track',
 	duration: 30000,
+	obs_scene: '',
 	cues: []
 };
 
@@ -187,6 +188,8 @@ const reactive_state = {
 			this.playback_hold();
 
 			this.playback_time = 0;
+
+			obs_set_scene(track.obs_scene);
 
 			this.calculate_track_denominator();
 
@@ -709,6 +712,16 @@ const reactive_state = {
 		},
 	}
 };
+
+// MARK: :obs
+function obs_is_connected() {
+	return app_state.config.obs_enable && app_state.obs_status === 0;
+}
+
+function obs_set_scene(scene_name) {
+	if (obs_is_connected() && scene_name?.length > 0)
+		socket.send_object(PACKET.OBS_SET_SCENE, scene_name);
+}
 
 // MARK: :modal
 async function show_confirm_modal(title, message) {
