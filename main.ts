@@ -69,9 +69,6 @@ const OBS_OP_CODE = {
 	REQUEST_BATCH_RESPONSE: 9
 };
 
-type OBSOpCodeTypeKey = keyof typeof OBS_OP_CODE;
-type OBSOpCodeTypeValue = typeof OBS_OP_CODE[OBSOpCodeTypeKey];
-
 const OBS_EVENT_TYPE = {
     // General Events
     EXIT_STARTED: 'ExitStarted',
@@ -150,9 +147,6 @@ const OBS_EVENT_TYPE = {
     STUDIO_MODE_STATE_CHANGED: 'StudioModeStateChanged',
     SCREENSHOT_SAVED: 'ScreenshotSaved'
 } as const;
-
-type OBSEventTypeKey = keyof typeof OBS_EVENT_TYPE;
-type OBSEventTypeValue = typeof OBS_EVENT_TYPE[OBSEventTypeKey];
 
 const OBS_REQUEST = {
     // General Requests
@@ -324,20 +318,12 @@ const OBS_REQUEST = {
     OPEN_SOURCE_PROJECTOR: 'OpenSourceProjector'
 } as const;
 
-type OBSRequestTypeKey = keyof typeof OBS_REQUEST;
-type OBSRequestTypeValue = typeof OBS_REQUEST[OBSRequestTypeKey];
-
-type OBSRequestBatchEntry = { requestType: OBSRequestTypeValue, requestData?: OBSMessageData };
-
 const OBS_EXECUTION_TYPE = {
     NONE: -1,              // Not a request batch
     SERIAL_REALTIME: 0,    // Processes all requests serially, as fast as possible
     SERIAL_FRAME: 1,       // Processes all requests serially, in sync with graphics thread
     PARALLEL: 2            // Processes all requests using all available threads
 } as const;
-
-type OBSExecutionTypeKey = keyof typeof OBS_EXECUTION_TYPE;
-type OBSExecutionTypeValue = typeof OBS_EXECUTION_TYPE[OBSExecutionTypeKey];
 
 const OBS_MEDIA_INPUT_ACTION = {
     NONE: 'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_NONE',
@@ -348,9 +334,6 @@ const OBS_MEDIA_INPUT_ACTION = {
     NEXT: 'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_NEXT',
     PREVIOUS: 'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_PREVIOUS'
 } as const;
-
-type OBSMediaInputActionTypeKey = keyof typeof OBS_MEDIA_INPUT_ACTION;
-type OBSMediaInputActionTypeValue = typeof OBS_MEDIA_INPUT_ACTION[OBSMediaInputActionTypeKey];
 
 const OBS_OP_CODE_TO_STR = Object.fromEntries(
 	Object.entries(OBS_OP_CODE).map(([key, value]) => [value, key])
@@ -376,6 +359,23 @@ type PacketDataType = null | object | string | number;
 type Packet = { id: number, data: null|object|string };
 
 type SystemConfig = typeof default_config;
+
+type OBSEventTypeKey = keyof typeof OBS_EVENT_TYPE;
+type OBSEventTypeValue = typeof OBS_EVENT_TYPE[OBSEventTypeKey];
+
+type OBSOpCodeTypeKey = keyof typeof OBS_OP_CODE;
+type OBSOpCodeTypeValue = typeof OBS_OP_CODE[OBSOpCodeTypeKey];
+
+type OBSRequestTypeKey = keyof typeof OBS_REQUEST;
+type OBSRequestTypeValue = typeof OBS_REQUEST[OBSRequestTypeKey];
+
+type OBSMediaInputActionTypeKey = keyof typeof OBS_MEDIA_INPUT_ACTION;
+type OBSMediaInputActionTypeValue = typeof OBS_MEDIA_INPUT_ACTION[OBSMediaInputActionTypeKey];
+
+type OBSRequestBatchEntry = { requestType: OBSRequestTypeValue, requestData?: OBSMessageData };
+
+type OBSExecutionTypeKey = keyof typeof OBS_EXECUTION_TYPE;
+type OBSExecutionTypeValue = typeof OBS_EXECUTION_TYPE[OBSExecutionTypeKey];
 
 type OBSMessageData = Record<string, any>;
 
