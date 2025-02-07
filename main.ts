@@ -69,6 +69,273 @@ const OBS_OP_CODE = {
 	REQUEST_BATCH_RESPONSE: 9
 };
 
+export const OBS_EVENT_TYPE = {
+    // General Events
+    EXIT_STARTED: 'ExitStarted',
+    VENDOR_EVENT: 'VendorEvent',
+    CUSTOM_EVENT: 'CustomEvent',
+
+    // Config Events
+    CURRENT_SCENE_COLLECTION_CHANGING: 'CurrentSceneCollectionChanging',
+    CURRENT_SCENE_COLLECTION_CHANGED: 'CurrentSceneCollectionChanged',
+    SCENE_COLLECTION_LIST_CHANGED: 'SceneCollectionListChanged',
+    CURRENT_PROFILE_CHANGING: 'CurrentProfileChanging',
+    CURRENT_PROFILE_CHANGED: 'CurrentProfileChanged',
+    PROFILE_LIST_CHANGED: 'ProfileListChanged',
+
+    // Scenes Events
+    SCENE_CREATED: 'SceneCreated',
+    SCENE_REMOVED: 'SceneRemoved',
+    SCENE_NAME_CHANGED: 'SceneNameChanged',
+    CURRENT_PROGRAM_SCENE_CHANGED: 'CurrentProgramSceneChanged',
+    CURRENT_PREVIEW_SCENE_CHANGED: 'CurrentPreviewSceneChanged',
+    SCENE_LIST_CHANGED: 'SceneListChanged',
+
+    // Inputs Events
+    INPUT_CREATED: 'InputCreated',
+    INPUT_REMOVED: 'InputRemoved',
+    INPUT_NAME_CHANGED: 'InputNameChanged',
+    INPUT_SETTINGS_CHANGED: 'InputSettingsChanged',
+    INPUT_ACTIVE_STATE_CHANGED: 'InputActiveStateChanged',
+    INPUT_SHOW_STATE_CHANGED: 'InputShowStateChanged',
+    INPUT_MUTE_STATE_CHANGED: 'InputMuteStateChanged',
+    INPUT_VOLUME_CHANGED: 'InputVolumeChanged',
+    INPUT_AUDIO_BALANCE_CHANGED: 'InputAudioBalanceChanged',
+    INPUT_AUDIO_SYNC_OFFSET_CHANGED: 'InputAudioSyncOffsetChanged',
+    INPUT_AUDIO_TRACKS_CHANGED: 'InputAudioTracksChanged',
+    INPUT_AUDIO_MONITOR_TYPE_CHANGED: 'InputAudioMonitorTypeChanged',
+    INPUT_VOLUME_METERS: 'InputVolumeMeters',
+
+    // Transitions Events
+    CURRENT_SCENE_TRANSITION_CHANGED: 'CurrentSceneTransitionChanged',
+    CURRENT_SCENE_TRANSITION_DURATION_CHANGED: 'CurrentSceneTransitionDurationChanged',
+    SCENE_TRANSITION_STARTED: 'SceneTransitionStarted',
+    SCENE_TRANSITION_ENDED: 'SceneTransitionEnded',
+    SCENE_TRANSITION_VIDEO_ENDED: 'SceneTransitionVideoEnded',
+
+    // Filters Events
+    SOURCE_FILTER_LIST_REINDEXED: 'SourceFilterListReindexed',
+    SOURCE_FILTER_CREATED: 'SourceFilterCreated',
+    SOURCE_FILTER_REMOVED: 'SourceFilterRemoved',
+    SOURCE_FILTER_NAME_CHANGED: 'SourceFilterNameChanged',
+    SOURCE_FILTER_SETTINGS_CHANGED: 'SourceFilterSettingsChanged',
+    SOURCE_FILTER_ENABLE_STATE_CHANGED: 'SourceFilterEnableStateChanged',
+
+    // Scene Items Events
+    SCENE_ITEM_CREATED: 'SceneItemCreated',
+    SCENE_ITEM_REMOVED: 'SceneItemRemoved',
+    SCENE_ITEM_LIST_REINDEXED: 'SceneItemListReindexed',
+    SCENE_ITEM_ENABLE_STATE_CHANGED: 'SceneItemEnableStateChanged',
+    SCENE_ITEM_LOCK_STATE_CHANGED: 'SceneItemLockStateChanged',
+    SCENE_ITEM_SELECTED: 'SceneItemSelected',
+    SCENE_ITEM_TRANSFORM_CHANGED: 'SceneItemTransformChanged',
+
+    // Outputs Events
+    STREAM_STATE_CHANGED: 'StreamStateChanged',
+    RECORD_STATE_CHANGED: 'RecordStateChanged',
+    RECORD_FILE_CHANGED: 'RecordFileChanged',
+    REPLAY_BUFFER_STATE_CHANGED: 'ReplayBufferStateChanged',
+    VIRTUALCAM_STATE_CHANGED: 'VirtualcamStateChanged',
+    REPLAY_BUFFER_SAVED: 'ReplayBufferSaved',
+
+    // Media Inputs Events
+    MEDIA_INPUT_PLAYBACK_STARTED: 'MediaInputPlaybackStarted',
+    MEDIA_INPUT_PLAYBACK_ENDED: 'MediaInputPlaybackEnded',
+    MEDIA_INPUT_ACTION_TRIGGERED: 'MediaInputActionTriggered',
+
+    // UI Events
+    STUDIO_MODE_STATE_CHANGED: 'StudioModeStateChanged',
+    SCREENSHOT_SAVED: 'ScreenshotSaved'
+} as const;
+
+export type EventTypeKey = keyof typeof OBS_EVENT_TYPE;
+export type EventTypeValue = typeof OBS_EVENT_TYPE[EventTypeKey];
+
+const OBS_REQUEST = {
+    // General Requests
+    GET_VERSION: 'GetVersion',
+    GET_STATS: 'GetStats',
+    BROADCAST_CUSTOM_EVENT: 'BroadcastCustomEvent',
+    CALL_VENDOR_REQUEST: 'CallVendorRequest',
+    GET_HOTKEY_LIST: 'GetHotkeyList',
+    TRIGGER_HOTKEY_BY_NAME: 'TriggerHotkeyByName',
+    TRIGGER_HOTKEY_BY_KEY_SEQUENCE: 'TriggerHotkeyByKeySequence',
+    SLEEP: 'Sleep',
+
+    // Config Requests
+    GET_PERSISTENT_DATA: 'GetPersistentData',
+    SET_PERSISTENT_DATA: 'SetPersistentData',
+    GET_SCENE_COLLECTION_LIST: 'GetSceneCollectionList',
+    SET_CURRENT_SCENE_COLLECTION: 'SetCurrentSceneCollection',
+    CREATE_SCENE_COLLECTION: 'CreateSceneCollection',
+    GET_PROFILE_LIST: 'GetProfileList',
+    SET_CURRENT_PROFILE: 'SetCurrentProfile',
+    CREATE_PROFILE: 'CreateProfile',
+    REMOVE_PROFILE: 'RemoveProfile',
+    GET_PROFILE_PARAMETER: 'GetProfileParameter',
+    SET_PROFILE_PARAMETER: 'SetProfileParameter',
+    GET_VIDEO_SETTINGS: 'GetVideoSettings',
+    SET_VIDEO_SETTINGS: 'SetVideoSettings',
+    GET_STREAM_SERVICE_SETTINGS: 'GetStreamServiceSettings',
+    SET_STREAM_SERVICE_SETTINGS: 'SetStreamServiceSettings',
+    GET_RECORD_DIRECTORY: 'GetRecordDirectory',
+    SET_RECORD_DIRECTORY: 'SetRecordDirectory',
+
+    // Sources Requests
+    GET_SOURCE_ACTIVE: 'GetSourceActive',
+    GET_SOURCE_SCREENSHOT: 'GetSourceScreenshot',
+    SAVE_SOURCE_SCREENSHOT: 'SaveSourceScreenshot',
+
+    // Scenes Requests
+    GET_SCENE_LIST: 'GetSceneList',
+    GET_GROUP_LIST: 'GetGroupList',
+    GET_CURRENT_PROGRAM_SCENE: 'GetCurrentProgramScene',
+    SET_CURRENT_PROGRAM_SCENE: 'SetCurrentProgramScene',
+    GET_CURRENT_PREVIEW_SCENE: 'GetCurrentPreviewScene',
+    SET_CURRENT_PREVIEW_SCENE: 'SetCurrentPreviewScene',
+    CREATE_SCENE: 'CreateScene',
+    REMOVE_SCENE: 'RemoveScene',
+    SET_SCENE_NAME: 'SetSceneName',
+    GET_SCENE_SCENE_TRANSITION_OVERRIDE: 'GetSceneSceneTransitionOverride',
+    SET_SCENE_SCENE_TRANSITION_OVERRIDE: 'SetSceneSceneTransitionOverride',
+
+    // Inputs Requests
+    GET_INPUT_LIST: 'GetInputList',
+    GET_INPUT_KIND_LIST: 'GetInputKindList',
+    GET_SPECIAL_INPUTS: 'GetSpecialInputs',
+    CREATE_INPUT: 'CreateInput',
+    REMOVE_INPUT: 'RemoveInput',
+    SET_INPUT_NAME: 'SetInputName',
+    GET_INPUT_DEFAULT_SETTINGS: 'GetInputDefaultSettings',
+    GET_INPUT_SETTINGS: 'GetInputSettings',
+    SET_INPUT_SETTINGS: 'SetInputSettings',
+    GET_INPUT_MUTE: 'GetInputMute',
+    SET_INPUT_MUTE: 'SetInputMute',
+    TOGGLE_INPUT_MUTE: 'ToggleInputMute',
+    GET_INPUT_VOLUME: 'GetInputVolume',
+    SET_INPUT_VOLUME: 'SetInputVolume',
+    GET_INPUT_AUDIO_BALANCE: 'GetInputAudioBalance',
+    SET_INPUT_AUDIO_BALANCE: 'SetInputAudioBalance',
+    GET_INPUT_AUDIO_SYNC_OFFSET: 'GetInputAudioSyncOffset',
+    SET_INPUT_AUDIO_SYNC_OFFSET: 'SetInputAudioSyncOffset',
+    GET_INPUT_AUDIO_MONITOR_TYPE: 'GetInputAudioMonitorType',
+    SET_INPUT_AUDIO_MONITOR_TYPE: 'SetInputAudioMonitorType',
+    GET_INPUT_AUDIO_TRACKS: 'GetInputAudioTracks',
+    SET_INPUT_AUDIO_TRACKS: 'SetInputAudioTracks',
+    GET_INPUT_PROPERTIES_LIST_PROPERTY_ITEMS: 'GetInputPropertiesListPropertyItems',
+    PRESS_INPUT_PROPERTIES_BUTTON: 'PressInputPropertiesButton',
+
+    // Transitions Requests
+    GET_TRANSITION_KIND_LIST: 'GetTransitionKindList',
+    GET_SCENE_TRANSITION_LIST: 'GetSceneTransitionList',
+    GET_CURRENT_SCENE_TRANSITION: 'GetCurrentSceneTransition',
+    SET_CURRENT_SCENE_TRANSITION: 'SetCurrentSceneTransition',
+    SET_CURRENT_SCENE_TRANSITION_DURATION: 'SetCurrentSceneTransitionDuration',
+    SET_CURRENT_SCENE_TRANSITION_SETTINGS: 'SetCurrentSceneTransitionSettings',
+    GET_CURRENT_SCENE_TRANSITION_CURSOR: 'GetCurrentSceneTransitionCursor',
+    TRIGGER_STUDIO_MODE_TRANSITION: 'TriggerStudioModeTransition',
+    SET_TBAR_POSITION: 'SetTBarPosition',
+
+    // Filters Requests
+    GET_SOURCE_FILTER_KIND_LIST: 'GetSourceFilterKindList',
+    GET_SOURCE_FILTER_LIST: 'GetSourceFilterList',
+    GET_SOURCE_FILTER_DEFAULT_SETTINGS: 'GetSourceFilterDefaultSettings',
+    CREATE_SOURCE_FILTER: 'CreateSourceFilter',
+    REMOVE_SOURCE_FILTER: 'RemoveSourceFilter',
+    SET_SOURCE_FILTER_NAME: 'SetSourceFilterName',
+    GET_SOURCE_FILTER: 'GetSourceFilter',
+    SET_SOURCE_FILTER_INDEX: 'SetSourceFilterIndex',
+    SET_SOURCE_FILTER_SETTINGS: 'SetSourceFilterSettings',
+    SET_SOURCE_FILTER_ENABLED: 'SetSourceFilterEnabled',
+
+    // Scene Items Requests
+    GET_SCENE_ITEM_LIST: 'GetSceneItemList',
+    GET_GROUP_SCENE_ITEM_LIST: 'GetGroupSceneItemList',
+    GET_SCENE_ITEM_ID: 'GetSceneItemId',
+    GET_SCENE_ITEM_SOURCE: 'GetSceneItemSource',
+    CREATE_SCENE_ITEM: 'CreateSceneItem',
+    REMOVE_SCENE_ITEM: 'RemoveSceneItem',
+    DUPLICATE_SCENE_ITEM: 'DuplicateSceneItem',
+    GET_SCENE_ITEM_TRANSFORM: 'GetSceneItemTransform',
+    SET_SCENE_ITEM_TRANSFORM: 'SetSceneItemTransform',
+    GET_SCENE_ITEM_ENABLED: 'GetSceneItemEnabled',
+    SET_SCENE_ITEM_ENABLED: 'SetSceneItemEnabled',
+    GET_SCENE_ITEM_LOCKED: 'GetSceneItemLocked',
+    SET_SCENE_ITEM_LOCKED: 'SetSceneItemLocked',
+    GET_SCENE_ITEM_INDEX: 'GetSceneItemIndex',
+    SET_SCENE_ITEM_INDEX: 'SetSceneItemIndex',
+    GET_SCENE_ITEM_BLEND_MODE: 'GetSceneItemBlendMode',
+    SET_SCENE_ITEM_BLEND_MODE: 'SetSceneItemBlendMode',
+
+    // Outputs Requests
+    GET_VIRTUAL_CAM_STATUS: 'GetVirtualCamStatus',
+    TOGGLE_VIRTUAL_CAM: 'ToggleVirtualCam',
+    START_VIRTUAL_CAM: 'StartVirtualCam',
+    STOP_VIRTUAL_CAM: 'StopVirtualCam',
+    GET_REPLAY_BUFFER_STATUS: 'GetReplayBufferStatus',
+    TOGGLE_REPLAY_BUFFER: 'ToggleReplayBuffer',
+    START_REPLAY_BUFFER: 'StartReplayBuffer',
+    STOP_REPLAY_BUFFER: 'StopReplayBuffer',
+    SAVE_REPLAY_BUFFER: 'SaveReplayBuffer',
+    GET_LAST_REPLAY_BUFFER_REPLAY: 'GetLastReplayBufferReplay',
+    GET_OUTPUT_LIST: 'GetOutputList',
+    GET_OUTPUT_STATUS: 'GetOutputStatus',
+    TOGGLE_OUTPUT: 'ToggleOutput',
+    START_OUTPUT: 'StartOutput',
+    STOP_OUTPUT: 'StopOutput',
+    GET_OUTPUT_SETTINGS: 'GetOutputSettings',
+    SET_OUTPUT_SETTINGS: 'SetOutputSettings',
+
+    // Stream Requests
+    GET_STREAM_STATUS: 'GetStreamStatus',
+    TOGGLE_STREAM: 'ToggleStream',
+    START_STREAM: 'StartStream',
+    STOP_STREAM: 'StopStream',
+    SEND_STREAM_CAPTION: 'SendStreamCaption',
+
+    // Record Requests
+    GET_RECORD_STATUS: 'GetRecordStatus',
+    TOGGLE_RECORD: 'ToggleRecord',
+    START_RECORD: 'StartRecord',
+    STOP_RECORD: 'StopRecord',
+    TOGGLE_RECORD_PAUSE: 'ToggleRecordPause',
+    PAUSE_RECORD: 'PauseRecord',
+    RESUME_RECORD: 'ResumeRecord',
+    SPLIT_RECORD_FILE: 'SplitRecordFile',
+    CREATE_RECORD_CHAPTER: 'CreateRecordChapter',
+
+    // Media Inputs Requests
+    GET_MEDIA_INPUT_STATUS: 'GetMediaInputStatus',
+    SET_MEDIA_INPUT_CURSOR: 'SetMediaInputCursor',
+    OFFSET_MEDIA_INPUT_CURSOR: 'OffsetMediaInputCursor',
+    TRIGGER_MEDIA_INPUT_ACTION: 'TriggerMediaInputAction',
+
+    // UI Requests
+    GET_STUDIO_MODE_ENABLED: 'GetStudioModeEnabled',
+    SET_STUDIO_MODE_ENABLED: 'SetStudioModeEnabled',
+    OPEN_INPUT_PROPERTIES_DIALOG: 'OpenInputPropertiesDialog',
+    OPEN_INPUT_FILTERS_DIALOG: 'OpenInputFiltersDialog',
+    OPEN_INPUT_INTERACT_DIALOG: 'OpenInputInteractDialog',
+    GET_MONITOR_LIST: 'GetMonitorList',
+    OPEN_VIDEO_MIX_PROJECTOR: 'OpenVideoMixProjector',
+    OPEN_SOURCE_PROJECTOR: 'OpenSourceProjector'
+} as const;
+
+type OBSRequestTypeKey = keyof typeof OBS_REQUEST;
+type OBSRequestTypeValue = typeof OBS_REQUEST[OBSRequestTypeKey];
+
+const OBS_MEDIA_INPUT_ACTION = {
+    NONE: 'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_NONE',
+    PLAY: 'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_PLAY',
+    PAUSE: 'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_PAUSE',
+    STOP: 'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_STOP',
+    RESTART: 'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_RESTART',
+    NEXT: 'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_NEXT',
+    PREVIOUS: 'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_PREVIOUS'
+} as const;
+
+type OBSMediaInputActionType = typeof OBS_MEDIA_INPUT_ACTION[keyof typeof OBS_MEDIA_INPUT_ACTION];
+
 const OBS_OP_CODE_TO_STR = Object.fromEntries(
 	Object.entries(OBS_OP_CODE).map(([key, value]) => [value, key])
 ) as Record<OBSOpCode, string>;
@@ -120,6 +387,8 @@ let obs_identified = false;
 let obs_socket: WebSocket|null = null;
 let obs_reconnect_timer: Timer|null = null;
 let obs_last_disconnect_code = -1;
+
+const obs_request_map = new Map();
 
 // MARK: :prototype
 declare global {
@@ -225,33 +494,58 @@ function obs_connect() {
 
 			const message: OBSMessage = JSON.parse(event_data);
 			const message_size = Buffer.byteLength(event_data);
-		
-			if (message.op === OBS_OP_CODE.EVENT)
-				log_verbose(`RECV {${OBS_OP_CODE_TO_STR[message.op]}} [{${message.d.eventType}}] size {${format_file_size(message_size)}}`, PREFIX_OBS);
-			else
+			
+			if (message.op === OBS_OP_CODE.EVENT) {
+				const event_type = message.d.eventType;
+				const event_data = message.d.eventData;
+
+				log_verbose(`RECV {${OBS_OP_CODE_TO_STR[message.op]}} [{${event_type}}] size {${format_file_size(message_size)}}`, PREFIX_OBS);
+
+				// todo: handle events
+			} else if (message.op === OBS_OP_CODE.REQUEST_RESPONSE) {
+				const request_type = message.d.requestType;
+				const request_id = message.d.requestId;
+
+				log_verbose(`RECV {${OBS_OP_CODE_TO_STR[message.op]}} [{${request_type}}] size {${format_file_size(message_size)}}`, PREFIX_OBS);
+
+				const resolver = obs_request_map.get(request_id);
+				if (resolver) {
+					log_verbose(`Received tracked {${request_type}} response [{${request_id}}]`, PREFIX_OBS);
+					obs_request_map.delete(request_id);
+
+					const request_status = message.d.requestStatus;
+					if (request_status.result) {
+						resolver(message.d.responseData);
+					} else {
+						log_verbose(`Request {${request_id}} failed with code {${request_status.code}} (${request_status.comment ?? 'n/a'})`, PREFIX_OBS);
+						resolver(null);
+					}
+				} else {
+					log_verbose(`Dropping non-tracked {${request_type}} response [{${request_id}}]`, PREFIX_OBS);
+				}
+			} else {
 				log_verbose(`RECV {${OBS_OP_CODE_TO_STR[message.op]}} size {${format_file_size(message_size)}}`, PREFIX_OBS);
 
-			if (message.op === OBS_OP_CODE.HELLO) {
-				const auth = message.d.authentication;
-				const payload: OBSMessageData = {
-					rpcVersion: message.d.rpcVersion,
-					eventSubscriptions: OBS_EVENT_SUB.ALL
-				};
-
-				if (auth) {
-					payload.authentication = obs_create_auth_string(
-						system_config.obs_password,
-						auth.salt,
-						auth.challenge
-					);
+				if (message.op === OBS_OP_CODE.HELLO) {
+					const auth = message.d.authentication;
+					const payload: OBSMessageData = {
+						rpcVersion: message.d.rpcVersion,
+						eventSubscriptions: OBS_EVENT_SUB.ALL
+					};
+	
+					if (auth) {
+						payload.authentication = obs_create_auth_string(
+							system_config.obs_password,
+							auth.salt,
+							auth.challenge
+						);
+					}
+	
+					obs_send(OBS_OP_CODE.IDENTIFY, payload);
+				} else if (message.op === OBS_OP_CODE.IDENTIFIED) {
+					obs_identified = true;
+					log_info(`Successfully identified with OBS host using RPC version {${message.d.negotiatedRpcVersion}}`, PREFIX_OBS);
 				}
-
-				obs_send(OBS_OP_CODE.IDENTIFY, payload);
-			} else if (message.op === OBS_OP_CODE.IDENTIFIED) {
-				obs_identified = true;
-				log_info(`Successfully identified with OBS host using RPC version {${message.d.negotiatedRpcVersion}}`, PREFIX_OBS);
-			} else if (message.op === OBS_OP_CODE.EVENT) {
-				// TODO: implement
 			}
 		} catch (e) {
 			const error = e as Error;
@@ -290,6 +584,8 @@ function obs_disconnect() {
 	if (obs_reconnect_timer !== null)
 		clearTimeout(obs_reconnect_timer);
 
+	obs_request_map.clear();
+
 	obs_socket?.close();
 
 	obs_socket = null;
@@ -304,6 +600,22 @@ function obs_send(op: number, message: OBSMessageData) {
 	obs_socket?.send(payload_json);
 
 	log_verbose(`SEND {${OBS_OP_CODE_TO_STR[op]}} size {${format_file_size(payload_size)}}`, PREFIX_OBS);
+}
+
+async function obs_request(request_type: OBSRequestTypeValue, request_data: OBSMessageData = {}) {
+	return new Promise(resolve => {
+		const request_uuid = Bun.randomUUIDv7();
+
+		obs_request_map.set(request_uuid, resolve);
+
+		log_verbose(`Preparing OBS request {${request_type}} ID {${request_uuid}}`, PREFIX_OBS);
+	
+		obs_send(OBS_OP_CODE.REQUEST, {
+			requestType: request_type,
+			requestId: request_uuid,
+			requestData: request_data
+		});
+	});
 }
 
 function obs_send_status() {
