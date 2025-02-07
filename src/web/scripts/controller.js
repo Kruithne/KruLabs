@@ -1037,9 +1037,7 @@ const listbox_component = {
 			socket.send_empty(PACKET.REQ_SERVER_ADDR);
 			socket.send_empty(PACKET.REQ_CLIENT_COUNT);
 			socket.send_empty(PACKET.REQ_SYSTEM_CONFIG);
-
-			if (app_state.config.obs_enable)
-				socket.send_empty(PACKET.REQ_OBS_STATUS);
+			socket.send_empty(PACKET.REQ_OBS_STATUS);
 		}
 	});
 
