@@ -572,6 +572,7 @@ function obs_connect() {
 				} else if (message.op === OBS_OP_CODE.IDENTIFIED) {
 					obs_identified = true;
 					log_info(`Successfully identified with OBS host using RPC version {${message.d.negotiatedRpcVersion}}`, PREFIX_OBS);
+					obs_request(OBS_REQUEST.GET_VERSION).then(res => log_info(`OBS host running version {${res.obsVersion}} (${res.platformDescription})`, PREFIX_OBS));
 				}
 			}
 		} catch (e) {
