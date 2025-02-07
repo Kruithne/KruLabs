@@ -621,9 +621,16 @@ function obs_send(op: number, message: OBSMessageData) {
 }
 
 async function obs_request(request_type: Enum<typeof OBS_REQUEST>, request_data: OBSMessageData = {}, timeout = OBS_RESPONSE_TIMEOUT): Promise<OBSMessageData|null> {
-	return new Promise((resolve, reject) => {
+	return new Promise(resolve => {
+		let timeout_id: Timer|null = null;
 		const request_uuid = Bun.randomUUIDv7();
-		obs_request_map.set(request_uuid, resolve);
+
+		obs_request_map.set(request_uuid, (value: OBSMessage|null) => {
+			if (timeout_id !== null)
+				clearTimeout(timeout_id);
+
+			resolve(value);
+		});
 
 		log_verbose(`Preparing OBS request {${request_type}} ID {${request_uuid}}`, PREFIX_OBS);
 	
@@ -634,7 +641,7 @@ async function obs_request(request_type: Enum<typeof OBS_REQUEST>, request_data:
 		});
 
 		if (timeout > 0) {
-			setTimeout(() => {
+			timeout_id = setTimeout(() => {
 				obs_request_map.delete(request_uuid);
 				log_warn(`Timed out waiting for ${request_type} response from OBS (timeout: ${timeout}ms)`);
 				resolve(null);
