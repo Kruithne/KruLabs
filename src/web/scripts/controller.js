@@ -109,6 +109,7 @@ const reactive_state = {
 
 			obs_status: -1, // -1 disconnected (naturally), 0 connected, > 0 disconnect code
 			obs_media_durations: [],
+			obs_scene_name: 'No Scene',
 
 			vol_fade_active: false,
 			vol_previous: 1,
@@ -1056,6 +1057,7 @@ const listbox_component = {
 			socket.send_empty(PACKET.REQ_CLIENT_COUNT);
 			socket.send_empty(PACKET.REQ_SYSTEM_CONFIG);
 			socket.send_empty(PACKET.REQ_OBS_STATUS);
+			socket.send_empty(PACKET.REQ_OBS_SCENE_NAME);
 		}
 	});
 
@@ -1073,6 +1075,7 @@ const listbox_component = {
 	socket.on(PACKET.ACK_SYSTEM_CONFIG, config => app_state.config = config);
 	socket.on(PACKET.OBS_STATUS, status => app_state.obs_status = status);
 	socket.on(PACKET.OBS_MEDIA_STARTED, data => app_state.sync_track_duration(data));
+	socket.on(PACKET.OBS_SCENE_NAME, scene_name => app_state.obs_scene_name = scene_name);
 
 	socket.init();
 

@@ -100,6 +100,12 @@ export const PACKET = {
 
 	/** [OBS -> SERVER -> CLIENT] Sent when media starts in OBS. */
 	OBS_MEDIA_STARTED: 0x21,
+
+	/** [OBS -> SERVER -> CLIENT] Sent when the current program scene changes in OBS. */
+	OBS_SCENE_NAME: 0x22,
+
+	/** [CLIENT -> SERVER -> OBS] Request current program scene from OBS. */
+	REQ_OBS_SCENE_NAME: 0x23,
 };
 
 export const PACKET_UNK = 'UNKNOWN';
