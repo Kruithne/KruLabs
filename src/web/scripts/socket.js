@@ -123,7 +123,7 @@ export function send_empty(packet_id) {
 }
 
 export function send_string(packet_id, str) {
-	queue_packet(build_packet(packet_id, PACKET_TYPE.STRING, st, generate_packet_uid()));
+	queue_packet(build_packet(packet_id, PACKET_TYPE.STRING, str, generate_packet_uid()));
 }
 
 export function send_object(packet_id, obj) {
