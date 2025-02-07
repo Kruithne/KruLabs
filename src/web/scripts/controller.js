@@ -88,6 +88,7 @@ const reactive_state = {
 			available_projects: [],
 
 			config: default_config,
+			has_loaded_config: false,
 			
 			project_state: structuredClone(DEFAULT_PROJECT_STATE),
 
@@ -233,10 +234,14 @@ const reactive_state = {
 		config: {
 			deep: true,
 			handler(new_config) {
-				clearTimeout(config_update_debounce_timer);
-				config_update_debounce_timer = setTimeout(() => {
-					socket.send_object(PACKET.UPDATE_SYSTEM_CONFIG, new_config);
-				}, CONFIG_UPDATE_DEBOUNCE);
+				if (this.has_loaded_config) {
+					clearTimeout(config_update_debounce_timer);
+					config_update_debounce_timer = setTimeout(() => {
+						socket.send_object(PACKET.UPDATE_SYSTEM_CONFIG, new_config);
+					}, CONFIG_UPDATE_DEBOUNCE);
+				} else {
+					this.has_loaded_config = true;
+				}
 			}
 		},
 	},
