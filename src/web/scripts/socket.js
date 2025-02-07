@@ -20,7 +20,6 @@ Map.prototype.get_set_arr = function(key, value) {
 // MARK: :state
 let ws;
 let is_socket_open = false;
-let socket_state = SOCKET_STATE_DISCONNECTED;
 
 let is_dispatching = false;
 let dispatching_register_ids = [];
@@ -162,7 +161,6 @@ function process_dispatch() {
 }
 
 function set_socket_state(state) {
-	socket_state = state;
 	emit('statechange', state);
 }
 
