@@ -337,7 +337,7 @@ const OBS_MEDIA_INPUT_ACTION = {
 
 const OBS_OP_CODE_TO_STR = Object.fromEntries(
 	Object.entries(OBS_OP_CODE).map(([key, value]) => [value, key])
-) as Record<OBSOpCodeTypeValue, string>;
+) as Record<Enum<typeof OBS_OP_CODE>, string>;
 
 // MARK: :errors
 class AssertionError extends Error {
@@ -349,7 +349,9 @@ class AssertionError extends Error {
 
 // MARK: :types
 type CLIValue = string | boolean | number;
+
 type Unbox<T> = T extends Array<infer U> ? U : T;
+type Enum<T> = T[keyof T];
 
 type ClientSocketData = { sck_id: string };
 type ClientSocket = ServerWebSocket<ClientSocketData>;
@@ -360,22 +362,7 @@ type Packet = { id: number, data: null|object|string };
 
 type SystemConfig = typeof default_config;
 
-type OBSEventTypeKey = keyof typeof OBS_EVENT_TYPE;
-type OBSEventTypeValue = typeof OBS_EVENT_TYPE[OBSEventTypeKey];
-
-type OBSOpCodeTypeKey = keyof typeof OBS_OP_CODE;
-type OBSOpCodeTypeValue = typeof OBS_OP_CODE[OBSOpCodeTypeKey];
-
-type OBSRequestTypeKey = keyof typeof OBS_REQUEST;
-type OBSRequestTypeValue = typeof OBS_REQUEST[OBSRequestTypeKey];
-
-type OBSMediaInputActionTypeKey = keyof typeof OBS_MEDIA_INPUT_ACTION;
-type OBSMediaInputActionTypeValue = typeof OBS_MEDIA_INPUT_ACTION[OBSMediaInputActionTypeKey];
-
-type OBSRequestBatchEntry = { requestType: OBSRequestTypeValue, requestData?: OBSMessageData };
-
-type OBSExecutionTypeKey = keyof typeof OBS_EXECUTION_TYPE;
-type OBSExecutionTypeValue = typeof OBS_EXECUTION_TYPE[OBSExecutionTypeKey];
+type OBSRequestBatchEntry = { requestType: Enum<typeof OBS_REQUEST>, requestData?: OBSMessageData };
 
 type OBSMessageData = Record<string, any>;
 
@@ -632,7 +619,7 @@ function obs_send(op: number, message: OBSMessageData) {
 	log_verbose(`SEND {${OBS_OP_CODE_TO_STR[op]}} size {${format_file_size(payload_size)}}`, PREFIX_OBS);
 }
 
-async function obs_request(request_type: OBSRequestTypeValue, request_data: OBSMessageData = {}): Promise<OBSMessageData> {
+async function obs_request(request_type: Enum<typeof OBS_REQUEST>, request_data: OBSMessageData = {}): Promise<OBSMessageData> {
 	return new Promise(resolve => {
 		const request_uuid = Bun.randomUUIDv7();
 		obs_request_map.set(request_uuid, resolve);
@@ -647,7 +634,7 @@ async function obs_request(request_type: OBSRequestTypeValue, request_data: OBSM
 	});
 }
 
-async function obs_request_batch(batch: OBSRequestBatchEntry[], execution_type: OBSExecutionTypeValue = OBS_EXECUTION_TYPE.SERIAL_REALTIME, halt_on_fail = false): Promise<OBSMessageData[]> {
+async function obs_request_batch(batch: OBSRequestBatchEntry[], execution_type: Enum<typeof OBS_EXECUTION_TYPE> = OBS_EXECUTION_TYPE.SERIAL_REALTIME, halt_on_fail = false): Promise<OBSMessageData[]> {
 	if (batch.length === 0)
 		return [];
 
