@@ -148,8 +148,8 @@ const OBS_EVENT_TYPE = {
     SCREENSHOT_SAVED: 'ScreenshotSaved'
 } as const;
 
-type EventTypeKey = keyof typeof OBS_EVENT_TYPE;
-type EventTypeValue = typeof OBS_EVENT_TYPE[EventTypeKey];
+type OBSEventTypeKey = keyof typeof OBS_EVENT_TYPE;
+type OBSEventTypeValue = typeof OBS_EVENT_TYPE[OBSEventTypeKey];
 
 const OBS_REQUEST = {
     // General Requests
