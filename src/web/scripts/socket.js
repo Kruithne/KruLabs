@@ -44,7 +44,7 @@ export function init() {
 	ws.addEventListener('open', handle_socket_open);
 }
 
-function get_tracked_id() {
+function generate_packet_uid() {
 	if (last_tracked_packet_id === 0xFFFF)
 		last_tracked_packet_id = 1;
 
@@ -119,19 +119,19 @@ function emit(event, data) {
 }
 
 export function send_empty(packet_id) {
-	queue_packet(build_packet(packet_id, PACKET_TYPE.NONE, null, get_tracked_id()));
+	queue_packet(build_packet(packet_id, PACKET_TYPE.NONE, null, generate_packet_uid()));
 }
 
 export function send_string(packet_id, str) {
-	queue_packet(build_packet(packet_id, PACKET_TYPE.STRING, st, get_tracked_id()));
+	queue_packet(build_packet(packet_id, PACKET_TYPE.STRING, st, generate_packet_uid()));
 }
 
 export function send_object(packet_id, obj) {
-	queue_packet(build_packet(packet_id, PACKET_TYPE.OBJECT, obj, get_tracked_id()));
+	queue_packet(build_packet(packet_id, PACKET_TYPE.OBJECT, obj, generate_packet_uid()));
 }
 
 export function send_binary(packet_id, data) {
-	queue_packet(build_packet(packet_id, PACKET_TYPE.BINARY, data, get_tracked_id()));
+	queue_packet(build_packet(packet_id, PACKET_TYPE.BINARY, data, generate_packet_uid()));
 }
 
 function queue_packet(packet) {
