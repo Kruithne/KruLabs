@@ -85,7 +85,7 @@
 								</div>
 							</div>
 						</template>
-						<template v-else-if="nav_page === 'cues'">
+						<template v-else-if="nav_page === 'live'">
 							<div class="panel-split panel-split-alt">
 								<div>
 									<template v-if="edit_mode === 'CUE' && selected_cue">
@@ -147,12 +147,12 @@
 											</label>
 											<div class="spacer"></div>
 											<div class="button-tray">
-												<input type="button" value="RETURN TO CUES" @click="edit_mode = 'NONE'"/>
+												<input type="button" value="RETURN TO LIVE" @click="edit_mode = 'NONE'"/>
 											</div>
 										</div>
 									</template>
 									<template v-else>
-										<h1>CUES</h1>
+										<h1>LIVE</h1>
 										<div class="spacer"></div>
 										<listbox-component :items="cue_stack_sorted">
 											<template v-slot="{ item, index }">

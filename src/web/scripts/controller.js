@@ -78,7 +78,7 @@ let config_update_debounce_timer = -1;
 const reactive_state = {
 	data() {
 		return {
-			nav_pages: ['project', 'cues', 'config'],
+			nav_pages: ['project', 'live', 'config'],
 			nav_page: '',
 			
 			socket_state: 0x0,
