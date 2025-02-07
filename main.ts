@@ -69,7 +69,7 @@ const OBS_OP_CODE = {
 	REQUEST_BATCH_RESPONSE: 9
 };
 
-export const OBS_EVENT_TYPE = {
+const OBS_EVENT_TYPE = {
     // General Events
     EXIT_STARTED: 'ExitStarted',
     VENDOR_EVENT: 'VendorEvent',
@@ -148,8 +148,8 @@ export const OBS_EVENT_TYPE = {
     SCREENSHOT_SAVED: 'ScreenshotSaved'
 } as const;
 
-export type EventTypeKey = keyof typeof OBS_EVENT_TYPE;
-export type EventTypeValue = typeof OBS_EVENT_TYPE[EventTypeKey];
+type EventTypeKey = keyof typeof OBS_EVENT_TYPE;
+type EventTypeValue = typeof OBS_EVENT_TYPE[EventTypeKey];
 
 const OBS_REQUEST = {
     // General Requests
