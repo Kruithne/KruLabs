@@ -1001,6 +1001,14 @@ async function handle_packet(ws: ClientSocket, packet_id: number, packet_data: a
 				mediaAction: packet_data.state ? OBS_MEDIA_INPUT_ACTION.PLAY : OBS_MEDIA_INPUT_ACTION.PAUSE
 			});
 		}
+	} else if (packet_id === PACKET.OBS_MEDIA_RESTART) {
+		validate_string(packet_data.obs_scene, 'obs_scene');
+
+		if (is_active_obs_scene(packet_data.obs_scene)) {
+			await obs_send_batch_for_scene_items(OBS_REQUEST.TRIGGER_MEDIA_INPUT_ACTION, {
+				mediaAction: OBS_MEDIA_INPUT_ACTION.RESTART
+			});
+		}
 	} else {
 		// dispatch all other packets to listeners
 		const listeners = get_listening_clients(packet_id);

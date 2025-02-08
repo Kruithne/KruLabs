@@ -665,6 +665,9 @@ const reactive_state = {
 						if (this.playback_mode == PLAYBACK_MODE_LOOP) {
 							this.playback_seek(0);
 							this.playback_go();
+
+							if (obs_is_connected())
+								socket.send_object(PACKET.OBS_MEDIA_RESTART, { obs_scene: this.selected_track?.obs_scene ?? '' });
 						} else if (this.playback_mode == PLAYBACK_MODE_AUTO_GO) {
 							this.playback_auto_next = true;
 							this.playback_next_track();

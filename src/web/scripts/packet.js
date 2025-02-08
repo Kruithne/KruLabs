@@ -115,6 +115,9 @@ export const PACKET = {
 
 	/** [CLIENT -> SERVER -> OBS] Request media seeking. */
 	OBS_MEDIA_SEEK: 0x26,
+
+	/** [CLIENT -> SERVER -> OBS] Request media restart. */
+	OBS_MEDIA_RESTART: 0x27,
 };
 
 export const PACKET_UNK = 'UNKNOWN';
