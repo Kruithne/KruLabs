@@ -610,8 +610,6 @@ async function etc_connect() {
 			etc_reconnect_timer = setTimeout(etc_connect, ETC_RECONNECT_DELAY);
 		}
 	}
-
-	Bun.sleep(2000).then(() => etc_send_command(`chan/50/at`, 100));
 }
 
 function etc_disconnect() {
