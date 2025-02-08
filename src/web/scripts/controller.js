@@ -492,6 +492,7 @@ const reactive_state = {
 
 			// seek before the cue so that it fires
 			this.playback_time = Math.min(this.selected_track.duration, cue.time - SEEK_PADDING);
+			this.update_obs_media_seek();
 		},
 
 		cue_add() {
@@ -711,9 +712,13 @@ const reactive_state = {
 			this.playback_seeking = true;
 			this.playback_time = time;
 
+			this.update_obs_media_seek();
+		},
+
+		update_obs_media_seek(time) {
 			if (obs_is_connected()) {
 				socket.send_object(PACKET.OBS_MEDIA_SEEK, {
-					time,
+					time: this.playback_time,
 					obs_scene: this.selected_track?.obs_scene ?? ''
 				});
 			}
@@ -772,6 +777,7 @@ const reactive_state = {
 
 			const new_time = ofs === 0 ? 0 : this.playback_time + ofs;
 			this.playback_time = Math.min(this.selected_track.duration, Math.max(new_time, 0));
+			this.update_obs_media_seek();
 		},
 	}
 };
