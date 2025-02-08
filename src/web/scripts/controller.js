@@ -598,6 +598,25 @@ const reactive_state = {
 			this.selected_track = previous_track ?? null;
 		},
 
+		track_duplicate() {
+			if (this.selected_track === null)
+				return;
+
+			const new_track = object_clone(this.selected_track);
+			const tracks = this.project_state.tracks;
+
+			new_track.id = crypto.randomUUID();
+
+			let new_index = tracks.length;
+			if (this.selected_track !== null)
+				new_index = tracks.indexOf(this.selected_track) + 1;
+
+			tracks.splice(new_index, 0, new_track);
+			this.selected_track = new_track;
+
+			this.edit_mode = 'TRACK';
+		},
+
 		track_move_down() {
 			if (this.selected_track === null)
 				return;
