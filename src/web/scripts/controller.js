@@ -114,6 +114,8 @@ const reactive_state = {
 			obs_scene_change_requested: false,
 			obs_scene_list: [],
 
+			etc_stauts: 0, // 0 disconnected, 1 connected
+
 			vol_fade_active: false,
 			vol_previous: 1,
 
@@ -787,6 +789,11 @@ function obs_is_connected() {
 	return app_state.config.obs_enable && app_state.obs_status === 0;
 }
 
+// MARK: :etc
+function etc_is_connected() {
+	return app_state.config.etc_enable && app_state.etc_status === 1;
+}
+
 // MARK: :modal
 async function show_confirm_modal(title, message) {
 	return show_modal(title, message, 'CONFIRM');
@@ -1110,6 +1117,7 @@ const listbox_component = {
 			socket.send_empty(PACKET.REQ_CLIENT_COUNT);
 			socket.send_empty(PACKET.REQ_SYSTEM_CONFIG);
 			socket.send_empty(PACKET.REQ_OBS_STATUS);
+			socket.send_empty(PACKET.REQ_ETC_STATUS);
 			socket.send_empty(PACKET.REQ_OBS_SCENE_NAME);
 		}
 	});
@@ -1127,6 +1135,7 @@ const listbox_component = {
 	socket.on(PACKET.INFO_CLIENT_COUNT, count => app_state.n_connected_clients = count);
 	socket.on(PACKET.ACK_SYSTEM_CONFIG, config => app_state.config = config);
 	socket.on(PACKET.OBS_STATUS, status => app_state.obs_status = status);
+	socket.on(PACKET.ETC_STATUS, status => app_state.etc_status = status);
 	socket.on(PACKET.OBS_MEDIA_DURATION, data => app_state.sync_track_duration(data));
 	socket.on(PACKET.OBS_SCENE_NAME, scene_name => app_state.obs_scene_name = scene_name);
 	socket.on(PACKET.OBS_MEDIA_PLAYBACK_STARTED, uuid => app_state.obs_active_media.add(uuid));

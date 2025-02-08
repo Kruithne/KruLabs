@@ -251,6 +251,21 @@
 										Confirm OBS media playback end for track advancement
 									</label>
 								</div>
+								<div class="form">
+									<h1>ETC Integration</h1>
+									<label class="inline">
+										<input type="checkbox" v-model="config.etc_enable"/>
+										Enable ETC integration
+									</label>
+									<label>
+										ETC Host
+										<input type="text" v-model="config.etc_host"/>
+									</label>
+									<label>
+										ETC Port
+										<input type="text" v-model="config.etc_port"/>
+									</label>
+								</div>
 							</div>
 						</template>
 					</div>
@@ -262,6 +277,10 @@
 						<template v-if="config.obs_enable">
 							<div v-if="obs_status == 0" class="text-active">OBS CONNECTED ({{ obs_scene_name }})</div>
 							<div v-else class="text-err">OBS DISCONNECTED [{{ obs_status > -1 ? obs_status : 'N/A' }}]</div>
+						</template>
+						<template v-if="config.etc_enable">
+							<div v-if="etc_status == 1" class="text-active">ETC CONNECTED</div>
+							<div v-else class="text-err">ETC DISCONNECTED</div>
 						</template>
 					</div>
 				</div>

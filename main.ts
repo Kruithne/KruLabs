@@ -7,12 +7,15 @@ import { createHash } from 'crypto';
 import default_config from './src/web/scripts/default_config.js';
 import { PACKET, get_packet_name, build_packet, parse_packet, PACKET_TYPE, PACKET_UNK } from './src/web/scripts/packet.js';
 
-import type { WebSocketHandler, ServerWebSocket, Subprocess } from 'bun';
+import type { WebSocketHandler, ServerWebSocket, Subprocess, TCPSocket } from 'bun';
 
 // MARK: :constants
 const PREFIX_WEBSOCKET = 'WEBSOCKET';
 const PREFIX_OBS = 'OBS';
+const PREFIX_ETC = 'ETC';
 const PREFIX_HTTP = 'HTTP';
+
+const ETC_RECONNECT_DELAY = 2500;
 
 const OBS_RECONNECT_DELAY = 2500;
 const OBS_RESPONSE_TIMEOUT = 5000;
@@ -391,6 +394,10 @@ let obs_reconnect_timer: Timer|null = null;
 let obs_last_disconnect_code = -1;
 let obs_current_scene = '';
 
+let etc_socket: TCPSocket|null = null;
+let etc_reconnect_timer: Timer|null = null;
+let etc_connected = false;
+
 const obs_request_map = new Map();
 
 // MARK: :prototype
@@ -484,6 +491,170 @@ function set_system_volume(value: number) {
 		return;
 
 	volmgr_send({ cmd: 'set', value });
+}
+
+// MARK: :osc
+function osc_write_int32(val: number): Uint8Array {
+	const buf = new ArrayBuffer(4);
+	const view = new DataView(buf);
+
+	view.setInt32(0, val, false);
+
+	return new Uint8Array(buf);
+}
+
+function osc_write_string(str: string): Uint8Array {
+	const encoder = new TextEncoder();
+	const bytes = encoder.encode(str + '\0');
+	const padded_len = (bytes.length + 3) & ~0x03;
+	const padded = new Uint8Array(padded_len);
+
+	padded.set(bytes);
+	
+	return padded;
+}
+
+function osc_create_message(address: string, args: any[] = []): Uint8Array {
+	// Build type tag string
+	let type_tag = ',';
+	for (const arg of args) {
+		if (typeof arg === 'number')
+			type_tag += 'i';
+		else if (typeof arg === 'string')
+			type_tag += 's';
+	}
+
+	// Encode address and type tag
+	const addr_bytes = osc_write_string(address);
+	const type_bytes = osc_write_string(type_tag);
+
+	// Encode arguments
+	const arg_bytes: Uint8Array[] = [];
+	for (const arg of args) {
+		if (typeof arg === 'number')
+			arg_bytes.push(osc_write_int32(arg));
+		else if (typeof arg === 'string')
+			arg_bytes.push(osc_write_string(arg));
+	}
+
+	// Calculate total length
+	const total_len = addr_bytes.length + type_bytes.length + arg_bytes.reduce((acc, val) => acc + val.length, 0);
+
+	// Combine all parts with length prefix
+	const len_prefix = osc_write_int32(total_len);
+	const message = new Uint8Array(len_prefix.length + total_len);
+	
+	let offset = 0;
+	message.set(len_prefix, offset);
+	offset += len_prefix.length;
+
+	message.set(addr_bytes, offset);
+	offset += addr_bytes.length;
+
+	message.set(type_bytes, offset);
+	offset += type_bytes.length;
+
+	for (const bytes of arg_bytes) {
+		message.set(bytes, offset);
+		offset += bytes.length;
+	}
+
+	return message;
+}
+
+// MARK: :etc
+
+
+// // Convenience methods for common commands
+// set_channel(channel: number, level: number): void {
+// 	this.send_command(`chan/${channel}/at`, level);
+// }
+
+// fire_cue(cue_number: number): void {
+// 	this.send_command(`cue/${cue_number}/fire`);
+// }
+
+// Example usage:
+// const client = new EOSClient();
+// await client.connect('192.168.1.100');
+// client.set_channel(1, 75);  // Set channel 1 to 75%
+// client.fire_cue(1);         // Fire cue 1
+// client.close();
+
+async function etc_connect() {
+	etc_disconnect();
+
+	try {
+		etc_socket = await Bun.connect({
+			hostname: system_config.etc_host,
+			port: system_config.etc_port,
+			socket: {
+				open: (socket) => {
+					log_info(`Connected to ETC host {${system_config.etc_host}}`, PREFIX_ETC);
+
+					etc_connected = true;
+					etc_send_status();
+				},
+
+				data: (socket, data) => {
+					// todo: do we actually care about data sent to us from the board?
+				},
+
+				error: (socket, error) => {
+					log_warn(`${error.name} raised in ETC socket: ${error.message}`);
+				},
+
+				close: () => {
+					etc_socket = null;
+					etc_connected = false;
+
+					log_info(`Lost connection to ETC host`, PREFIX_ETC);
+
+					if (system_config.etc_enable) {
+						log_info(`Reconnecting to ETC host in {${ETC_RECONNECT_DELAY}ms}`, PREFIX_ETC);
+						etc_reconnect_timer = setTimeout(etc_connect, ETC_RECONNECT_DELAY);
+					}
+
+					etc_send_status();
+				}
+			}
+		});
+	} catch (e) {
+		const err = e as Error;
+		log_warn(`${err.name} raised connecting to ETC host: ${err.message}`);
+
+		if (system_config.etc_enable) {
+			log_info(`Reconnecting to ETC host in {${ETC_RECONNECT_DELAY}ms}`, PREFIX_ETC);
+			etc_reconnect_timer = setTimeout(etc_connect, ETC_RECONNECT_DELAY);
+		}
+	}
+
+	Bun.sleep(2000).then(() => etc_send_command(`chan/50/at`, 100));
+}
+
+function etc_disconnect() {
+	if (etc_reconnect_timer !== null)
+		clearTimeout(etc_reconnect_timer);
+
+	etc_socket?.end();
+	etc_socket = null;
+}
+
+function etc_send_command(address: string, ...args: any[]) {
+	if (!etc_socket)
+		return;
+
+	if (!address.startsWith('/eos/'))
+		address = '/eos/' + address;
+
+	log_verbose(`SEND {${address}} [${args.map(e => `{${e}}`).join(', ')}]`, PREFIX_ETC);
+
+	const message = osc_create_message(address, args);
+	etc_socket?.write(message);
+}
+
+function etc_send_status() {
+	send_object(PACKET.ETC_STATUS, etc_connected ? 1 : 0);
 }
 
 // MARK: :obs
@@ -753,6 +924,8 @@ function update_system_config(new_config: SystemConfig) {
 function handle_config_key_change(key: string, value: any) {
 	if (key === 'obs_enable')
 		value ? obs_connect() : obs_disconnect();
+	else if (key === 'etc_enable')
+		value ? etc_connect() : etc_disconnect();
 }
 
 async function load_system_config() {
@@ -1016,6 +1189,8 @@ async function handle_packet(ws: ClientSocket, packet_id: number, packet_data: a
 			const res = await obs_request(OBS_REQUEST.GET_SCENE_LIST);
 			send_object(PACKET.OBS_SCENE_LIST, res?.scenes ?? ARRAY_EMPTY);
 		}
+	} else if (packet_id === PACKET.REQ_ETC_STATUS) {
+		etc_send_status();
 	} else {
 		// dispatch all other packets to listeners
 		const listeners = get_listening_clients(packet_id);

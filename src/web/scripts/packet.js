@@ -124,6 +124,12 @@ export const PACKET = {
 
 	/** [CLIENT -> SERVER -> OBS] Requests an updated scene list. Expects OBS_SCENE_LIST. */
 	REQ_OBS_SCENE_LIST: 0x29,
+
+	/** [SERVER -> CLIENT] Sends the ETC connection status. */
+	ETC_STATUS: 0x2A,
+
+	/** [CLIENT -> SERVER] Request the ETC connection status. Expects ETC_STATUS. */
+	REQ_ETC_STATUS: 0x2B,
 };
 
 export const PACKET_UNK = 'UNKNOWN';
