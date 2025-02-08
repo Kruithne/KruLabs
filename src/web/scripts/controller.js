@@ -112,6 +112,7 @@ const reactive_state = {
 			obs_scene_name: 'No Scene',
 			obs_active_media: new Set(),
 			obs_scene_change_requested: false,
+			obs_scene_list: [],
 
 			vol_fade_active: false,
 			vol_previous: 1,
@@ -183,7 +184,8 @@ const reactive_state = {
 		},
 
 		edit_mode(mode) {
-			// todo: edit mode on track, get scene list from obs?
+			if (mode === 'TRACK')
+				socket.send_empty(PACKET.REQ_OBS_SCENE_LIST);
 		},
 
 		selected_track(track) {
@@ -1109,6 +1111,7 @@ const listbox_component = {
 	socket.on(PACKET.OBS_SCENE_NAME, scene_name => app_state.obs_scene_name = scene_name);
 	socket.on(PACKET.OBS_MEDIA_PLAYBACK_STARTED, uuid => app_state.obs_active_media.add(uuid));
 	socket.on(PACKET.OBS_MEDIA_PLAYBACK_ENDED, uuid => app_state.obs_active_media.delete(uuid));
+	socket.on(PACKET.OBS_SCENE_LIST, scenes => app_state.obs_scene_list = scenes);
 
 	socket.init();
 

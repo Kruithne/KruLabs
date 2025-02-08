@@ -118,6 +118,12 @@ export const PACKET = {
 
 	/** [CLIENT -> SERVER -> OBS] Request media restart. */
 	OBS_MEDIA_RESTART: 0x27,
+
+	/** [OBS -> SERVER -> CLIENT] Contains an updated scene list from OBS. */
+	OBS_SCENE_LIST: 0x28,
+
+	/** [CLIENT -> SERVER -> OBS] Requests an updated scene list. Expects OBS_SCENE_LIST. */
+	REQ_OBS_SCENE_LIST: 0x29,
 };
 
 export const PACKET_UNK = 'UNKNOWN';

@@ -523,6 +523,8 @@ function obs_connect() {
 				} else if (event_type === OBS_EVENT_TYPE.CURRENT_PROGRAM_SCENE_CHANGED) {
 					obs_current_scene = event_data.sceneName;
 					send_object(PACKET.OBS_SCENE_NAME, event_data.sceneName);
+				} else if (event_type === OBS_EVENT_TYPE.SCENE_LIST_CHANGED) {
+					send_object(PACKET.OBS_SCENE_LIST, event_data.scenes);
 				}
 			} else if (message.op === OBS_OP_CODE.REQUEST_BATCH_RESPONSE) {
 				const request_id = message.d.requestId;
@@ -1008,6 +1010,11 @@ async function handle_packet(ws: ClientSocket, packet_id: number, packet_data: a
 			await obs_send_batch_for_scene_items(OBS_REQUEST.TRIGGER_MEDIA_INPUT_ACTION, {
 				mediaAction: OBS_MEDIA_INPUT_ACTION.RESTART
 			});
+		}
+	} else if (packet_id === PACKET.REQ_OBS_SCENE_LIST) {
+		if (is_obs_connected()) {
+			const res = await obs_request(OBS_REQUEST.GET_SCENE_LIST);
+			send_object(PACKET.OBS_SCENE_LIST, res?.scenes ?? ARRAY_EMPTY);
 		}
 	} else {
 		// dispatch all other packets to listeners
