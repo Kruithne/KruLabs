@@ -130,6 +130,9 @@ export const PACKET = {
 
 	/** [CLIENT -> SERVER] Request the ETC connection status. Expects ETC_STATUS. */
 	REQ_ETC_STATUS: 0x2B,
+
+	/** [CLIENT -> SERVER -> ETC] */
+	ETC_SEND_COMMAND: 0x2C,
 };
 
 export const PACKET_UNK = 'UNKNOWN';

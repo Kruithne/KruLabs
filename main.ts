@@ -1171,6 +1171,11 @@ async function handle_packet(ws: ClientSocket, packet_id: number, packet_data: a
 		}
 	} else if (packet_id === PACKET.REQ_ETC_STATUS) {
 		etc_send_status();
+	} else if (packet_id === PACKET.ETC_SEND_COMMAND) {
+		validate_string(packet_data.command, 'command');
+		const args = Array.isArray(packet_data.args) ? packet_data.args : ARRAY_EMPTY;
+
+		etc_send_command(packet_data.command, ...args);
 	} else {
 		// dispatch all other packets to listeners
 		const listeners = get_listening_clients(packet_id);
