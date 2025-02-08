@@ -521,7 +521,7 @@ function obs_connect() {
 				} else if (event_type === OBS_EVENT_TYPE.MEDIA_INPUT_PLAYBACK_ENDED) {
 					send_object(PACKET.OBS_MEDIA_PLAYBACK_ENDED, event_data.inputUuid);
 				} else if (event_type === OBS_EVENT_TYPE.CURRENT_PROGRAM_SCENE_CHANGED) {
-					obs_current_scene = event_data.sceneName;
+					obs_current_scene = event_data.sceneUuid;
 					send_object(PACKET.OBS_SCENE_NAME, event_data.sceneName);
 				} else if (event_type === OBS_EVENT_TYPE.SCENE_LIST_CHANGED) {
 					send_object(PACKET.OBS_SCENE_LIST, event_data.scenes);
@@ -636,12 +636,12 @@ function is_obs_connected() {
 	return obs_socket !== null && obs_identified;
 }
 
-function is_active_obs_scene(scene_name: string) {
-	return is_obs_connected() && obs_current_scene.length > 0 && obs_current_scene === scene_name;
+function is_active_obs_scene(scene_uuid: string) {
+	return is_obs_connected() && obs_current_scene.length > 0 && obs_current_scene === scene_uuid;
 }
 
-async function obs_get_scene_items(scene_name = obs_current_scene) {
-	const req_scene_items = await obs_request(OBS_REQUEST.GET_SCENE_ITEM_LIST, { sceneName: scene_name });
+async function obs_get_scene_items(scene_uuid = obs_current_scene) {
+	const req_scene_items = await obs_request(OBS_REQUEST.GET_SCENE_ITEM_LIST, { sceneUuid: scene_uuid });
 	return req_scene_items?.sceneItems ?? ARRAY_EMPTY;
 }
 
@@ -734,9 +734,9 @@ function obs_create_auth_string(password: string, salt: string, challenge: strin
 	return createHash('sha256').update(secret + challenge).digest('base64');
 }
 
-function obs_set_scene(scene_name: string) {
+function obs_set_scene(scene_uuid: string) {
 	obs_request(OBS_REQUEST.SET_CURRENT_PROGRAM_SCENE, {
-		sceneName: scene_name
+		sceneUuid: scene_uuid
 	});
 }
 
@@ -984,7 +984,7 @@ async function handle_packet(ws: ClientSocket, packet_id: number, packet_data: a
 	} else if (packet_id === PACKET.REQ_OBS_SCENE_NAME) {
 		const res = await obs_request(OBS_REQUEST.GET_CURRENT_PROGRAM_SCENE);
 		send_object(PACKET.OBS_SCENE_NAME, res?.sceneName ?? 'No Scene');
-		obs_current_scene = res?.sceneName ?? '';
+		obs_current_scene = res?.sceneUuid ?? '';
 	} else if (packet_id === PACKET.OBS_MEDIA_SEEK) {
 		validate_number(packet_data.time, 'time');
 		validate_string(packet_data.obs_scene, 'obs_scene');
