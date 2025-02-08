@@ -110,6 +110,7 @@ const reactive_state = {
 			obs_media_durations: [],
 			obs_scene_name: 'No Scene',
 			obs_active_media: new Set(),
+			obs_scene_change_requested: false,
 
 			vol_fade_active: false,
 			vol_previous: 1,
@@ -192,9 +193,7 @@ const reactive_state = {
 
 			this.playback_time = 0;
 
-			if (obs_is_connected() && track.obs_scene.length > 0)
-				socket.send_object(PACKET.OBS_SET_SCENE, track.obs_scene);
-
+			this.obs_scene_change_requested = false;
 			this.obs_media_durations.length = 0;
 
 			this.calculate_track_denominator();
@@ -646,6 +645,11 @@ const reactive_state = {
 				const elapsed = performance.now() - this.playback_last_update;
 				this.playback_time += elapsed;
 				this.playback_last_update = now;
+
+				if (!this.obs_scene_change_requested && obs_is_connected() && this.selected_track.obs_scene.length > 0) {
+					this.obs_scene_change_requested = true;
+					socket.send_object(PACKET.OBS_SET_SCENE, this.selected_track.obs_scene);
+				}
 		
 				if (this.playback_time >= this.selected_track.duration && !this.is_awaiting_obs_media_playback_end) {
 					this.playback_hold();
