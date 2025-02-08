@@ -25,7 +25,7 @@ const LSK_LAST_PROJECT_ID = 'last_project_id';
 
 // cue event ids
 const CEV_BASIC = 0x0;
-// 0x1
+const CEV_ETC_LX = 0x1;
 // 0x2
 const CEV_GOTO = 0x3;
 const CEV_HOLD = 0x4;
@@ -34,6 +34,7 @@ const CEV_HOLD = 0x4;
 const CEV_LABELS = {
 	[CEV_BASIC]: { short: 'CUE', long: 'MARKER CUE' },
 	[CEV_GOTO]: { short: 'GOTO', long: 'GO TO CUE' },
+	[CEV_ETC_LX]: { short: 'LX', long: 'ETC LX CUE' },
 	[CEV_HOLD]: { short: 'HOLD', long: 'HOLD' },
 };
 
@@ -47,6 +48,10 @@ const CEV_EVENT_META = {
 	[CEV_GOTO]: {
 		target_name: ''
 	},
+
+	[CEV_ETC_LX]: {
+		target_cue: '0'
+	}
 };
 
 const DEFAULT_PROJECT_STATE = {
@@ -560,6 +565,11 @@ const reactive_state = {
 				}
 			} else if (event_type == CEV_HOLD) {
 				this.playback_hold();
+			} else if (event_type == CEV_ETC_LX) {
+				const target_cue = parseFloat(event_meta.target_cue);
+
+				if (!isNaN(target_cue))
+					etc_send_command(`cue/${target_cue}/fire`);
 			}
 		},
 
@@ -792,6 +802,13 @@ function obs_is_connected() {
 // MARK: :etc
 function etc_is_connected() {
 	return app_state.config.etc_enable && app_state.etc_status === 1;
+}
+
+function etc_send_command(command, ...args) {
+	if (!etc_is_connected())
+		return;
+
+	socket.send_object(PACKET.ETC_SEND_COMMAND, { command, args });
 }
 
 // MARK: :modal

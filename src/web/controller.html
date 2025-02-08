@@ -111,6 +111,12 @@
 													<input type="text" v-model="selected_cue.event_meta.target_name"/>
 												</label>
 											</template>
+											<!-- CUE EVENT: ETC LX CUE -->
+											<template v-if="selected_cue.event_type == 0x1">
+												<label>
+													[EVENT] LX CUE
+													<input type="text" v-model="selected_cue.event_meta.target_cue"/>
+											</template>
 											<div class="spacer"></div>
 											<div class="button-tray">
 												<input type="button" value="RETURN TO TRACKS" @click="edit_mode = 'NONE'"/>
