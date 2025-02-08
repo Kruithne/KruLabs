@@ -200,7 +200,7 @@
 									</div>
 									<div>
 										<div class="button-tray">
-											<input type="button" data-key-bind="F1" title="F1" value="GO" @click="playback_go" :class="{ active: playback_live }"/>
+											<input type="button" data-key-bind="F1" title="F1" value="GO" @click="playback_intent_go" :class="{ active: playback_live }"/>
 											<input type="button" data-key-bind="F2" title="F2" value="HOLD" @click="playback_hold" :class="{ active: !playback_live }"/>
 											<input type="button" data-key-bind="F3" title="F3" value="RESET" @click="playback_reset"/>
 											<input type="button" data-key-bind="F4" title="F4" value="AUTO OFF" @click="playback_mode = 'NONE'" :class="{ active: playback_mode == 'NONE' }"/>

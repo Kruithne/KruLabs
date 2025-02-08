@@ -506,6 +506,7 @@ function obs_connect() {
 				log_verbose(`RECV {${OBS_OP_CODE_TO_STR[message.op]}} [{${event_type}}] size {${format_file_size(message_size)}}`, PREFIX_OBS);
 
 				if (event_type === OBS_EVENT_TYPE.MEDIA_INPUT_PLAYBACK_STARTED) {
+					console.log(event_data);
 					send_object(PACKET.OBS_MEDIA_PLAYBACK_STARTED, event_data.inputUuid);
 
 					const status_query = await obs_request(OBS_REQUEST.GET_MEDIA_INPUT_STATUS, {

@@ -200,7 +200,7 @@ const reactive_state = {
 
 			if (this.playback_auto_next) {
 				this.playback_auto_next = false;
-				this.playback_go();
+				this.playback_intent_go();
 			}
 		},
 
@@ -629,6 +629,16 @@ const reactive_state = {
 			}
 		},
 
+		async playback_intent_go() {
+			if (!this.obs_scene_change_requested && obs_is_connected() && this.selected_track.obs_scene.length > 0) {
+				this.obs_scene_change_requested = true;
+				socket.send_object(PACKET.OBS_SET_SCENE, this.selected_track.obs_scene);
+				await socket.expect(PACKET.OBS_SCENE_NAME);
+			}
+
+			this.playback_go();
+		},
+
 		playback_hold() {
 			socket.send_object(PACKET.PLAYBACK_STATE, 0);
 			this.playback_live = false;
@@ -645,11 +655,6 @@ const reactive_state = {
 				const elapsed = performance.now() - this.playback_last_update;
 				this.playback_time += elapsed;
 				this.playback_last_update = now;
-
-				if (!this.obs_scene_change_requested && obs_is_connected() && this.selected_track.obs_scene.length > 0) {
-					this.obs_scene_change_requested = true;
-					socket.send_object(PACKET.OBS_SET_SCENE, this.selected_track.obs_scene);
-				}
 		
 				if (this.playback_time >= this.selected_track.duration && !this.is_awaiting_obs_media_playback_end) {
 					this.playback_hold();
@@ -1075,7 +1080,7 @@ const listbox_component = {
 
 	socket.on(PACKET.REQ_REMOTE_TRACKS, () => app_state.remote_dispatch_tracks());
 	socket.on(PACKET.REQ_REMOTE_TRACK, id => app_state.remote_select_track(id));
-	socket.on(PACKET.REQ_REMOTE_GO, () => app_state.playback_go());
+	socket.on(PACKET.REQ_REMOTE_GO, () => app_state.playback_intent_go());
 	socket.on(PACKET.REQ_REMOTE_HOLD, () => app_state.playback_hold());
 	socket.on(PACKET.REQ_REMOTE_SEEK, offset => app_state.remote_seek(offset));
 	socket.on(PACKET.REQ_CURRENT_TRACK, () => app_state.remote_dispatch_track());
