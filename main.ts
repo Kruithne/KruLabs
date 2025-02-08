@@ -563,24 +563,6 @@ function osc_create_message(address: string, args: any[] = []): Uint8Array {
 }
 
 // MARK: :etc
-
-
-// // Convenience methods for common commands
-// set_channel(channel: number, level: number): void {
-// 	this.send_command(`chan/${channel}/at`, level);
-// }
-
-// fire_cue(cue_number: number): void {
-// 	this.send_command(`cue/${cue_number}/fire`);
-// }
-
-// Example usage:
-// const client = new EOSClient();
-// await client.connect('192.168.1.100');
-// client.set_channel(1, 75);  // Set channel 1 to 75%
-// client.fire_cue(1);         // Fire cue 1
-// client.close();
-
 async function etc_connect() {
 	etc_disconnect();
 
