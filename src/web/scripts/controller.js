@@ -648,11 +648,6 @@ const reactive_state = {
 			this.dispatch_playback_state();
 		},
 
-		playback_reset() {
-			this.playback_seeking = true;
-			this.playback_time = 0;
-		},
-
 		playback_update(ts) {
 			if (this.playback_live && this.selected_track) {
 				const now = performance.now();
