@@ -112,6 +112,9 @@ export const PACKET = {
 
 	/** [OBS -> SERVER -> CLIENT] Sent when media playback stops in OBS. */
 	OBS_MEDIA_PLAYBACK_ENDED: 0x25,
+
+	/** [CLIENT -> SERVER -> OBS] Request media seeking. */
+	OBS_MEDIA_SEEK: 0x26,
 };
 
 export const PACKET_UNK = 'UNKNOWN';

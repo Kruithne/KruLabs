@@ -635,6 +635,36 @@ function is_obs_connected() {
 	return obs_socket !== null && obs_identified;
 }
 
+function is_active_obs_scene(scene_name: string) {
+	return is_obs_connected() && obs_current_scene.length > 0 && obs_current_scene === scene_name;
+}
+
+async function obs_get_scene_items(scene_name = obs_current_scene) {
+	const req_scene_items = await obs_request(OBS_REQUEST.GET_SCENE_ITEM_LIST, { sceneName: scene_name });
+	return req_scene_items?.sceneItems ?? ARRAY_EMPTY;
+}
+
+async function obs_send_batch_for_scene_items(request_type: Enum<typeof OBS_REQUEST>, batch: OBSMessageData, scene_name = obs_current_scene) {
+	const items = await obs_get_scene_items(scene_name);
+	const n_items = items.length;
+
+	if (n_items === 0)
+		return;
+
+	const request_batch = Array(n_items);
+
+	for (let i = 0; i < n_items; i++) {
+		request_batch[i] = {
+			requestType: request_type,
+			requestData: Object.assign({
+				inputUuid: items[i].sourceUuid
+			}, batch)
+		};
+	}
+
+	obs_request_batch(request_batch);
+}
+
 function obs_send(op: number, message: OBSMessageData) {
 	const payload = { op, d: message } as OBSMessage;
 	const payload_json = JSON.stringify(payload);
@@ -954,34 +984,23 @@ async function handle_packet(ws: ClientSocket, packet_id: number, packet_data: a
 		const res = await obs_request(OBS_REQUEST.GET_CURRENT_PROGRAM_SCENE);
 		send_object(PACKET.OBS_SCENE_NAME, res?.sceneName ?? 'No Scene');
 		obs_current_scene = res?.sceneName ?? '';
+	} else if (packet_id === PACKET.OBS_MEDIA_SEEK) {
+		validate_number(packet_data.time, 'time');
+		validate_string(packet_data.obs_scene, 'obs_scene');
+
+		if (is_active_obs_scene(packet_data.obs_scene)) {
+			await obs_send_batch_for_scene_items(OBS_REQUEST.SET_MEDIA_INPUT_CURSOR, {
+				mediaCursor: packet_data.time
+			});
+		}
 	} else if (packet_id === PACKET.PLAYBACK_STATE) {
 		validate_number(packet_data.state, 'state');
 		validate_string(packet_data.obs_scene, 'obs_scene');
 
-		if (is_obs_connected() && obs_current_scene.length > 0 && obs_current_scene === packet_data.obs_scene) {
-			const req_scene_items = await obs_request(OBS_REQUEST.GET_SCENE_ITEM_LIST, { sceneName: obs_current_scene });
-
-			if (req_scene_items !== null) {
-				const scene_items = req_scene_items.sceneItems;
-				const n_scene_items = scene_items.length;
-
-				if (n_scene_items > 0) {
-					const request_batch = Array(n_scene_items);
-					const media_action = packet_data.state ? OBS_MEDIA_INPUT_ACTION.PLAY : OBS_MEDIA_INPUT_ACTION.PAUSE;
-
-					for (let i = 0; i < n_scene_items; i++) {
-						request_batch[i] = {
-							requestType: OBS_REQUEST.TRIGGER_MEDIA_INPUT_ACTION,
-							requestData: {
-								inputUuid: scene_items[i].sourceUuid,
-								mediaAction: media_action
-							}
-						};
-					}
-
-					obs_request_batch(request_batch);
-				}
-			}
+		if (is_active_obs_scene(packet_data.obs_scene)) {
+			await obs_send_batch_for_scene_items(OBS_REQUEST.TRIGGER_MEDIA_INPUT_ACTION, {
+				mediaAction: packet_data.state ? OBS_MEDIA_INPUT_ACTION.PLAY : OBS_MEDIA_INPUT_ACTION.PAUSE
+			});
 		}
 	} else {
 		// dispatch all other packets to listeners

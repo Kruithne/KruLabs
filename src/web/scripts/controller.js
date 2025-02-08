@@ -688,6 +688,13 @@ const reactive_state = {
 		playback_seek(time) {
 			this.playback_seeking = true;
 			this.playback_time = time;
+
+			if (obs_is_connected()) {
+				socket.send_object(PACKET.OBS_MEDIA_SEEK, {
+					time,
+					obs_scene: this.selected_track?.obs_scene ?? ''
+				});
+			}
 		},
 
 		handle_playback_seek(event) {
