@@ -203,12 +203,12 @@
 											<input type="button" data-key-bind="F1" title="F1" value="GO" @click="playback_go" :class="{ active: playback_live }"/>
 											<input type="button" data-key-bind="F2" title="F2" value="HOLD" @click="playback_hold" :class="{ active: !playback_live }"/>
 											<input type="button" data-key-bind="F3" title="F3" value="RESET" @click="playback_reset"/>
-											<input type="button" data-key-bind="F5" title="F5" value="LOOP" @click="playback_mode = 'LOOP'" :class="{ active: playback_mode == 'LOOP' }"/>
-											<input type="button" data-key-bind="F6" title="F6" value="AUTO TRK" @click="playback_mode = 'AUTO_TRACK'" :class="{ active: playback_mode == 'AUTO_TRACK' }"/>
-											<input type="button" data-key-bind="F7" title="F7" value="AUTO GO" @click="playback_mode = 'AUTO_GO'" :class="{ active: playback_mode == 'AUTO_GO' }"/>
-											<input type="button" data-key-bind="F8" title="F8" value="F-HOLD" @click="vol_fade_hold" :class="{ active: vol_fade_active }"/>
-											<input type="button" data-key-bind="F9" title="F9" value="F-OUT" @click="vol_fade_out" :class="{ active: vol_fade_active }"/>
-											<input type="button" data-key-bind="F10" title="F10" value="F-BACK" @click="vol_fade_back" :class="{ active: vol_fade_active }"/>
+											<input type="button" data-key-bind="F4" title="F4" value="AUTO OFF" @click="playback_mode = 'NONE'" :class="{ active: playback_mode == 'NONE' }"/>
+											<input type="button" data-key-bind="F5" title="F5" value="AUTO GO" @click="playback_mode = 'AUTO_GO'" :class="{ active: playback_mode == 'AUTO_GO' }"/>
+											<input type="button" data-key-bind="F6" title="F6" value="LOOP" @click="playback_mode = 'LOOP'" :class="{ active: playback_mode == 'LOOP' }"/>
+											<input type="button" data-key-bind="F7" title="F7" value="F-HOLD" @click="vol_fade_hold" :class="{ active: vol_fade_active }"/>
+											<input type="button" data-key-bind="F8" title="F8" value="F-OUT" @click="vol_fade_out" :class="{ active: vol_fade_active }"/>
+											<input type="button" data-key-bind="F9" title="F9" value="F-BACK" @click="vol_fade_back" :class="{ active: vol_fade_active }"/>
 											<input-slider text="VOLUME" :value="project_state.playback_volume" @updated="project_state.playback_volume = $event"></input-slider>
 										</div>
 									</div>

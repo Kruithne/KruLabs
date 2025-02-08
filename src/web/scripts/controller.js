@@ -15,7 +15,6 @@ const NOOP = () => {};
 
 const PLAYBACK_MODE_NONE = 'NONE';
 const PLAYBACK_MODE_LOOP = 'LOOP';
-const PLAYBACK_MODE_AUTO_TRACK = 'AUTO_TRACK';
 const PLAYBACK_MODE_AUTO_GO = 'AUTO_GO';
 
 const TYPE_STRING = 'string';
@@ -657,8 +656,6 @@ const reactive_state = {
 							this.playback_go();
 						} else if (this.playback_mode == PLAYBACK_MODE_AUTO_GO) {
 							this.playback_auto_next = true;
-							this.playback_next_track();
-						} else if (this.playback_mode == PLAYBACK_MODE_AUTO_TRACK) {
 							this.playback_next_track();
 						}
 					});
