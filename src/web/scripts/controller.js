@@ -622,10 +622,11 @@ const reactive_state = {
 		// MARK: :playback methods
 		async playback_go() {
 			if (this.selected_track) {
-				socket.send_object(PACKET.PLAYBACK_STATE, 1);
-
+				
 				this.playback_last_update = performance.now();
 				this.playback_live = true;
+
+				this.dispatch_playback_state();
 			}
 		},
 
@@ -640,8 +641,8 @@ const reactive_state = {
 		},
 
 		playback_hold() {
-			socket.send_object(PACKET.PLAYBACK_STATE, 0);
 			this.playback_live = false;
+			this.dispatch_playback_state();
 		},
 
 		playback_reset() {
@@ -712,11 +713,14 @@ const reactive_state = {
 			this.playback_track_denominator = total;
 		},
 
-		// MARK: :remote methods
-		remote_dispatch_playback_state() {
-			socket.send_object(PACKET.PLAYBACK_STATE, this.playback_live ? 1 : 0);
+		dispatch_playback_state() {
+			socket.send_object(PACKET.PLAYBACK_STATE, {
+				state: this.playback_live ? 1 : 0,
+				obs_scene: this.selected_track?.obs_scene ?? ''
+			});
 		},
 
+		// MARK: :remote methods
 		remote_dispatch_tracks() {
 			socket.send_object(PACKET.ACK_REMOTE_TRACKS, this.project_state.tracks);
 		},
@@ -1084,7 +1088,7 @@ const listbox_component = {
 	socket.on(PACKET.REQ_REMOTE_HOLD, () => app_state.playback_hold());
 	socket.on(PACKET.REQ_REMOTE_SEEK, offset => app_state.remote_seek(offset));
 	socket.on(PACKET.REQ_CURRENT_TRACK, () => app_state.remote_dispatch_track());
-	socket.on(PACKET.REQ_PLAYBACK_STATE, () => app_state.remote_dispatch_playback_state());
+	socket.on(PACKET.REQ_PLAYBACK_STATE, () => app_state.dispatch_playback_state());
 	socket.on(PACKET.INFO_CLIENT_COUNT, count => app_state.n_connected_clients = count);
 	socket.on(PACKET.ACK_SYSTEM_CONFIG, config => app_state.config = config);
 	socket.on(PACKET.OBS_STATUS, status => app_state.obs_status = status);

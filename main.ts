@@ -955,7 +955,10 @@ async function handle_packet(ws: ClientSocket, packet_id: number, packet_data: a
 		send_object(PACKET.OBS_SCENE_NAME, res?.sceneName ?? 'No Scene');
 		obs_current_scene = res?.sceneName ?? '';
 	} else if (packet_id === PACKET.PLAYBACK_STATE) {
-		if (is_obs_connected()) {
+		validate_number(packet_data.state, 'state');
+		validate_string(packet_data.obs_scene, 'obs_scene');
+
+		if (is_obs_connected() && obs_current_scene.length > 0 && obs_current_scene === packet_data.obs_scene) {
 			const req_scene_items = await obs_request(OBS_REQUEST.GET_SCENE_ITEM_LIST, { sceneName: obs_current_scene });
 
 			if (req_scene_items !== null) {
@@ -964,7 +967,7 @@ async function handle_packet(ws: ClientSocket, packet_id: number, packet_data: a
 
 				if (n_scene_items > 0) {
 					const request_batch = Array(n_scene_items);
-					const media_action = packet_data ? OBS_MEDIA_INPUT_ACTION.PLAY : OBS_MEDIA_INPUT_ACTION.PAUSE;
+					const media_action = packet_data.state ? OBS_MEDIA_INPUT_ACTION.PLAY : OBS_MEDIA_INPUT_ACTION.PAUSE;
 
 					for (let i = 0; i < n_scene_items; i++) {
 						request_batch[i] = {

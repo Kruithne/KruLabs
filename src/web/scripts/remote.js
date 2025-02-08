@@ -52,7 +52,7 @@ const reactive_state = {
 
 	socket.on(PACKET.ACK_REMOTE_TRACKS, tracks => app_state.tracks = tracks);
 	socket.on(PACKET.ACK_REMOTE_TRACK, id => app_state.selected_track = id);
-	socket.on(PACKET.PLAYBACK_STATE, state => app_state.playback_state = state);
+	socket.on(PACKET.PLAYBACK_STATE, data => app_state.playback_state = data.state);
 
 	socket.init();
 })();
