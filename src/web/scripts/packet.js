@@ -98,14 +98,20 @@ export const PACKET = {
 	/** [CLIENT -> SERVER -> OBS] Requests a scene change in OBS. */
 	OBS_SET_SCENE: 0x20,
 
-	/** [OBS -> SERVER -> CLIENT] Sent when media starts in OBS. */
-	OBS_MEDIA_STARTED: 0x21,
+	/** [OBS -> SERVER -> CLIENT] Sends media duration from OBS on playback start. */
+	OBS_MEDIA_DURATION: 0x21,
 
 	/** [OBS -> SERVER -> CLIENT] Sent when the current program scene changes in OBS. */
 	OBS_SCENE_NAME: 0x22,
 
 	/** [CLIENT -> SERVER -> OBS] Request current program scene from OBS. */
 	REQ_OBS_SCENE_NAME: 0x23,
+
+	/** [OBS -> SERVER -> CLIENT] Sent when media playback starts in OBS. */
+	OBS_MEDIA_PLAYBACK_STARTED: 0x24,
+
+	/** [OBS -> SERVER -> CLIENT] Sent when media playback stops in OBS. */
+	OBS_MEDIA_PLAYBACK_ENDED: 0x25,
 };
 
 export const PACKET_UNK = 'UNKNOWN';

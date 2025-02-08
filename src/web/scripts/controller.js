@@ -110,6 +110,7 @@ const reactive_state = {
 			obs_status: -1, // -1 disconnected (naturally), 0 connected, > 0 disconnect code
 			obs_media_durations: [],
 			obs_scene_name: 'No Scene',
+			obs_active_media: new Set(),
 
 			vol_fade_active: false,
 			vol_previous: 1,
@@ -298,6 +299,13 @@ const reactive_state = {
 
 		connected_clients_formatted() {
 			return this.n_connected_clients + (this.n_connected_clients === 1 ? ' CLIENT' : ' CLIENTS');
+		},
+
+		is_awaiting_obs_media_playback_end() {
+			if (!this.config.obs_enable || !this.config.obs_confirm_playback_end)
+				return false;
+
+			return this.obs_active_media.size > 0;
 		}
 	},
 	
@@ -640,7 +648,7 @@ const reactive_state = {
 				this.playback_time += elapsed;
 				this.playback_last_update = now;
 		
-				if (this.playback_time >= this.selected_track.duration) {
+				if (this.playback_time >= this.selected_track.duration && !this.is_awaiting_obs_media_playback_end) {
 					this.playback_hold();
 
 					this.$nextTick(() => {
@@ -1074,8 +1082,10 @@ const listbox_component = {
 	socket.on(PACKET.INFO_CLIENT_COUNT, count => app_state.n_connected_clients = count);
 	socket.on(PACKET.ACK_SYSTEM_CONFIG, config => app_state.config = config);
 	socket.on(PACKET.OBS_STATUS, status => app_state.obs_status = status);
-	socket.on(PACKET.OBS_MEDIA_STARTED, data => app_state.sync_track_duration(data));
+	socket.on(PACKET.OBS_MEDIA_DURATION, data => app_state.sync_track_duration(data));
 	socket.on(PACKET.OBS_SCENE_NAME, scene_name => app_state.obs_scene_name = scene_name);
+	socket.on(PACKET.OBS_MEDIA_PLAYBACK_STARTED, uuid => app_state.obs_active_media.add(uuid));
+	socket.on(PACKET.OBS_MEDIA_PLAYBACK_ENDED, uuid => app_state.obs_active_media.delete(uuid));
 
 	socket.init();
 

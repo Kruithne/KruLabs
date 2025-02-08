@@ -389,6 +389,7 @@ let obs_identified = false;
 let obs_socket: WebSocket|null = null;
 let obs_reconnect_timer: Timer|null = null;
 let obs_last_disconnect_code = -1;
+let obs_current_scene = '';
 
 const obs_request_map = new Map();
 
@@ -484,6 +485,7 @@ function set_system_volume(value: number) {
 
 	volmgr_send({ cmd: 'set', value });
 }
+
 // MARK: :obs
 function obs_connect() {
 	obs_disconnect();
@@ -504,13 +506,22 @@ function obs_connect() {
 				log_verbose(`RECV {${OBS_OP_CODE_TO_STR[message.op]}} [{${event_type}}] size {${format_file_size(message_size)}}`, PREFIX_OBS);
 
 				if (event_type === OBS_EVENT_TYPE.MEDIA_INPUT_PLAYBACK_STARTED) {
+					send_object(PACKET.OBS_MEDIA_PLAYBACK_STARTED, event_data.inputUuid);
+
 					const status_query = await obs_request(OBS_REQUEST.GET_MEDIA_INPUT_STATUS, {
 						inputUuid: event_data.inputUuid
 					});
 
-					if (status_query)
-						send_object(PACKET.OBS_MEDIA_STARTED, { duration: status_query.mediaDuration });
+					if (status_query) {
+						send_object(PACKET.OBS_MEDIA_DURATION, {
+							uuid: event_data.inputUuid,
+							duration: status_query.mediaDuration
+						});
+					}
+				} else if (event_type === OBS_EVENT_TYPE.MEDIA_INPUT_PLAYBACK_ENDED) {
+					send_object(PACKET.OBS_MEDIA_PLAYBACK_ENDED, event_data.inputUuid);
 				} else if (event_type === OBS_EVENT_TYPE.CURRENT_PROGRAM_SCENE_CHANGED) {
+					obs_current_scene = event_data.sceneName;
 					send_object(PACKET.OBS_SCENE_NAME, event_data.sceneName);
 				}
 			} else if (message.op === OBS_OP_CODE.REQUEST_BATCH_RESPONSE) {
@@ -617,6 +628,10 @@ function obs_disconnect() {
 
 	obs_socket = null;
 	obs_identified = false;
+}
+
+function is_obs_connected() {
+	return obs_socket !== null && obs_identified;
 }
 
 function obs_send(op: number, message: OBSMessageData) {
@@ -937,6 +952,33 @@ async function handle_packet(ws: ClientSocket, packet_id: number, packet_data: a
 	} else if (packet_id === PACKET.REQ_OBS_SCENE_NAME) {
 		const res = await obs_request(OBS_REQUEST.GET_CURRENT_PROGRAM_SCENE);
 		send_object(PACKET.OBS_SCENE_NAME, res?.sceneName ?? 'No Scene');
+		obs_current_scene = res?.sceneName ?? '';
+	} else if (packet_id === PACKET.PLAYBACK_STATE) {
+		if (is_obs_connected()) {
+			const req_scene_items = await obs_request(OBS_REQUEST.GET_SCENE_ITEM_LIST, { sceneName: obs_current_scene });
+
+			if (req_scene_items !== null) {
+				const scene_items = req_scene_items.sceneItems;
+				const n_scene_items = scene_items.length;
+
+				if (n_scene_items > 0) {
+					const request_batch = Array(n_scene_items);
+					const media_action = packet_data ? OBS_MEDIA_INPUT_ACTION.PLAY : OBS_MEDIA_INPUT_ACTION.PAUSE;
+
+					for (let i = 0; i < n_scene_items; i++) {
+						request_batch[i] = {
+							requestType: OBS_REQUEST.TRIGGER_MEDIA_INPUT_ACTION,
+							requestData: {
+								inputUuid: scene_items[i].sourceUuid,
+								mediaAction: media_action
+							}
+						};
+					}
+
+					obs_request_batch(request_batch);
+				}
+			}
+		}
 	} else {
 		// dispatch all other packets to listeners
 		const listeners = get_listening_clients(packet_id);
