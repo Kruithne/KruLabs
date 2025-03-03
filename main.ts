@@ -952,9 +952,9 @@ async function save_project_index(index: any) {
 	await Bun.write(PROJECT_STATE_INDEX, JSON.stringify(index, null, CHAR_TAB));
 }
 
-async function update_project_index(project_id: string, project_name: string) {
+async function update_project_index(project_id: string, project_type: string, project_name: string) {
 	const index = await load_project_index();
-	index[project_id] = { name: project_name, last_saved: Date.now() };
+	index[project_id] = { name: project_name, last_saved: Date.now(), type: project_type };
 	await save_project_index(index);
 
 	log_verbose(`{${project_id}} updated in project index`);
@@ -1062,6 +1062,7 @@ async function handle_packet(ws: ClientSocket, packet_id: number, packet_data: a
 		unregister_packet_listener(ws, packet_id);
 	} else if (packet_id === PACKET.REQ_SAVE_PROJECT) {
 		try {
+			const project_type = validate_string(packet_data?.project_type, 'project_type');
 			const project_state = validate_object(packet_data?.state, 'state');
 			let project_id = packet_data?.id ?? null;
 
@@ -1072,7 +1073,7 @@ async function handle_packet(ws: ClientSocket, packet_id: number, packet_data: a
 			const bytes = await Bun.write(file_path, JSON.stringify(project_state, null, CHAR_TAB));
 
 			const project_name = project_state.name ?? 'Unknown Project';
-			await update_project_index(project_id, project_name);
+			await update_project_index(project_id, project_type, project_name);
 
 			log_info(`Saved project {${project_id}} ({${project_name}}) with {${format_file_size(bytes)}}`);
 
@@ -1106,12 +1107,15 @@ async function handle_packet(ws: ClientSocket, packet_id: number, packet_data: a
 
 		send_empty(PACKET.ACK_DELETE_PROJECT, ws);
 	} else if (packet_id === PACKET.REQ_PROJECT_LIST) {
+		const project_type = validate_string(packet_data?.project_type, 'project_type');
 		const index = await load_project_index();
 		const project_list = [];
 
 		for (const [id, value] of Object.entries(index)) {
 			const entry = value as Record<string, any>;
-			project_list.push({ id, name: entry.name, last_saved: entry.last_saved });
+
+			if (entry.type === project_type)
+				project_list.push({ id, name: entry.name, last_saved: entry.last_saved });
 		}
 
 		send_object(PACKET.ACK_PROJECT_LIST, { projects: project_list });

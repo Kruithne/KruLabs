@@ -187,7 +187,7 @@ const reactive_state = {
 			this.edit_mode = 'NONE';
 
 			if (new_page === 'project')
-				socket.send_empty(PACKET.REQ_PROJECT_LIST);
+				socket.send_object(PACKET.REQ_PROJECT_LIST, { project_type: 'CONTROLLER' });
 		},
 
 		edit_mode(mode) {
@@ -436,7 +436,7 @@ const reactive_state = {
 		async save_project(project_id = null) {
 			const load_start_ts = this.show_loading_message('SAVING PROJECT');
 
-			socket.send_object(PACKET.REQ_SAVE_PROJECT, { id: project_id, state: this.project_state });
+			socket.send_object(PACKET.REQ_SAVE_PROJECT, { id: project_id, state: this.project_state, project_type: 'CONTROLLER' });
 
 			const res = await socket.expect(PACKET.ACK_SAVE_PROJECT, PROJECT_MANAGEMENT_TIMEOUT).then(r => r).catch(NOOP);
 			await this.hide_loading_message(load_start_ts);
@@ -445,7 +445,7 @@ const reactive_state = {
 				this.selected_project_id = res.id;
 				this.update_project_hash();
 
-				socket.send_empty(PACKET.REQ_PROJECT_LIST);
+				socket.send_object(PACKET.REQ_PROJECT_LIST, { project_type: 'CONTROLLER' });
 			} else {
 				show_info_modal('PROJECT NOT SAVED', 'The system was unable to save the specified project.');
 			}
@@ -480,7 +480,7 @@ const reactive_state = {
 					if (local_project === project_id)
 						localStorage.removeItem(LSK_LAST_PROJECT_ID);
 
-					socket.send_empty(PACKET.REQ_PROJECT_LIST);
+					socket.send_object(PACKET.REQ_PROJECT_LIST, { project_type: 'CONTROLLER' });
 					this.selected_project_id = null;
 				} else {
 					show_info_modal('PROJECT DELETION FAILED', 'The system was unable to delete the specified project.');
