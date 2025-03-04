@@ -52,30 +52,65 @@ internal interface IAudioEndpointVolume {
 }
 
 internal static class Program {
-	private static IAudioEndpointVolume? volume_interface;
 	private static Guid empty_guid = Guid.Empty;
 
-	private static void init_audio() {
-		if (volume_interface != null) 
-			return;
-
+	private static void with_audio_interface(Action<IAudioEndpointVolume> action) {
 		var enumerator = (IMMDeviceEnumerator)new MMDeviceEnumerator();
-		enumerator.GetDefaultAudioEndpoint(0, 1, out var device);
+		try {
+			enumerator.GetDefaultAudioEndpoint(0, 1, out var device);
+			try {
+				var iid = typeof(IAudioEndpointVolume).GUID;
+				device.Activate(ref iid, 1, IntPtr.Zero, out var volume);
+				try {
+					var volume_interface = (IAudioEndpointVolume)volume;
+					action(volume_interface);
+				} finally {
+					if (volume != null)
+						Marshal.ReleaseComObject(volume);
+				}
+			} finally {
+				if (device != null)
+					Marshal.ReleaseComObject(device);
+			}
+		} finally {
+			Marshal.ReleaseComObject(enumerator);
+		}
+	}
 
-		var iid = typeof(IAudioEndpointVolume).GUID;
-		device.Activate(ref iid, 1, IntPtr.Zero, out var volume);
-		volume_interface = (IAudioEndpointVolume)volume;
+	private static T with_audio_interface<T>(Func<IAudioEndpointVolume, T> func) {
+		var enumerator = (IMMDeviceEnumerator)new MMDeviceEnumerator();
+		try {
+			enumerator.GetDefaultAudioEndpoint(0, 1, out var device);
+			try {
+				var iid = typeof(IAudioEndpointVolume).GUID;
+				device.Activate(ref iid, 1, IntPtr.Zero, out var volume);
+				try {
+					var volume_interface = (IAudioEndpointVolume)volume;
+					return func(volume_interface);
+				} finally {
+					if (volume != null)
+						Marshal.ReleaseComObject(volume);
+				}
+			} finally {
+				if (device != null)
+					Marshal.ReleaseComObject(device);
+			}
+		} finally {
+			Marshal.ReleaseComObject(enumerator);
+		}
 	}
 
 	private static float get_volume() {
-		init_audio();
-		volume_interface!.GetMasterVolumeLevelScalar(out var level);
-		return level;
+		return with_audio_interface(volume_interface => {
+			volume_interface.GetMasterVolumeLevelScalar(out var level);
+			return level;
+		});
 	}
 
 	private static void set_volume(float level) {
-		init_audio();
-		volume_interface!.SetMasterVolumeLevelScalar(level, ref empty_guid);
+		with_audio_interface(volume_interface => {
+			volume_interface.SetMasterVolumeLevelScalar(level, ref empty_guid);
+		});
 	}
 
 	private static void Main() {
