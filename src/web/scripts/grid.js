@@ -16,10 +16,12 @@ const LSK_LAST_PROJECT_ID = 'last_project_id';
 
 const BUTTON_TYPE_NORMAL = 0x1;
 const BUTTON_TYPE_TOGGLE = 0x2;
+const BUTTON_TYPE_TOUCH = 0x3;
 
 const BUTTON_TYPES = {
 	[BUTTON_TYPE_NORMAL]: { label: 'NORMAL' },
-	[BUTTON_TYPE_TOGGLE]: { label: 'TOGGLE' }
+	[BUTTON_TYPE_TOGGLE]: { label: 'TOGGLE' },
+	[BUTTON_TYPE_TOUCH]: { label: 'TOUCH' }
 };
 
 const DEFAULT_PROJECT_STATE = {
@@ -67,6 +69,12 @@ const BUTTON_META = {
 	},
 
 	[BUTTON_TYPE_TOGGLE]: {
+		script_in: '',
+		script_out: '',
+		active: false
+	},
+
+	[BUTTON_TYPE_TOUCH]: {
 		script_in: '',
 		script_out: '',
 		active: false
@@ -233,16 +241,30 @@ const reactive_state = {
 			return (index + 1).toString().padStart(3, '0');
 		},
 
-		handle_button_press(button) {
+		handle_button_down(button) {
 			if (button.type == BUTTON_TYPE_NORMAL) {
 				execute_script(button.meta.script);
 			} else if (button.type == BUTTON_TYPE_TOGGLE) {
-				if (button.active) {
+				if (button.meta.active) {
 					execute_script(button.meta.script_out);
-					button.active = false;
+					button.meta.active = false;
 				} else {
 					execute_script(button.meta.script_in);
-					button.active = true;
+					button.meta.active = true;
+				}
+			} else if (button.type == BUTTON_TYPE_TOUCH) {
+				if (!button.meta.active) {
+					execute_script(button.meta.script_in);
+					button.meta.active = true;
+				}
+			}
+		},
+
+		handle_button_up(button) {
+			if (button.type == BUTTON_TYPE_TOUCH) {
+				if (button.meta.active) {
+					execute_script(button.meta.script_out);
+					button.meta.active = false;
 				}
 			}
 		},

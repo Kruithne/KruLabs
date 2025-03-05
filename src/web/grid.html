@@ -90,7 +90,7 @@
 									<input type="button" v-for="tab of project_state.tabs" :class="{ enabled: active_tab === tab }" @click="active_tab = tab" :value="tab.name"/>
 								</div>
 								<div id="grid-buttons" v-if="active_tab" :style="{ gridTemplateColumns: 'repeat(' + project_state.grid_columns + ', 1fr)' }">
-									<input type="button" v-for="button of active_tab.buttons" :class="{ enabled: button.meta.active }" @click="handle_button_press(button)" :value="button.name">
+									<input type="button" v-for="button of active_tab.buttons" :class="{ enabled: button.meta.active }" @mousedown="handle_button_down(button)" @mouseup="handle_button_up(button)" @touchstart="handle_button_down(button)" @touchend="handle_button_up(button)" :value="button.name">
 								</div>
 							</div>
 						</template>
@@ -116,8 +116,8 @@
 													<textarea v-model="selected_button.meta.script"></textarea>
 												</label>
 											</template>
-											<!-- BUTTON TYPE TOGGLE -->
-											<template v-if="selected_button.type == 0x2">
+											<!-- BUTTON TYPE TOGGLE / TOUCH -->
+											<template v-if="selected_button.type == 0x2 || selected_button.type == 0x3">
 												<label>
 													SCRIPT IN:
 													<textarea v-model="selected_button.meta.script_in"></textarea>
@@ -261,7 +261,7 @@
 					<div id="main-grid-status">
 						<div>{{ socket_state_text }}</div>
 						<div>{{ server_addr }}</div>
-						<template v-for="int of project_state.integrations">
+						<template v-for="int of project_state.integrations.filter(i => i.type != 0x3)">
 							<div v-if="integration_status[int.id]" class="text-active">{{ int.name }} CONNECTED</div>
 							<div v-else class="text-err">{{ int.name }} DISCONNECTED</div>
 						</template>
