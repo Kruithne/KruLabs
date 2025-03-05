@@ -534,13 +534,48 @@ function execute_script(script) {
 						int_uuid: integration.id
 					});
 				}
+			} else if (integration.type == INTEGRATION_TYPE.MEDIA) {
+				// audio/channel/1/play/SOME_FILE_NAME.mp4/volume/0.5
+				// audio/channel/1/pause
+				// audio/channel/1/resume
+				// audio/channel/1/fade/5
+				// audio/pause_all
+				// audio/resume_all
+
+				const cmd = parts.shift();
+				if (cmd === 'channel') {
+					const channel = parseInt(parts.shift());
+					const channel_cmd = parts.shift();
+
+					console.log({ channel, channel_cmd });
+
+					if (channel_cmd === 'play') {
+						const track = parts.shift();
+						let volume = 1.0;
+
+						if (parts.length > 1 && parts[0] === 'volume')
+							volume = parseFloat(parts[1]);
+
+						console.log({ track, volume });
+
+						socket.send_object(PACKET.AUDIO_PLAY_TRACK, { channel, track, volume });
+					} else if (channel_cmd === 'pause') {
+						socket.send_object(PACKET.AUDIO_PAUSE_CHANNEL, { channel });
+					} else if (channel_cmd === 'resume') {
+						socket.send_object(PACKET.AUDIO_RESUME_CHANNEL, { channel });
+					} else if (channel_cmd === 'fade') {
+						const time = parseFloat(parts.shift());
+						socket.send_object(PACKET.AUDIO_FADE_CHANNEL, { channel, time });
+					}
+				} else if (cmd === 'pause_all') {
+					socket.send_empty(PACKET.AUDIO_PAUSE_ALL);
+				} else if (cmd === 'resume_all') {
+					socket.send_empty(PACKET.AUDIO_RESUME_ALL);
+				}
 			}
 		} else {
 			console.log('cannot find integration %s', int_id);
 		}
-
-		// todo: find int_id in the integrations list
-		// todo: fire command to integration
 	}
 }
 

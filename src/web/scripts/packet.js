@@ -80,11 +80,20 @@ export const PACKET = {
 	/** [CLIENT -> SERVER] Request client count. Expects INFO_CLIENT_COUNT. */
 	REQ_CLIENT_COUNT: 0x1A,
 
-	//UNUSED: 0x1B,
-	//UNUSED: 0x1C,
-	//UNUSED: 0x1D,
-	//UNUSED: 0x1E,
-	//UNUSED: 0x1F,
+	/** [CLIENT -> SERVER -> PLAYBACK] */
+	AUDIO_PLAY_TRACK: 0x1B,
+
+	/** [CLIENT -> SERVER -> PLAYBACK] */
+	AUDIO_PAUSE_CHANNEL: 0x1C,
+
+	/** [CLIENT -> SERVER -> PLAYBACK] */
+	AUDIO_RESUME_CHANNEL: 0x1D,
+
+	/** [CLIENT -> SERVER -> PLAYBACK] */
+	AUDIO_PAUSE_ALL: 0x1E,
+
+	/** [CLIENT -> SERVER -> PLAYBACK] */
+	AUDIO_RESUME_ALL: 0x1F,
 
 	/** [CLIENT -> SERVER -> OBS] Requests a scene change in OBS by name. */
 	OBS_SET_SCENE_BY_NAME: 0x1F,
@@ -119,7 +128,8 @@ export const PACKET = {
 	/** [CLIENT -> SERVER -> OBS] Requests an updated scene list. Expects OBS_SCENE_LIST. */
 	REQ_OBS_SCENE_LIST: 0x29,
 
-	//UNUSED: 0x2A,
+	/** [CLIENT -> SERVER -> PLAYBACK] */
+	AUDIO_FADE_CHANNEL: 0x2A,
 	//UNUSED: 0x2B,
 
 	/** [CLIENT -> SERVER -> ETC] */
