@@ -1,14 +1,11 @@
 import { createApp } from './vue.js';
 import * as socket from './socket.js';
 import { PACKET } from './packet.js';
-import default_config from './default_config.js';
 
 // MARK: :constants
 const PROJECT_MANAGEMENT_TIMEOUT = 10000; // timeout in ms that state callback timeout (load, save, etc)
 const MIN_LOADING_ELAPSED = 500; // minimum time in ms a loading message is visible for
 const SEEK_PADDING = 10; // time in milliseconds to pad before cues
-
-const CONFIG_UPDATE_DEBOUNCE = 500; // time in milliseconds to debounce sending config changes to server
 
 const ARRAY_EMPTY = Object.freeze([]);
 const NOOP = () => {};
@@ -93,8 +90,6 @@ const reactive_state = {
 			project_last_save_hash: 0,
 			selected_project_id: null,
 			available_projects: [],
-
-			config: default_config,
 			
 			project_state: structuredClone(DEFAULT_PROJECT_STATE),
 
@@ -247,16 +242,6 @@ const reactive_state = {
 				socket.send_object(PACKET.SET_SYSTEM_VOLUME, playback_volume);
 			}
 		},
-
-		config: {
-			deep: true,
-			handler(new_config) {
-				clearTimeout(config_update_debounce_timer);
-				config_update_debounce_timer = setTimeout(() => {
-					socket.send_object(PACKET.UPDATE_SYSTEM_CONFIG, new_config);
-				}, CONFIG_UPDATE_DEBOUNCE);
-			}
-		},
 	},
 	
 	// MARK: :computed
@@ -310,10 +295,11 @@ const reactive_state = {
 		},
 
 		is_awaiting_obs_media_playback_end() {
-			if (!this.config.obs_enable || !this.config.obs_confirm_playback_end)
-				return false;
+			// todo: re-implement with integrations
+			//if (!this.config.obs_enable || !this.config.obs_confirm_playback_end)
+				//return false;
 
-			return this.obs_active_media.size > 0;
+			//return this.obs_active_media.size > 0;
 		}
 	},
 	
@@ -531,12 +517,6 @@ const reactive_state = {
 			if (cue === null || track === null)
 				return;
 
-			if (this.config.confirm_cue_deletion) {
-				const user_confirm = await show_confirm_modal('CONFIRM CUE DELETE', `Are you sure you wish to delete cue "${cue.name}" from "${track.name}"? This action cannot be reversed.`);
-				if (!user_confirm)
-					return;
-			}
-
 			this.edit_mode = 'NONE';
 
 			const sorted_index = this.cue_stack_sorted.indexOf(cue);
@@ -593,12 +573,6 @@ const reactive_state = {
 		async track_delete() {
 			if (this.selected_track === null)
 				return;
-
-			if (this.config.confirm_track_deletion) {
-				const user_confirm = await show_confirm_modal('CONFIRM TRACK DELETE', 'Are you sure you wish to delete the track "' + this.selected_track.name + '"? This action cannot be reversed.');
-				if (!user_confirm)
-					return;
-			}
 
 			this.edit_mode = 'NONE';
 
@@ -1132,7 +1106,6 @@ const listbox_component = {
 		if (state === socket.SOCKET_STATE_CONNECTED) {
 			socket.send_empty(PACKET.REQ_SERVER_ADDR);
 			socket.send_empty(PACKET.REQ_CLIENT_COUNT);
-			socket.send_empty(PACKET.REQ_SYSTEM_CONFIG);
 			socket.send_empty(PACKET.REQ_OBS_STATUS);
 			socket.send_empty(PACKET.REQ_ETC_STATUS);
 			socket.send_empty(PACKET.REQ_OBS_SCENE_NAME);
@@ -1150,7 +1123,6 @@ const listbox_component = {
 	socket.on(PACKET.REQ_CURRENT_TRACK, () => app_state.remote_dispatch_track());
 	socket.on(PACKET.REQ_PLAYBACK_STATE, () => app_state.dispatch_playback_state());
 	socket.on(PACKET.INFO_CLIENT_COUNT, count => app_state.n_connected_clients = count);
-	socket.on(PACKET.ACK_SYSTEM_CONFIG, config => app_state.config = config);
 	socket.on(PACKET.OBS_STATUS, status => app_state.obs_status = status);
 	socket.on(PACKET.ETC_STATUS, status => app_state.etc_status = status);
 	socket.on(PACKET.OBS_MEDIA_DURATION, data => app_state.sync_track_duration(data));

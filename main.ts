@@ -4,8 +4,8 @@ import node_path from 'node:path';
 import node_os from 'node:os';
 import node_fs from 'node:fs/promises';
 import { createHash } from 'crypto';
-import default_config from './src/web/scripts/default_config.js';
 import { PACKET, get_packet_name, build_packet, parse_packet, PACKET_TYPE, PACKET_UNK } from './src/web/scripts/packet.js';
+import { INTEGRATION_TYPE, INTEGRATION_LABELS } from './src/web/scripts/integration_type';
 
 import type { WebSocketHandler, ServerWebSocket, Subprocess, TCPSocket } from 'bun';
 
@@ -27,7 +27,6 @@ const PARTIAL_DEFAULT_CHUNK = 2 * 1024 * 1024;
 const PROJECT_STATE_DIRECTORY = './state';
 const PROJECT_STATE_EXT = '.json';
 const PROJECT_STATE_INDEX = node_path.join(PROJECT_STATE_DIRECTORY, 'index.json');
-const SYSTEM_CONFIG_FILE = node_path.join(PROJECT_STATE_DIRECTORY, 'sys_config.json');
 
 const VOLMGR_WIN_EXE = './volmgr/bin/Release/net8.0/win-x64/publish/volmgr.exe';
 
@@ -38,8 +37,6 @@ const TYPE_OBJECT = 'object';
 const CHAR_TAB = '\t';
 
 const ARRAY_EMPTY = Object.freeze([]);
-
-const CONFIG_MASK_KEYS = ['obs_password'];
 
 const OBS_EVENT_SUB = {
 	NONE: 0,
@@ -364,11 +361,42 @@ type PacketTarget = ClientSocket | Iterable<ClientSocket>;
 type PacketDataType = null | object | string | number;
 type Packet = { id: number, data: null|object|string };
 
-type SystemConfig = typeof default_config;
-
 type OBSRequestBatchEntry = { requestType: Enum<typeof OBS_REQUEST>, requestData?: OBSMessageData };
 
 type OBSMessageData = Record<string, any>;
+
+type IntegrationEntry = {
+	id: string;
+	type: Enum<typeof INTEGRATION_TYPE>;
+	name: string;
+	enabled: boolean;
+	meta: IntegrationMetaETC | IntegrationMetaOBS;
+	connection: IntegrationConnectionETC;
+};
+
+type IntegrationMetaOBS = {
+	obs_host: string;
+	obs_port: number;
+	obs_password: string;
+};
+
+type IntegrationMetaETC = {
+	etc_host: string;
+	etc_port: number;
+};
+
+type IntegrationConnectionETC = {
+	socket: TCPSocket|null;
+	reconnect_timer: Timer|null;
+	connected: boolean;
+};
+
+type IntegrationConnectionOBS = {
+	socket: WebSocket|null;
+	reconnect_timer: Timer|null;
+	connected: boolean;
+	identified: boolean;
+};
 
 interface OBSMessage {
 	op: number;
@@ -384,19 +412,9 @@ const CLI_ARGS = {
 const socket_packet_listeners = new Map<number, ClientSocket[]>();
 const socket_clients = new Set<ClientSocket>();
 
+const active_integrations = new Map<string, IntegrationEntry>();
+
 let next_client_id = 1;
-
-let system_config = Object.assign({}, default_config);
-
-let obs_identified = false;
-let obs_socket: WebSocket|null = null;
-let obs_reconnect_timer: Timer|null = null;
-let obs_last_disconnect_code = -1;
-let obs_current_scene = '';
-
-let etc_socket: TCPSocket|null = null;
-let etc_reconnect_timer: Timer|null = null;
-let etc_connected = false;
 
 const obs_request_map = new Map();
 
@@ -562,20 +580,36 @@ function osc_create_message(address: string, args: any[] = []): Uint8Array {
 	return message;
 }
 
+// MARK: :integrations
+function send_integration_status(integration: IntegrationEntry) {
+	send_object(PACKET.INTEGRATION_STATUS, {
+		id: integration.id,
+		connected: integration.connection.connected
+	});
+}
+
+function get_integration_by_uuid(uuid: string) {
+	return active_integrations.get(uuid);
+}
+
 // MARK: :etc
-async function etc_connect() {
-	etc_disconnect();
+async function etc_connect(integration: IntegrationEntry) {
+	const meta = integration.meta as IntegrationMetaETC;
+	const connection = integration.connection as IntegrationConnectionETC;
+
+	const reconnect_fn = () => etc_connect(integration);
+	etc_disconnect(integration);
 
 	try {
-		etc_socket = await Bun.connect({
-			hostname: system_config.etc_host,
-			port: system_config.etc_port,
+		connection.socket = await Bun.connect({
+			hostname: meta.etc_host,
+			port: meta.etc_port,
 			socket: {
 				open: (socket) => {
-					log_info(`Connected to ETC host {${system_config.etc_host}}`, PREFIX_ETC);
+					log_info(`Connected to ETC host {${meta.etc_host}}`, PREFIX_ETC);
 
-					etc_connected = true;
-					etc_send_status();
+					connection.connected = true;
+					send_integration_status(integration);
 				},
 
 				data: (socket, data) => {
@@ -587,17 +621,17 @@ async function etc_connect() {
 				},
 
 				close: () => {
-					etc_socket = null;
-					etc_connected = false;
+					connection.socket = null;
+					connection.connected = false;
 
 					log_info(`Lost connection to ETC host`, PREFIX_ETC);
 
-					if (system_config.etc_enable) {
+					if (integration.enabled) {
 						log_info(`Reconnecting to ETC host in {${ETC_RECONNECT_DELAY}ms}`, PREFIX_ETC);
-						etc_reconnect_timer = setTimeout(etc_connect, ETC_RECONNECT_DELAY);
+						connection.reconnect_timer = setTimeout(reconnect_fn, ETC_RECONNECT_DELAY);
 					}
 
-					etc_send_status();
+					send_integration_status(integration);
 				}
 			}
 		});
@@ -605,44 +639,59 @@ async function etc_connect() {
 		const err = e as Error;
 		log_warn(`${err.name} raised connecting to ETC host: ${err.message}`);
 
-		if (system_config.etc_enable) {
+		if (integration.enabled) {
 			log_info(`Reconnecting to ETC host in {${ETC_RECONNECT_DELAY}ms}`, PREFIX_ETC);
-			etc_reconnect_timer = setTimeout(etc_connect, ETC_RECONNECT_DELAY);
+			connection.reconnect_timer = setTimeout(reconnect_fn, ETC_RECONNECT_DELAY);
 		}
 	}
 }
 
-function etc_disconnect() {
-	if (etc_reconnect_timer !== null)
-		clearTimeout(etc_reconnect_timer);
+function etc_disconnect(integration: IntegrationEntry) {
+	const connection = integration.connection as IntegrationConnectionETC;
 
-	etc_socket?.end();
-	etc_socket = null;
+	if (connection.reconnect_timer !== null)
+		clearTimeout(connection.reconnect_timer);
+
+	connection.socket?.end();
+
+	connection.socket = null;
+	connection.connected = false;
+	connection.reconnect_timer = null;
 }
 
-function etc_send_command(address: string, ...args: any[]) {
-	if (!etc_socket)
+function etc_send_command(int_id: string, address: string, ...args: any[]) {
+	const integration = active_integrations.get(int_id);
+	if (!integration)
 		return;
 
-	if (!address.startsWith('/eos/'))
-		address = '/eos/' + address;
+	const connection = integration.connection;
+	if (!connection.connected)
+		return;
+
+	if (!address.startsWith('/eos/')) {
+		if (address.startsWith('/'))
+			address = '/eos' + address;
+		else
+			address = '/eos/' + address;
+	}
 
 	log_verbose(`SEND {${address}} [${args.map(e => `{${e}}`).join(', ')}]`, PREFIX_ETC);
 
 	const message = osc_create_message(address, args);
-	etc_socket?.write(message);
-}
-
-function etc_send_status() {
-	send_object(PACKET.ETC_STATUS, etc_connected ? 1 : 0);
+	connection.socket?.write(message);
 }
 
 // MARK: :obs
-function obs_connect() {
-	obs_disconnect();
+function obs_connect(integration: IntegrationEntry) {
+	const meta = integration.meta as IntegrationMetaOBS;
+	const connection = integration.connection as IntegrationConnectionOBS;
+	
+	obs_disconnect(integration);
 
-	obs_socket = new WebSocket(system_config.obs_host);
-	obs_socket.addEventListener('message', async event => {
+	const host_string = `ws://${meta.obs_host}:${meta.obs_port}`;
+
+	connection.socket = new WebSocket(host_string);
+	connection.socket.addEventListener('message', async event => {
 		try {
 			const event_data = event.data as string;
 			validate_string(event_data, 'event.data');
@@ -656,7 +705,10 @@ function obs_connect() {
 
 				log_verbose(`RECV {${OBS_OP_CODE_TO_STR[message.op]}} [{${event_type}}] size {${format_file_size(message_size)}}`, PREFIX_OBS);
 
-				if (event_type === OBS_EVENT_TYPE.MEDIA_INPUT_PLAYBACK_STARTED) {
+				// the following event handling has been commented out as it's designed for the controller-only
+				// single-connection logic. this needs to be refactored for the new integration system.
+
+				/*if (event_type === OBS_EVENT_TYPE.MEDIA_INPUT_PLAYBACK_STARTED) {
 					send_object(PACKET.OBS_MEDIA_PLAYBACK_STARTED, event_data.inputUuid);
 
 					const status_query = await obs_request(OBS_REQUEST.GET_MEDIA_INPUT_STATUS, {
@@ -676,7 +728,7 @@ function obs_connect() {
 					send_object(PACKET.OBS_SCENE_NAME, event_data.sceneName);
 				} else if (event_type === OBS_EVENT_TYPE.SCENE_LIST_CHANGED) {
 					send_object(PACKET.OBS_SCENE_LIST, event_data.scenes);
-				}
+				}*/
 			} else if (message.op === OBS_OP_CODE.REQUEST_BATCH_RESPONSE) {
 				const request_id = message.d.requestId;
 				const request_results = message.d.results;
@@ -725,17 +777,17 @@ function obs_connect() {
 	
 					if (auth) {
 						payload.authentication = obs_create_auth_string(
-							system_config.obs_password,
+							meta.obs_password,
 							auth.salt,
 							auth.challenge
 						);
 					}
 	
-					obs_send(OBS_OP_CODE.IDENTIFY, payload);
+					obs_send(integration, OBS_OP_CODE.IDENTIFY, payload);
 				} else if (message.op === OBS_OP_CODE.IDENTIFIED) {
-					obs_identified = true;
+					connection.identified = true;
 					log_verbose(`Successfully identified with OBS host using RPC version {${message.d.negotiatedRpcVersion}}`, PREFIX_OBS);
-					obs_request(OBS_REQUEST.GET_VERSION).then(res => log_info(`OBS host running version {${res?.obsVersion}} (${res?.platformDescription})`, PREFIX_OBS));
+					obs_request(integration, OBS_REQUEST.GET_VERSION).then(res => log_info(`OBS host running version {${res?.obsVersion}} (${res?.platformDescription})`, PREFIX_OBS));
 				}
 			}
 		} catch (e) {
@@ -744,60 +796,54 @@ function obs_connect() {
 		}
 	});
 
-	obs_socket.addEventListener('open', () => {
-		log_info(`Connected to OBS host {${system_config.obs_host}}`, PREFIX_OBS);
-
-		obs_last_disconnect_code = 0;
-		obs_send_status();
+	connection.socket.addEventListener('open', () => {
+		log_info(`Connected to OBS host {${meta.obs_host}} on port {${meta.obs_port}}`, PREFIX_OBS);
+		connection.connected = true;
+		send_integration_status(integration);
 	});
 
-	obs_socket.addEventListener('close', event => {
-		obs_identified = false;
-		obs_socket = null;
+	connection.socket.addEventListener('close', event => {
+		connection.socket = null;
+		connection.identified = false;
+		connection.connected = false;
 
 		log_info(`Disconnected from OBS host: {${event.code}} ${event.reason}`, PREFIX_OBS);
-		obs_last_disconnect_code = event.code;
 
-		obs_send_status();
+		send_integration_status(integration);
 
-		if (system_config.obs_enable) {
+		if (integration.enabled) {
 			log_info(`Reconnecting to OBS host in {${OBS_RECONNECT_DELAY}ms}`, PREFIX_OBS);
-			obs_reconnect_timer = setTimeout(() => obs_connect(), OBS_RECONNECT_DELAY);
+			connection.reconnect_timer = setTimeout(() => obs_connect(integration), OBS_RECONNECT_DELAY);
 		}
 	});
 
-	obs_socket.addEventListener('error', error => {
+	connection.socket.addEventListener('error', error => {
 		log_warn(`${error.type} raised in OBS socket: ${error.message}`);
 	});
 }
 
-function obs_disconnect() {
-	if (obs_reconnect_timer !== null)
-		clearTimeout(obs_reconnect_timer);
+function obs_disconnect(integration: IntegrationEntry) {
+	const connection = integration.connection as IntegrationConnectionOBS;
+	if (connection.reconnect_timer !== null)
+		clearTimeout(connection.reconnect_timer);
 
 	obs_request_map.clear();
 
-	obs_socket?.close();
+	connection.socket?.close();
 
-	obs_socket = null;
-	obs_identified = false;
+	connection.socket = null;
+	connection.identified = false;
+	connection.connected = false;
+	connection.reconnect_timer = null;
 }
 
-function is_obs_connected() {
-	return obs_socket !== null && obs_identified;
-}
-
-function is_active_obs_scene(scene_uuid: string) {
-	return is_obs_connected() && obs_current_scene.length > 0 && obs_current_scene === scene_uuid;
-}
-
-async function obs_get_scene_items(scene_uuid = obs_current_scene) {
-	const req_scene_items = await obs_request(OBS_REQUEST.GET_SCENE_ITEM_LIST, { sceneUuid: scene_uuid });
+async function obs_get_scene_items(integration: IntegrationEntry, scene_uuid: string) {
+	const req_scene_items = await obs_request(integration, OBS_REQUEST.GET_SCENE_ITEM_LIST, { sceneUuid: scene_uuid });
 	return req_scene_items?.sceneItems ?? ARRAY_EMPTY;
 }
 
-async function obs_send_batch_for_scene_items(request_type: Enum<typeof OBS_REQUEST>, batch: OBSMessageData, scene_name = obs_current_scene) {
-	const items = await obs_get_scene_items(scene_name);
+async function obs_send_batch_for_scene_items(integration: IntegrationEntry, request_type: Enum<typeof OBS_REQUEST>, batch: OBSMessageData, scene_name: string) {
+	const items = await obs_get_scene_items(integration, scene_name);
 	const n_items = items.length;
 
 	if (n_items === 0)
@@ -814,20 +860,22 @@ async function obs_send_batch_for_scene_items(request_type: Enum<typeof OBS_REQU
 		};
 	}
 
-	obs_request_batch(request_batch);
+	obs_request_batch(integration, request_batch);
 }
 
-function obs_send(op: number, message: OBSMessageData) {
+function obs_send(integration: IntegrationEntry, op: number, message: OBSMessageData) {
+	const connection = integration.connection as IntegrationConnectionOBS;
+
 	const payload = { op, d: message } as OBSMessage;
 	const payload_json = JSON.stringify(payload);
 	const payload_size = Buffer.byteLength(payload_json);
 
-	obs_socket?.send(payload_json);
+	connection.socket?.send(payload_json);
 
 	log_verbose(`SEND {${OBS_OP_CODE_TO_STR[op]}} size {${format_file_size(payload_size)}}`, PREFIX_OBS);
 }
 
-async function obs_request(request_type: Enum<typeof OBS_REQUEST>, request_data: OBSMessageData = {}, timeout = OBS_RESPONSE_TIMEOUT): Promise<OBSMessageData|null> {
+async function obs_request(integration: IntegrationEntry, request_type: Enum<typeof OBS_REQUEST>, request_data: OBSMessageData = {}, timeout = OBS_RESPONSE_TIMEOUT): Promise<OBSMessageData|null> {
 	return new Promise(resolve => {
 		let timeout_id: Timer|null = null;
 		const request_uuid = Bun.randomUUIDv7();
@@ -841,7 +889,7 @@ async function obs_request(request_type: Enum<typeof OBS_REQUEST>, request_data:
 
 		log_verbose(`Preparing OBS request {${request_type}} ID {${request_uuid}}`, PREFIX_OBS);
 	
-		obs_send(OBS_OP_CODE.REQUEST, {
+		obs_send(integration, OBS_OP_CODE.REQUEST, {
 			requestType: request_type,
 			requestId: request_uuid,
 			requestData: request_data
@@ -857,7 +905,7 @@ async function obs_request(request_type: Enum<typeof OBS_REQUEST>, request_data:
 	});
 }
 
-async function obs_request_batch(batch: OBSRequestBatchEntry[], execution_type: Enum<typeof OBS_EXECUTION_TYPE> = OBS_EXECUTION_TYPE.SERIAL_REALTIME, halt_on_fail = false): Promise<OBSMessageData[]> {
+async function obs_request_batch(integration: IntegrationEntry, batch: OBSRequestBatchEntry[], execution_type: Enum<typeof OBS_EXECUTION_TYPE> = OBS_EXECUTION_TYPE.SERIAL_REALTIME, halt_on_fail = false): Promise<OBSMessageData[]> {
 	if (batch.length === 0)
 		return [];
 
@@ -867,7 +915,7 @@ async function obs_request_batch(batch: OBSRequestBatchEntry[], execution_type: 
 
 		log_verbose(`Preparing OBS request batch containing {${batch.length}} ID {${batch_uuid}}`, PREFIX_OBS);
 
-		obs_send(OBS_OP_CODE.REQUEST_BATCH, {
+		obs_send(integration, OBS_OP_CODE.REQUEST_BATCH, {
 			requestId: batch_uuid,
 			executionType: execution_type,
 			haltOnFailure: halt_on_fail,
@@ -876,66 +924,21 @@ async function obs_request_batch(batch: OBSRequestBatchEntry[], execution_type: 
 	});
 }
 
-function obs_send_status() {
-	send_object(PACKET.OBS_STATUS, obs_last_disconnect_code);
-}
-
 function obs_create_auth_string(password: string, salt: string, challenge: string): string {
 	const secret = createHash('sha256').update(password + salt).digest('base64');
 	return createHash('sha256').update(secret + challenge).digest('base64');
 }
 
-function obs_set_scene(scene_uuid: string) {
-	obs_request(OBS_REQUEST.SET_CURRENT_PROGRAM_SCENE, {
-		sceneUuid: scene_uuid
+function obs_set_scene_by_name(integration: IntegrationEntry, scene_name: string) {
+	obs_request(integration, OBS_REQUEST.SET_CURRENT_PROGRAM_SCENE, {
+		sceneName: scene_name
 	});
 }
 
-// MARK: :config
-function update_system_config(new_config: SystemConfig) {
-	const old_config = system_config as Record<string, any>;
-	system_config = new_config;
-
-	for (const [key, value] of Object.entries(new_config))
-		if (old_config[key] !== value)
-			handle_config_key_change(key, value);
-}
-
-function handle_config_key_change(key: string, value: any) {
-	if (key === 'obs_enable')
-		value ? obs_connect() : obs_disconnect();
-	else if (key === 'etc_enable')
-		value ? etc_connect() : etc_disconnect();
-}
-
-async function load_system_config() {
-	try {
-		const config_file = Bun.file(SYSTEM_CONFIG_FILE);
-		const saved_config = await config_file.json();
-
-		update_system_config(Object.assign({}, default_config, saved_config));
-
-		log_info('Successfully loaded system configuration');
-
-		if (CLI_ARGS.verbose) {
-			for (const [key, value] of Object.entries(system_config)) {
-				const print_value = CONFIG_MASK_KEYS.includes(key) ? '*'.repeat(value.toString().length) : value;
-				log_verbose(`\t{${key}} -> {${print_value}}`);
-			}
-		}
-	} catch (e) {
-		log_warn('Failed to load system configuration, using defaults');
-	}
-}
-
-async function save_system_config() {
-	try {
-		const bytes_written = await Bun.write(SYSTEM_CONFIG_FILE, JSON.stringify(system_config));
-		log_verbose(`Saved system configuration [{${format_file_size(bytes_written)}}]`);
-	} catch (e) {
-		const error = e as Error;
-		log_warn(`Failed to save system configuration: ${error.message}`);
-	}
+function obs_set_scene(integration: IntegrationEntry, scene_uuid: string) {
+	obs_request(integration, OBS_REQUEST.SET_CURRENT_PROGRAM_SCENE, {
+		sceneUuid: scene_uuid
+	});
 }
 
 // MARK: :projects
@@ -1126,60 +1129,111 @@ async function handle_packet(ws: ClientSocket, packet_id: number, packet_data: a
 		set_system_volume(packet_data);
 	} else if (packet_id === PACKET.REQ_CLIENT_COUNT) {
 		send_object(PACKET.INFO_CLIENT_COUNT, socket_clients.size);
-	} else if (packet_id === PACKET.REQ_SYSTEM_CONFIG) {
-		send_object(PACKET.ACK_SYSTEM_CONFIG, system_config, ws);
-	} else if (packet_id === PACKET.UPDATE_SYSTEM_CONFIG) {
-		validate_object(packet_data, 'object');
-		update_system_config(packet_data);
-
-		save_system_config();
-	} else if (packet_id === PACKET.REQ_OBS_STATUS) {
-		obs_send_status();
 	} else if (packet_id === PACKET.OBS_SET_SCENE) {
-		validate_string(packet_data, 'object');
-		obs_set_scene(packet_data);
+		validate_string(packet_data.scene_uuid, 'scene_uuid');
+		validate_string(packet_data.int_uuid, 'int_uuid');
+
+		const integration = get_integration_by_uuid(packet_data.int_uuid);
+		if (integration)
+			obs_set_scene(integration, packet_data.scene_uuid);
+	} else if (packet_id == PACKET.OBS_SET_SCENE_BY_NAME) {
+		validate_string(packet_data.scene_name, 'scene_name');
+		validate_string(packet_data.int_uuid, 'int_uuid');
+
+		const integration = get_integration_by_uuid(packet_data.int_uuid);
+		if (integration)
+			obs_set_scene_by_name(integration, packet_data.scene_name);
 	} else if (packet_id === PACKET.REQ_OBS_SCENE_NAME) {
-		const res = await obs_request(OBS_REQUEST.GET_CURRENT_PROGRAM_SCENE);
+		validate_string(packet_data.int_uuid, 'int_uuid');
+
+		const integration = get_integration_by_uuid(packet_data.int_uuid);
+		if (!integration)
+			return;
+
+		// TODO: refactor, we need to return an integration UUID
+
+		const res = await obs_request(integration, OBS_REQUEST.GET_CURRENT_PROGRAM_SCENE);
 		send_object(PACKET.OBS_SCENE_NAME, res?.sceneName ?? 'No Scene');
-		obs_current_scene = res?.sceneUuid ?? '';
 	} else if (packet_id === PACKET.OBS_MEDIA_SEEK) {
 		validate_number(packet_data.time, 'time');
 		validate_string(packet_data.obs_scene, 'obs_scene');
 
-		if (is_active_obs_scene(packet_data.obs_scene)) {
+		// TODO: refactor
+
+		/*if (is_active_obs_scene(packet_data.obs_scene)) {
 			await obs_send_batch_for_scene_items(OBS_REQUEST.SET_MEDIA_INPUT_CURSOR, {
 				mediaCursor: packet_data.time
 			});
-		}
+		}*/
 	} else if (packet_id === PACKET.PLAYBACK_STATE) {
 		validate_number(packet_data.state, 'state');
 		validate_string(packet_data.obs_scene, 'obs_scene');
 
-		if (is_active_obs_scene(packet_data.obs_scene)) {
+		// TODO: refactor
+
+		/*if (is_active_obs_scene(packet_data.obs_scene)) {
 			await obs_send_batch_for_scene_items(OBS_REQUEST.TRIGGER_MEDIA_INPUT_ACTION, {
 				mediaAction: packet_data.state ? OBS_MEDIA_INPUT_ACTION.PLAY : OBS_MEDIA_INPUT_ACTION.PAUSE
 			});
-		}
+		}*/
 	} else if (packet_id === PACKET.OBS_MEDIA_RESTART) {
 		validate_string(packet_data.obs_scene, 'obs_scene');
 
+		// TODO: refactor
+
+		/*
 		if (is_active_obs_scene(packet_data.obs_scene)) {
 			await obs_send_batch_for_scene_items(OBS_REQUEST.TRIGGER_MEDIA_INPUT_ACTION, {
 				mediaAction: OBS_MEDIA_INPUT_ACTION.RESTART
 			});
-		}
+		}*/
 	} else if (packet_id === PACKET.REQ_OBS_SCENE_LIST) {
-		if (is_obs_connected()) {
+		/*if (is_obs_connected()) {
 			const res = await obs_request(OBS_REQUEST.GET_SCENE_LIST);
 			send_object(PACKET.OBS_SCENE_LIST, res?.scenes ?? ARRAY_EMPTY);
-		}
-	} else if (packet_id === PACKET.REQ_ETC_STATUS) {
-		etc_send_status();
+		}*/
 	} else if (packet_id === PACKET.ETC_SEND_COMMAND) {
 		validate_string(packet_data.command, 'command');
+		validate_string(packet_data.id, 'id');
+
 		const args = Array.isArray(packet_data.args) ? packet_data.args : ARRAY_EMPTY;
 
-		etc_send_command(packet_data.command, ...args);
+		etc_send_command(packet_data.id, packet_data.command, ...args);
+	} else if (packet_id === PACKET.UPDATE_INTEGRATIONS) {
+		validate_typed_array(packet_data.integrations, 'object', 'integrations');
+
+		for (const integration of packet_data.integrations) {
+			const active = active_integrations.get(integration.id);
+
+			if (integration.enabled) {
+				if (active) {
+					send_integration_status(active);
+				} else {
+					active_integrations.set(integration.id, integration);
+					integration.connection = {
+						socket: null,
+						reconnect_timer: null,
+						connected: false
+					};
+
+					log_info(`Integration {${integration.id}} [{${INTEGRATION_LABELS[integration.type]}}] enabled`);
+
+					if (integration.type == INTEGRATION_TYPE.OBS)
+						obs_connect(integration);
+					else if (integration.type == INTEGRATION_TYPE.ETC)
+						etc_connect(integration);
+				}
+			} else if (!integration.enabled && active) {
+				if (integration.type == INTEGRATION_TYPE.OBS)
+					obs_disconnect(active);
+				else if (integration.type == INTEGRATION_TYPE.ETC)
+					etc_disconnect(active);
+
+				active_integrations.delete(integration.id);
+				
+				log_info(`Integration {${integration.id}} [{${INTEGRATION_LABELS[integration.type]}}] disabled`);
+			}
+		}
 	} else {
 		// dispatch all other packets to listeners
 		const listeners = get_listening_clients(packet_id);
@@ -1405,8 +1459,6 @@ log_info(`Web server running on port {${CLI_ARGS.port}}`);
 
 if (CLI_ARGS.verbose)
 	log_warn('Verbose logging enabled (--verbose)');
-
-await load_system_config();
 
 const server = Bun.serve({
 	port: CLI_ARGS.port as number,

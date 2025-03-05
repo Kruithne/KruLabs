@@ -80,20 +80,14 @@ export const PACKET = {
 	/** [CLIENT -> SERVER] Request client count. Expects INFO_CLIENT_COUNT. */
 	REQ_CLIENT_COUNT: 0x1A,
 
-	/** [CLIENT -> SERVER] Request system configuration. Expects ACK_SYSTEM_CONFIG. */
-	REQ_SYSTEM_CONFIG: 0x1B,
+	//UNUSED: 0x1B,
+	//UNUSED: 0x1C,
+	//UNUSED: 0x1D,
+	//UNUSED: 0x1E,
+	//UNUSED: 0x1F,
 
-	/** [SERVER -> CLIENT] Response to REQ_SYSTEM_CONFIG with system configuration. */
-	ACK_SYSTEM_CONFIG: 0x1C,
-
-	/** [CLIENT -> SERVER] Send updated system configuration to the server. */
-	UPDATE_SYSTEM_CONFIG: 0x1D,
-
-	/** [SERVER -> CLIENT] Sends the OBS connection status. */
-	OBS_STATUS: 0x1E,
-
-	/** [CLIENT -> SERVER] Requests OBS connection status. Expects OBS_STATUS. */
-	REQ_OBS_STATUS: 0x1F,
+	/** [CLIENT -> SERVER -> OBS] Requests a scene change in OBS by name. */
+	OBS_SET_SCENE_BY_NAME: 0x1F,
 
 	/** [CLIENT -> SERVER -> OBS] Requests a scene change in OBS. */
 	OBS_SET_SCENE: 0x20,
@@ -125,14 +119,17 @@ export const PACKET = {
 	/** [CLIENT -> SERVER -> OBS] Requests an updated scene list. Expects OBS_SCENE_LIST. */
 	REQ_OBS_SCENE_LIST: 0x29,
 
-	/** [SERVER -> CLIENT] Sends the ETC connection status. */
-	ETC_STATUS: 0x2A,
-
-	/** [CLIENT -> SERVER] Request the ETC connection status. Expects ETC_STATUS. */
-	REQ_ETC_STATUS: 0x2B,
+	//UNUSED: 0x2A,
+	//UNUSED: 0x2B,
 
 	/** [CLIENT -> SERVER -> ETC] */
 	ETC_SEND_COMMAND: 0x2C,
+
+	/** [CLIENT -> SERVER] */
+	UPDATE_INTEGRATIONS: 0x2D,
+
+	/** [SERVER -> CLIENT] */
+	INTEGRATION_STATUS: 0x2E,
 };
 
 export const PACKET_UNK = 'UNKNOWN';
