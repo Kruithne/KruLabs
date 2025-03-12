@@ -547,7 +547,34 @@ function execute_script(script) {
 		const integration = integration_fast_map.get(int_id);
 		if (integration) {
 			if (integration.type == INTEGRATION_TYPE.ETC) {
-				socket.send_object(PACKET.ETC_SEND_COMMAND, { command: parts.join('/'), args: [] });
+				// Join all parts into a command string
+				let commandString = parts.join('/');
+				let args = [];
+				
+				// Check if the command contains '=' for arguments
+				const equalSignIndex = commandString.indexOf('=');
+				if (equalSignIndex !== -1) {
+					// Split the command and arguments
+					const argString = commandString.substring(equalSignIndex + 1);
+					commandString = commandString.substring(0, equalSignIndex);
+					
+					// Parse arguments
+					// If the argument contains commas, split it into multiple arguments
+					if (argString.includes(',')) {
+						args = argString.split(',').map(arg => {
+							// Try to convert to number if possible
+							const num = Number(arg.trim());
+							return !isNaN(num) ? num : arg.trim();
+						});
+					} else {
+						// Single argument
+						const arg = argString.trim();
+						const num = Number(arg);
+						args.push(!isNaN(num) ? num : arg);
+					}
+				}
+				
+				socket.send_object(PACKET.ETC_SEND_COMMAND, { command: commandString, args: args });
 			} else if (integration.type == INTEGRATION_TYPE.OBS) {
 				if (parts[0] === 'scene' && parts[2] === 'go') {
 					// hard-coded OBS command, expand in the future
