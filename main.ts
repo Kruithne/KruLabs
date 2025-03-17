@@ -1194,11 +1194,11 @@ async function handle_packet(ws: ClientSocket, packet_id: number, packet_data: a
 		}*/
 	} else if (packet_id === PACKET.ETC_SEND_COMMAND) {
 		validate_string(packet_data.command, 'command');
-		validate_string(packet_data.id, 'id');
+		validate_string(packet_data.int_uuid, 'int_uuid');
 
 		const args = Array.isArray(packet_data.args) ? packet_data.args : ARRAY_EMPTY;
 
-		etc_send_command(packet_data.id, packet_data.command, ...args);
+		etc_send_command(packet_data.int_uuid, packet_data.command, ...args);
 	} else if (packet_id === PACKET.UPDATE_INTEGRATIONS) {
 		validate_typed_array(packet_data.integrations, 'object', 'integrations');
 
