@@ -955,18 +955,34 @@ class ETCConnection {
 
 	_handle_data(data: Uint8Array) {
 		try {
-			if (data.length < 4)
+			if (data.length < 8)
 				return;
 			
-			const address_start = 4;
+			const length_view = new DataView(data.buffer, data.byteOffset, 4);
+			const packet_length = length_view.getInt32(0, false);
+			
+			if (packet_length !== data.length - 4) {
+				log_warn(`OSC packet length mismatch: expected ${packet_length}, got ${data.length - 4}`);
+				return;
+			}
+			
+			if (packet_length % 4 !== 0) {
+				log_warn(`OSC packet size ${packet_length} not multiple of 4`);
+				return;
+			}
+			
+			const osc_content = data.subarray(4);
 			const decoder = new TextDecoder();
-			let address_end = data.indexOf(0, address_start);
-			
-			if (address_end === -1)
-				return;
-			
-			const address = decoder.decode(data.subarray(address_start, address_end));
 
+			let address_end = osc_content.indexOf(0);
+			if (address_end === -1) {
+				log_warn(`No null terminator found in OSC address`);
+				return;
+			}
+			
+			const address = decoder.decode(osc_content.subarray(0, address_end));
+			const address_padded = (address_end + 4) & ~0x03; // arguments, type tags, etc
+			
 			log_verbose(`RECV {${address}} size {${format_bytes(data.length)}}`, ETC_PREFIX);
 			
 			if (address === '/eos/out/event/cue/fire' || address.startsWith('/eos/out/event/cue/')) {
