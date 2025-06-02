@@ -77,3 +77,56 @@ obs.on_time('SOME_MEDIA.mp4', 5000, () => {
 	// fires when SOME_MEDIA.mp4 reaches 5 seconds
 });
 ```
+
+---
+### 🛠️ Utility
+
+#### Timespan
+
+Returns the given time string in milliseconds, useful for quickly mapping cues using different time formats.
+
+**Basic Usage**
+
+```ts
+timespan('30s');     // > 30000
+timespan('5m');      // > 300000
+timespan('2h');      // > 7200000
+```
+
+**Flexible Ordering**
+
+```ts
+timespan('1m 30s');  // > 90000
+timespan('30s 1m');  // > 90000
+```
+
+**Colon Notation**
+
+```ts
+timespan('1:30');    // > 90000 (1 minute 30 seconds)
+timespan('1:15:45'); // > 4545000 (1 hour 15 minutes 45 seconds)
+timespan('5');       // > 300000 (defaults to minutes)
+```
+
+**Word Variations**
+
+```ts
+timespan('1 minute 30 seconds'); // > 90000
+timespan('2min 45sec');          // > 165000
+```
+
+**Decimal Support**
+
+```ts
+timespan('1.5m');    // > 90000
+timespan('2.5h');    // > 9000000
+timespan('0.5s');    // > 500
+```
+
+**Flexible Separators**
+
+```ts
+timespan('1m30s');   // > 90000
+timespan('1m:30s');  // > 90000
+timespan('1m   30s'); // > 90000
+```
