@@ -7,6 +7,19 @@ import path from 'node:path';
 type Unbox<T> = T extends Array<infer U> ? U : T;
 type Enum<T> = T[keyof T];
 
+export type JsonPrimitive = string | number | boolean | null | undefined;
+export type JsonArray = JsonSerializable[];
+
+export interface JsonObject {
+	[key: string]: JsonSerializable;
+}
+
+interface ToJson {
+	toJSON(): any;
+}
+
+type JsonSerializable = JsonPrimitive | JsonObject | JsonArray | ToJson;
+
 function format_bytes(bytes: number): string {
 	if (bytes === 0)
 		return '0b';
@@ -165,11 +178,12 @@ const WS_ANONYMOUS_TIMEOUT = 2500;
 
 const WS_IDENTITY_TYPES = ['touchpad'] as const;
 
-type WebSocketHandler = (ws: ServerWebSocket) => void;
+type WebSocketHandler = (ws: ServerWebSocket, id: string, data: JsonObject | null) => void;
 
 const ws_sockets = new Map<ServerWebSocket, string>();
 const ws_socket_map = new Map<string, Set<ServerWebSocket>>();
 const ws_socket_handlers = new Map<string, WebSocketHandler>();
+const ws_socket_initializers = new Map<string, (ws: ServerWebSocket) => void>();
 const ws_socket_timeout = new Map<ServerWebSocket, Timer>();
 
 function ws_open(ws: ServerWebSocket) {
@@ -212,7 +226,7 @@ function ws_message(ws: ServerWebSocket, message: string | Buffer) {
 
 		const socket_type = ws_sockets.get(ws);
 		if (socket_type !== undefined) {
-			ws_socket_handlers.get(socket_type)?.(ws);
+			ws_socket_handlers.get(socket_type)?.(ws, json.id, json.data ?? null);
 		} else {
 			if (json.id !== 'identify')
 				throw new Error('First client payload must be `identify`');
@@ -235,6 +249,8 @@ function ws_message(ws: ServerWebSocket, message: string | Buffer) {
 			ws_socket_map.get(json.type)?.add(ws);
 			ws_sockets.set(ws, json.type);
 
+			ws_socket_initializers.get(json.type)?.(ws);
+
 			ws_send(ws, 'identified');
 
 			log(`identified {${ws.remoteAddress}} as {${json.type}}`, WS_PREFIX);
@@ -246,6 +262,10 @@ function ws_message(ws: ServerWebSocket, message: string | Buffer) {
 
 function ws_register_handler(type: string, handler: WebSocketHandler) {
 	ws_socket_handlers.set(type, handler);
+}
+
+function ws_register_initializer(type: string, initializer: (ws: ServerWebSocket) => void) {
+	ws_socket_initializers.set(type, initializer);
 }
 // endregion
 
@@ -344,8 +364,16 @@ export function create_touchpad(name: string) {
 	return touchpad;
 }
 
-ws_register_handler('touchpad', (ws) => {
-	// todo: handle touchpad events here.
+ws_register_initializer('touchpad', ws => {
+	// todo: send touchpad buttons to the client
+	ws_send(ws, 'load', { foo: 'bar' });
+});
+
+ws_register_handler('touchpad', (ws, id, data) => {
+	if (id === 'activate') {
+		console.log({ data });
+		// todo: use data.index into the button array
+	}
 });
 // endregion
 

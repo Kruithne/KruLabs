@@ -11,8 +11,8 @@ export class SocketInterface {
 		this.type = type;
 		this.socket = null;
 		this.ready = false;
-
 		this.backoff = 0;
+		this.handlers = new Map();
 
 		this._connect();
 	}
@@ -27,7 +27,7 @@ export class SocketInterface {
 
 		const delay = Math.min(SOCKET_RECONNECT_DELAY * Math.pow(2, this.backoff - 1), SOCKET_BACKOFF_MAX);
 		console.info('reconnecting in %dms', delay);
-		
+
 		setTimeout(this._connect.bind(this), delay);
 	}
 
@@ -67,10 +67,15 @@ export class SocketInterface {
 		try {
 			const data = JSON.parse(event.data);
 
-			switch (data.id) {
-				case 'identified':
-					this.ready = true;
-					break;
+			if (data.id === 'identified') {
+				this.ready = true;
+			} else {
+				const callbacks = this.handlers.get(data.id);
+				if (!callbacks)
+					return;
+				
+				for (const callback of callbacks)
+					callback(data.data ?? null);
 			}
 		} catch (e) {
 			console.error('failed to process socket message: %o', e);
@@ -81,7 +86,10 @@ export class SocketInterface {
 		console.error('socket error: %o', event);
 	}
 
-	on(event) {
-		// todo: implement event handling
+	on(event, callback) {
+		if (!this.handlers.has(event))
+			this.handlers.set(event, new Set());
+
+		this.handlers.get(event).add(callback);
 	}
 }
