@@ -6,6 +6,6 @@
 		"krulabs": "bun ./krulabs.ts"
 	},
 	"devDependencies": {
-		"@types/bun": "^1.1.14"
+		"@types/bun": "^1.2.15"
 	}
 }

@@ -1,5 +1,7 @@
 import { createHash } from 'crypto';
-import { TCPSocket } from 'bun';
+import { BunFile, ColorInput, ServerWebSocket, TCPSocket } from 'bun';
+import os from 'node:os';
+import path from 'node:path';
 
 // region generics
 type Unbox<T> = T extends Array<infer U> ? U : T;
@@ -132,6 +134,191 @@ export function timespan(span: string): number {
 	
 	return total_ms;
 }
+
+function slug_string(text: string): string {
+	text = text.toLowerCase().trim(); // lowercase
+	text = text.replace(/[^a-z0-9\s\-]+/g, ''); // remove non-alpahanumeric
+	text = text.replace(/[\s\-]+/g, '_'); // whitespace/hypens to underscores
+
+	return text;
+}
+// endregion
+
+// region websocket
+const WS_PREFIX = 'WSS';
+const WS_ANONYMOUS_TIMEOUT = 2500;
+
+const WS_IDENTITY_TYPES = ['touchpad'] as const;
+
+type WebSocketHandler = (ws: ServerWebSocket) => void;
+
+const ws_sockets = new Map<ServerWebSocket, string>();
+const ws_socket_map = new Map<string, Set<ServerWebSocket>>();
+const ws_socket_handlers = new Map<string, WebSocketHandler>();
+const ws_socket_timeout = new Map<ServerWebSocket, Timer>();
+
+function ws_open(ws: ServerWebSocket) {
+	log_info(`new websocket connection established from {${ws.remoteAddress}}`, WS_PREFIX);
+
+	ws_socket_timeout.set(ws, setTimeout(() => {
+		ws.close(4001, 'Failed to provide identification payload');
+		//log_info(`timed out {${ws.remoteAddress}}, failed to provide identification payload`);
+	}, WS_ANONYMOUS_TIMEOUT));
+}
+
+function ws_close(ws: ServerWebSocket, code: number, reason: string) {
+	const reason_str = reason.length > 0 ? reason : 'general failure';
+	log_info(`connection closed from {${ws.remoteAddress}} with code {${code}}: ${reason_str}`, WS_PREFIX);
+
+	const socket_type = ws_sockets.get(ws);
+	if (socket_type !== undefined) {
+		ws_socket_map.get(socket_type)?.delete(ws);
+		ws_sockets.delete(ws);
+	}
+
+	ws_socket_timeout.delete(ws);
+}
+
+function ws_message(ws: ServerWebSocket, message: string | Buffer) {
+	try {
+		if (typeof message !== 'string')
+			message = message.toString();
+
+		const json = JSON.parse(message);
+		if (typeof json.id !== 'string')
+			throw new Error('JSON payload did not include a valid `id` field.');
+
+		const socket_type = ws_sockets.get(ws);
+		if (socket_type !== undefined) {
+			ws_socket_handlers.get(socket_type)?.(ws);
+		} else {
+			if (json.id !== 'identify')
+				throw new Error('First client payload must be `identify`');
+
+			if (typeof json.type !== 'string')
+				throw new Error('Identification payload missing valid `type` property');
+
+			if (!WS_IDENTITY_TYPES.includes(json.type))
+				throw new Error('Identification payload defined unknown type: ' + json.type);
+
+			if (!ws_socket_map.has(json.type))
+				ws_socket_map.set(json.type, new Set<ServerWebSocket>());
+
+			const timeout = ws_socket_timeout.get(ws);
+			if (timeout !== undefined) {
+				clearInterval(timeout);
+				ws_socket_timeout.delete(ws);
+			}
+
+			ws_socket_map.get(json.type)?.add(ws);
+			ws_sockets.set(ws, json.type);
+		}
+	} catch (e) {
+		//log_warn(`{ws_message()} > error processing message: ${e}`);
+		ws.close(4000, (e as Error).message);
+	}
+}
+
+function ws_register_handler(type: string, handler: WebSocketHandler) {
+	ws_socket_handlers.set(type, handler);
+}
+// endregion
+
+// region http
+const HTTP_PREFIX = 'HTTP';
+
+const http_interfaces = new Map<string, BunFile>();
+
+const http_server = Bun.serve({
+	port: 19531,
+	async fetch(req) {
+		const url = new URL(req.url);
+
+		if (url.pathname.startsWith('/static/')) {
+			const basename = path.basename(url.pathname);
+			
+			if (!basename.startsWith('.')) {
+				const static_file_path = path.join(__dirname, url.pathname);
+				const static_file = Bun.file(static_file_path);
+
+				if (await static_file.exists())
+					return new Response(static_file);
+			}
+		} else {
+			const file = http_interfaces.get(url.pathname);
+			if (file)
+				return new Response(file);
+		}
+
+		return new Response('Resource not found', { status: 404 });
+	},
+
+	websocket: {
+		open: ws_open,
+		close: ws_close,
+		message: ws_message
+	}
+});
+
+function get_ipv4_addresses(): string[] {
+	const interfaces = os.networkInterfaces();
+	const addresses = [];
+	
+	for (const interface_name in interfaces) {
+		const interface_info = interfaces[interface_name];
+		if (!interface_info)
+			continue;
+		
+		for (const info of interface_info) {
+			if (info.family === 'IPv4' && !info.internal)
+				addresses.push(info.address);
+		}
+	}
+	
+	return addresses;
+}
+
+function get_host_url(): string {
+	return `http://localhost:${http_server.port}`;
+}
+
+function register_http_interface(type: string, route: string, file: string) {
+	const file_path = path.join(__dirname, file);
+	http_interfaces.set(route, Bun.file(file_path));
+
+	log_info(`registered {${type}} interface at {${get_host_url() + route}}`, HTTP_PREFIX);
+}
+
+log_info(`interfaces listening on port {${http_server.port}}`, HTTP_PREFIX);
+get_ipv4_addresses().forEach(addr => log_info(`detected ipv4 interface address {${addr}}`, HTTP_PREFIX));
+// endregion
+
+// region touchpad
+class TouchpadInterface {
+	add() {
+		// todo: add buttons
+	}
+}
+
+const registered_touchpads = new Map<string, TouchpadInterface>();
+
+export function create_touchpad(name: string, color: ColorInput) {
+	const slug = slug_string(name);
+
+	if (registered_touchpads.has(slug))
+		throw new Error(`Touchpad name ${slug} already in use`);
+
+	const touchpad = new TouchpadInterface();
+	registered_touchpads.set(slug, touchpad);
+
+	register_http_interface('touchpad', '/touchpad/' + slug, 'interface/touchpad.html');
+
+	return touchpad;
+}
+
+ws_register_handler('touchpad', (ws) => {
+	// todo: handle touchpad events here.
+});
 // endregion
 
 // region obs
