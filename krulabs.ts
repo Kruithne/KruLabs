@@ -441,7 +441,7 @@ class MediaTracker {
 	}
 	
 	_handle_media_start() {
-		log_verbose(`Media ${this.media_name} started playback`, 'MEDIA');
+		log_verbose(`media {${this.media_name}} started playback`, 'MEDIA');
 		
 		this.playback_started_at = Date.now();
 		this.expected_position = 0;
@@ -455,11 +455,11 @@ class MediaTracker {
 	}
 	
 	_handle_media_stop() {
-		log_info(`Media ${this.media_name} stopped playback`, 'MEDIA');
+		log_info(`media {${this.media_name}} stopped playback`, 'MEDIA');
 		
 		// Ensure we're actually stopping the checking
 		if (this.check_interval) {
-			log_verbose(`Clearing check interval for ${this.media_name}`, 'MEDIA');
+			log_verbose(`clearing check interval for {${this.media_name}}`, 'MEDIA');
 			clearInterval(this.check_interval);
 			this.check_interval = null;
 		}
@@ -502,7 +502,7 @@ class MediaTracker {
 		
 		for (let cb of this.callbacks) {
 			if (!cb.fired && this.expected_position >= cb.timestamp) {
-				log_verbose(`Triggering media callback for ${this.media_name} at timestamp ${cb.timestamp}ms`, 'MEDIA');
+				log_verbose(`triggering media callback for {${this.media_name}} at timestamp {${cb.timestamp}ms}`, 'MEDIA');
 				cb.fired = true;
 				cb.callback(this.media_name, cb.timestamp);
 			}
@@ -602,7 +602,7 @@ class OBSConnection {
 				resolve(value);
 			});
 	
-			log_verbose(`Preparing OBS request {${request_type}} ID {${request_uuid}}`, OBS_PREFIX);
+			log_verbose(`preparing OBS request {${request_type}} ID {${request_uuid}}`, OBS_PREFIX);
 		
 			this._send(OBS_OP_CODE.REQUEST, {
 				requestType: request_type,
@@ -613,7 +613,7 @@ class OBSConnection {
 			if (timeout > 0) {
 				timeout_id = setTimeout(() => {
 					obs_request_map.delete(request_uuid);
-					log_warn(`Timed out waiting for ${request_type} response from OBS (timeout: ${timeout}ms)`);
+					log_warn(`timed out waiting for {${request_type}} response from OBS (timeout: {${timeout}ms})`);
 					resolve(null);
 				}, timeout);
 			}
@@ -621,7 +621,7 @@ class OBSConnection {
 	}
 
 	_on_open() {
-		log_info(`Connected to OBS host {${this.obs_host}} on port {${this.obs_port}}`, OBS_PREFIX);
+		log_info(`connected to OBS host {${this.obs_host}} on port {${this.obs_port}}`, OBS_PREFIX);
 		this.connected = true;
 	}
 
@@ -630,39 +630,39 @@ class OBSConnection {
 		this.identified = false;
 		this.connected = false;
 
-		log_info(`Disconnected from OBS host: {${event.code}} ${event.reason}`, OBS_PREFIX);
+		log_info(`disconnected from OBS host: {${event.code}} ${event.reason}`, OBS_PREFIX);
 
-		log_info(`Reconnecting to OBS host in {${OBS_RECONNECT_DELAY}ms}`, OBS_PREFIX);
+		log_info(`reconnecting to OBS host in {${OBS_RECONNECT_DELAY}ms}`, OBS_PREFIX);
 		setTimeout(() => this._init_socket(), OBS_RECONNECT_DELAY);
 	}
 
 	_on_error(error: any) {
-		log_warn(`${error.type} raised in OBS socket: ${error.message}`);
+		log_warn(`{${error.type}} raised in OBS socket: ${error.message}`);
 	}
 
 	scene(scene_name: string) {
-		log_info(`Switching to scene {${scene_name}}`, OBS_PREFIX);
+		log_info(`{scene()} > switching to scene {${scene_name}}`, OBS_PREFIX);
 		this._request(OBS_REQUEST.SET_CURRENT_PROGRAM_SCENE, {
 			sceneName: scene_name
 		});
 	}
 
 	create_scene(scene_name: string) {
-		log_info(`Creating scene {${scene_name}}`, OBS_PREFIX);
+		log_info(`{create_scene()} > creating scene {${scene_name}}`, OBS_PREFIX);
 		this._request(OBS_REQUEST.CREATE_SCENE, {
 			sceneName: scene_name
 		});
 	}
 
 	delete_scene(scene_name: string) {
-		log_info(`Deleting scene {${scene_name}}`, OBS_PREFIX);
+		log_info(`{delete_scene()} > deleting scene {${scene_name}}`, OBS_PREFIX);
 		return this._request(OBS_REQUEST.REMOVE_SCENE, {
 			sceneName: scene_name
 		});
 	}
 
 	pause(media_name: string) {
-		log_info(`Pausing media {${media_name}}`, OBS_PREFIX);
+		log_info(`{pause()} > pausing media {${media_name}}`, OBS_PREFIX);
 		return this._request(OBS_REQUEST.TRIGGER_MEDIA_INPUT_ACTION, {
 			inputName: media_name,
 			mediaAction: OBS_MEDIA_INPUT_ACTION.PAUSE
@@ -670,7 +670,7 @@ class OBSConnection {
 	}
 
 	play(media_name: string) {
-		log_info(`Playing media {${media_name}}`, OBS_PREFIX);
+		log_info(`{play()} > playing media {${media_name}}`, OBS_PREFIX);
 		return this._request(OBS_REQUEST.TRIGGER_MEDIA_INPUT_ACTION, {
 			inputName: media_name,
 			mediaAction: OBS_MEDIA_INPUT_ACTION.PLAY
@@ -678,12 +678,12 @@ class OBSConnection {
 	}
 
 	async pause_all() {
-		log_info(`Pausing all media in current scene`, OBS_PREFIX);
+		log_info(`{pause_all()} > pausing all media in current scene`, OBS_PREFIX);
 		
 		try {
 			const current_scene = await this._request(OBS_REQUEST.GET_CURRENT_PROGRAM_SCENE);
 			if (!current_scene) {
-				log_warn('Failed to get current program scene');
+				log_warn('{pause_all()} > failed to get current program scene');
 				return;
 			}
 			
@@ -692,7 +692,7 @@ class OBSConnection {
 			});
 			
 			if (!scene_items || !scene_items.sceneItems) {
-				log_warn('Failed to get scene items');
+				log_warn('{pause_all()} > failed to get scene items');
 				return;
 			}
 			
@@ -707,7 +707,7 @@ class OBSConnection {
 					});
 					
 					if (input_status && input_status.mediaState === 'OBS_MEDIA_STATE_PLAYING') {
-						log_info(`Pausing media {${input_name}}`, OBS_PREFIX);
+						log_info(`{pause_all()} > pausing media {${input_name}}`, OBS_PREFIX);
 						media_pause_promises.push(
 							this._request(OBS_REQUEST.TRIGGER_MEDIA_INPUT_ACTION, {
 								inputName: input_name,
@@ -722,22 +722,22 @@ class OBSConnection {
 			
 			if (media_pause_promises.length > 0) {
 				await Promise.all(media_pause_promises);
-				log_info(`Paused ${media_pause_promises.length} media inputs`, OBS_PREFIX);
+				log_info(`{pause_all()} > paused {${media_pause_promises.length}} media inputs`, OBS_PREFIX);
 			} else {
-				log_info('No playing media found in current scene', OBS_PREFIX);
+				log_info('{pause_all()} > no playing media found in current scene', OBS_PREFIX);
 			}
 		} catch (error) {
-			log_warn(`Error during pause_all: ${error}`);
+			log_warn(`{pause_all()} > error: ${error}`);
 		}
 	}
 
 	async play_all() {
-		log_info(`Playing/resuming all media in current scene`, OBS_PREFIX);
+		log_info(`{play_all()} > resuming all media in current scene`, OBS_PREFIX);
 		
 		try {
 			const current_scene = await this._request(OBS_REQUEST.GET_CURRENT_PROGRAM_SCENE);
 			if (!current_scene) {
-				log_warn('Could not get current program scene');
+				log_warn('{play_all()} > failed to get current program scene');
 				return;
 			}
 			
@@ -746,7 +746,7 @@ class OBSConnection {
 			});
 			
 			if (!scene_items || !scene_items.sceneItems) {
-				log_warn('Could not get scene items');
+				log_warn('{play_all()} > failed to get scene items');
 				return;
 			}
 			
@@ -761,7 +761,7 @@ class OBSConnection {
 					});
 					
 					if (input_status && (input_status.mediaState === 'OBS_MEDIA_STATE_PAUSED' || input_status.mediaState === 'OBS_MEDIA_STATE_STOPPED' || input_status.mediaState === 'OBS_MEDIA_STATE_ENDED')) {
-						log_info(`Playing media {${input_name}}`, OBS_PREFIX);
+						log_info(`{play_all()} > playing media {${input_name}}`, OBS_PREFIX);
 						media_play_promises.push(
 							this._request(OBS_REQUEST.TRIGGER_MEDIA_INPUT_ACTION, {
 								inputName: input_name,
@@ -776,17 +776,17 @@ class OBSConnection {
 			
 			if (media_play_promises.length > 0) {
 				await Promise.all(media_play_promises);
-				log_info(`Started playing ${media_play_promises.length} media inputs`, OBS_PREFIX);
+				log_info(`{play_all()} > started playing {${media_play_promises.length}} media inputs`, OBS_PREFIX);
 			} else {
-				log_info('No paused/stopped media found in current scene', OBS_PREFIX);
+				log_info('{play_all()} > no paused/stopped media found in current scene', OBS_PREFIX);
 			}
 		} catch (error) {
-			log_warn(`Error during play_all: ${error}`);
+			log_warn(`{play_all()} > error: ${error}`);
 		}
 	}
 
 	async seek(media_name: string, timestamp_ms: number, loop: boolean = false) {
-		log_info(`Seeking media {${media_name}} to {${timestamp_ms}ms}`, OBS_PREFIX);
+		log_info(`{seek()} > seeking media {${media_name}} to {${timestamp_ms}ms}`, OBS_PREFIX);
 		
 		let final_timestamp = timestamp_ms;
 		
@@ -799,11 +799,11 @@ class OBSConnection {
 				if (media_status && media_status.mediaDuration && media_status.mediaDuration > 0) {
 					final_timestamp = timestamp_ms % media_status.mediaDuration;
 					if (final_timestamp !== timestamp_ms) {
-						log_info(`Looped seek: ${timestamp_ms}ms -> ${final_timestamp}ms (duration: ${media_status.mediaDuration}ms)`, OBS_PREFIX);
+						log_info(`{seek()} > Looped seek: {${timestamp_ms}ms} -> {${final_timestamp}ms} (duration: {${media_status.mediaDuration}ms})`, OBS_PREFIX);
 					}
 				}
 			} catch (e) {
-				log_warn(`Could not get media duration for looping calculation: ${e}`);
+				log_warn(`{seek()} > failed to get media duration for looping calculation: ${e}`);
 			}
 		}
 		
@@ -814,12 +814,12 @@ class OBSConnection {
 	}
 
 	async seek_all(timestamp_ms: number, loop: boolean = false) {
-		log_info(`Seeking all media in current scene to {${timestamp_ms}ms}`, OBS_PREFIX);
+		log_info(`{seek_all()} > Seeking all media in current scene to {${timestamp_ms}ms}`, OBS_PREFIX);
 		
 		try {
 			const current_scene = await this._request(OBS_REQUEST.GET_CURRENT_PROGRAM_SCENE);
 			if (!current_scene) {
-				log_warn('Could not get current program scene');
+				log_warn('{seek_all()} > failed to get current program scene');
 				return;
 			}
 			
@@ -828,7 +828,7 @@ class OBSConnection {
 			});
 			
 			if (!scene_items || !scene_items.sceneItems) {
-				log_warn('Could not get scene items');
+				log_warn('{seek_all()} > failed to get scene items');
 				return;
 			}
 			
@@ -849,7 +849,7 @@ class OBSConnection {
 							final_timestamp = timestamp_ms % input_status.mediaDuration;
 						}
 						
-						log_info(`Seeking media {${input_name}} to {${final_timestamp}ms}`, OBS_PREFIX);
+						log_info(`{seek_all()} > seeking media {${input_name}} to {${final_timestamp}ms}`, OBS_PREFIX);
 						media_seek_promises.push(
 							this._request(OBS_REQUEST.SET_MEDIA_INPUT_CURSOR, {
 								inputName: input_name,
@@ -864,12 +864,12 @@ class OBSConnection {
 			
 			if (media_seek_promises.length > 0) {
 				await Promise.all(media_seek_promises);
-				log_info(`Seeked ${media_seek_promises.length} media inputs`, OBS_PREFIX);
+				log_info(`{seek_all()} > seeked {${media_seek_promises.length}} media inputs`, OBS_PREFIX);
 			} else {
-				log_info('No media found in current scene', OBS_PREFIX);
+				log_info('{seek_all()} > no media found in current scene', OBS_PREFIX);
 			}
 		} catch (error) {
-			log_warn(`Error during seek_all: ${error}`);
+			log_warn(`{seek_all()} > error: ${error}`);
 		}
 	}
 
@@ -877,16 +877,16 @@ class OBSConnection {
 		try {
 			const current_program_scene = await this._request(OBS_REQUEST.GET_CURRENT_PROGRAM_SCENE);
 			if (!current_program_scene) {
-				log_warn('Could not get current program scene, aborting delete_all_scenes');
+				log_warn('{delete_all_scenes()} > failed to get current program scene, aborting');
 				return;
 			}
 			
 			const current_scene_name = current_program_scene.sceneName;
-			log_info(`Current program scene: {${current_scene_name}} - will not be deleted`, OBS_PREFIX);
+			log_info(`{delete_all_scenes()} > current program scene {${current_scene_name}} will not be deleted`, OBS_PREFIX);
 			
 			const scene_list_response = await this._request(OBS_REQUEST.GET_SCENE_LIST);
 			if (!scene_list_response || !scene_list_response.scenes) {
-				log_warn('Could not get scene list, aborting delete_all_scenes');
+				log_warn('{delete_all_scenes()} > failed to get scene list, aborting');
 				return;
 			}
 			
@@ -896,27 +896,27 @@ class OBSConnection {
 				if (scene.sceneName === current_scene_name)
 					continue;
 
-				log_info(`Deleting scene {${scene.sceneName}}`, OBS_PREFIX);
+				log_info(`{delete_all_scenes()} > deleting scene {${scene.sceneName}}`, OBS_PREFIX);
 				promises.push(this._request(OBS_REQUEST.REMOVE_SCENE, {
 					sceneName: scene.sceneName
 				}));
 			}
 			
 			if (promises.length === 0) {
-				log_info('No scenes to delete (only current program scene exists)', OBS_PREFIX);
+				log_info('{delete_all_scenes()} > no valid scenes to delete', OBS_PREFIX);
 				return;
 			}
 			
 			await Promise.all(promises);
 			
-			log_info(`Successfully deleted {${promises.length}} scenes`, OBS_PREFIX);
+			log_info(`{delete_all_scenes()} > successfully deleted {${promises.length}} scenes`, OBS_PREFIX);
 		} catch (error) {
-			log_warn(`Error during delete_all_scenes: ${error}`);
+			log_warn(`{delete_all_scenes()} > error: ${error}`);
 		}
 	}
 
 	rename_scene(scene_name: string, new_name: string) {
-		log_info(`Renaming scene {${scene_name}} to {${new_name}}`, OBS_PREFIX);
+		log_info(`{rename_scene()} > renaming scene {${scene_name}} to {${new_name}}`, OBS_PREFIX);
 		return this._request(OBS_REQUEST.SET_SCENE_NAME, {
 			sceneName: scene_name,
 			newSceneName: new_name
@@ -987,18 +987,18 @@ class OBSConnection {
 
 				const resolver = obs_request_map.get(request_id);
 				if (resolver) {
-					log_verbose(`Received tracked {${request_type}} response [{${request_id}}]`, OBS_PREFIX);
+					log_verbose(`received tracked {${request_type}} response [{${request_id}}]`, OBS_PREFIX);
 					obs_request_map.delete(request_id);
 
 					const request_status = message.d.requestStatus;
 					if (request_status.result) {
 						resolver(message.d.responseData);
 					} else {
-						log_verbose(`Request {${request_id}} failed with code {${request_status.code}} (${request_status.comment ?? 'n/a'})`, OBS_PREFIX);
+						log_verbose(`request {${request_id}} failed with code {${request_status.code}} (${request_status.comment ?? 'n/a'})`, OBS_PREFIX);
 						resolver(null);
 					}
 				} else {
-					log_verbose(`Dropping non-tracked {${request_type}} response [{${request_id}}]`, OBS_PREFIX);
+					log_verbose(`dropping non-tracked {${request_type}} response [{${request_id}}]`, OBS_PREFIX);
 				}
 			} else {
 				log_verbose(`RECV {${OBS_OP_CODE_TO_STR[message.op]}} size {${format_bytes(message_size)}}`, OBS_PREFIX);
@@ -1021,7 +1021,7 @@ class OBSConnection {
 					this._send(OBS_OP_CODE.IDENTIFY, payload);
 				} else if (message.op === OBS_OP_CODE.IDENTIFIED) {
 					this.identified = true;
-					log_info(`Successfully identified with OBS host {${this.obs_host}} using RPC version {${message.d.negotiatedRpcVersion}}`, OBS_PREFIX);
+					log_info(`successfully identified with OBS host {${this.obs_host}} using RPC version {${message.d.negotiatedRpcVersion}}`, OBS_PREFIX);
 
 					if (this.connection_resolver) {
 						this.connection_resolver(this);
@@ -1035,7 +1035,7 @@ class OBSConnection {
 			}
 		} catch (e) {
 			const error = e as Error;
-			log_warn(`Failed to parse OBS message due to ${error.name}: ${error.message}`);
+			log_warn(`failed to parse OBS message due to ${error.name}: ${error.message}`);
 		}
 	}
 }
@@ -1154,7 +1154,7 @@ class ETCConnection {
 				port: this.etc_port,
 				socket: {
 					open: (socket) => {
-						log_info(`Connected to ETC host {${this.etc_host}}`, ETC_PREFIX);
+						log_info(`connected to ETC host {${this.etc_host}}`, ETC_PREFIX);
 						this.connected = true;
 						this.socket = socket;
 
@@ -1176,18 +1176,18 @@ class ETCConnection {
 						this.socket = null;
 						this.connected = false;
 
-						log_info(`Lost connection to ETC host`, ETC_PREFIX);
+						log_info(`lost connection to ETC host`, ETC_PREFIX);
 
-						log_info(`Reconnecting to ETC host in {${ETC_RECONNECT_DELAY}ms}`, ETC_PREFIX);
+						log_info(`reconnecting to ETC host in {${ETC_RECONNECT_DELAY}ms}`, ETC_PREFIX);
 						this.reconnect_timer = setTimeout(() => this._connect(), ETC_RECONNECT_DELAY);
 					}
 				}
 			});
 		} catch (e) {
 			const err = e as Error;
-			log_warn(`${err.name} raised connecting to ETC host: ${err.message}`);
+			log_warn(`{${err.name}} raised connecting to ETC host: ${err.message}`);
 
-			log_info(`Reconnecting to ETC host in {${ETC_RECONNECT_DELAY}ms}`, ETC_PREFIX);
+			log_info(`reconnecting to ETC host in {${ETC_RECONNECT_DELAY}ms}`, ETC_PREFIX);
 			this.reconnect_timer = setTimeout(() => this._connect(), ETC_RECONNECT_DELAY);
 		}
 
@@ -1245,7 +1245,7 @@ class ETCConnection {
 
 			let address_end = osc_content.indexOf(0);
 			if (address_end === -1) {
-				log_warn(`No null terminator found in OSC address`);
+				log_warn(`no null terminator found in OSC address`);
 				return;
 			}
 			
@@ -1263,7 +1263,7 @@ class ETCConnection {
 					if (cue_list !== 1) // fix for core busking
 						return;
 					
-					log_verbose(`Received cue fire event: List {${cue_list}} Cue {${cue_number}}`, ETC_PREFIX);
+					log_verbose(`received cue fire event: list {${cue_list}} cue {${cue_number}}`, ETC_PREFIX);
 					
 					const callbacks = this.cue_callbacks.get(cue_number);
 					if (callbacks) {
@@ -1274,7 +1274,7 @@ class ETCConnection {
 			}
 		} catch (e) {
 			const err = e as Error;
-			log_warn(`Error parsing OSC data: ${err.message}`);
+			log_warn(`error parsing OSC data: ${err.message}`);
 		}
 	}
 
