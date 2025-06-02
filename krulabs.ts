@@ -510,7 +510,7 @@ class MediaTracker {
 			const inputs = response.inputs || [];
 			
 			for (const input of inputs) {
-				if (input.inputName.includes(this.media_name)) {
+				if (input.inputName === this.media_name) {
 					const status = await this.obs_connection._request(
 						OBS_REQUEST.GET_MEDIA_INPUT_STATUS, 
 						{ inputName: input.inputName }
