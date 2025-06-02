@@ -424,7 +424,6 @@ class MediaTracker {
 	constructor(media_name: string, obs_connection: OBSConnection) {
 		this.media_name = media_name;
 		this.obs_connection = obs_connection;
-		// No need to call _setup_media_event_listeners() - removed
 	}
 	
 	add_callback(timestamp: number, callback: Function) {
@@ -434,7 +433,6 @@ class MediaTracker {
 			fired: false
 		});
 		
-		// Sort callbacks by timestamp for more efficient checking
 		this.callbacks.sort((a, b) => a.timestamp - b.timestamp);
 		
 		return this;
@@ -446,18 +444,15 @@ class MediaTracker {
 		this.playback_started_at = Date.now();
 		this.expected_position = 0;
 		
-		// Reset fired status for all callbacks
 		for (let cb of this.callbacks)
 			cb.fired = false;
 		
-		// Start checking for timestamps
 		this._start_checking();
 	}
 	
 	_handle_media_stop() {
 		log_info(`media {${this.media_name}} stopped playback`, 'MEDIA');
 		
-		// Ensure we're actually stopping the checking
 		if (this.check_interval) {
 			log_verbose(`clearing check interval for {${this.media_name}}`, 'MEDIA');
 			clearInterval(this.check_interval);
@@ -471,7 +466,6 @@ class MediaTracker {
 		if (this.check_interval)
 			clearInterval(this.check_interval);
 		
-		// Check every 100ms (adjust as needed for accuracy vs performance)
 		this.check_interval = setInterval(() => this._check_time(), 100);
 	}
 	
@@ -496,8 +490,7 @@ class MediaTracker {
 				this.playback_started_at = Date.now() - status.mediaCursor;
 			}
 		} catch (e) {
-			// If we can't get the actual position, continue with the time-based estimation
-			// No need to log every check - would be too verbose
+			// ignore
 		}
 		
 		for (let cb of this.callbacks) {
