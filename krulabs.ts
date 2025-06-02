@@ -290,7 +290,7 @@ function register_http_interface(type: string, route: string, file: string) {
 }
 
 log_info(`interfaces listening on port {${http_server.port}}`, HTTP_PREFIX);
-get_ipv4_addresses().forEach(addr => log_info(`detected ipv4 interface address {${addr}}`, HTTP_PREFIX));
+get_ipv4_addresses().forEach(addr => log_info(`detected IPv4 interface address {${addr}}`, HTTP_PREFIX));
 // endregion
 
 // region touchpad
