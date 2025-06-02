@@ -925,7 +925,7 @@ class OBSConnection {
 		});
 	}
 
-	async get_current_scene() {
+	async get_current_scene(): Promise<string> {
 		const current_scene = await this._request(OBS_REQUEST.GET_CURRENT_PROGRAM_SCENE);
 		if (!current_scene)
 			throw new Error('failed to get current program scene');
@@ -940,7 +940,7 @@ class OBSConnection {
 			const current_scene = await this.get_current_scene();
 			
 			const scene_items = await this._request(OBS_REQUEST.GET_SCENE_ITEM_LIST, {
-				sceneName: current_scene.sceneName
+				sceneName: current_scene
 			});
 			
 			if (!scene_items || !scene_items.sceneItems) {
@@ -990,7 +990,7 @@ class OBSConnection {
 			const current_scene = await this.get_current_scene();
 			
 			const scene_items = await this._request(OBS_REQUEST.GET_SCENE_ITEM_LIST, {
-				sceneName: current_scene.sceneName
+				sceneName: current_scene
 			});
 			
 			if (!scene_items || !scene_items.sceneItems) {
@@ -1068,7 +1068,7 @@ class OBSConnection {
 			const current_scene = await this.get_current_scene();
 			
 			const scene_items = await this._request(OBS_REQUEST.GET_SCENE_ITEM_LIST, {
-				sceneName: current_scene.sceneName
+				sceneName: current_scene
 			});
 			
 			if (!scene_items || !scene_items.sceneItems) {
