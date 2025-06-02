@@ -66,6 +66,27 @@ obs.create_scene('SCENE_A');
 obs.create_scene('SCENE_NAME');
 ```
 
+#### Delete Scene
+
+```ts
+obs.delete_scene('SCENE_NAME');
+```
+
+#### Delete All Scenes
+
+> [!NOTE]
+> There must always be at least one scene, so this will not delete the current program scene.
+
+```ts
+obs.delete_all_scenes('SCENE_NAME');
+```
+
+#### Rename Scene
+
+```ts
+obs.rename_scene('OLD_SCENE_NAME', 'NEW_SCENE_NAME');
+```
+
 #### Trigger Scene Change
 
 ```ts

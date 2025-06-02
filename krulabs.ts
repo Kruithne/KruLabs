@@ -654,6 +654,63 @@ class OBSConnection {
 		});
 	}
 
+	delete_scene(scene_name: string) {
+		log_info(`Deleting scene {${scene_name}}`, OBS_PREFIX);
+		return this._request(OBS_REQUEST.REMOVE_SCENE, {
+			sceneName: scene_name
+		});
+	}
+
+	async delete_all_scenes() {
+		try {
+			const current_program_scene = await this._request(OBS_REQUEST.GET_CURRENT_PROGRAM_SCENE);
+			if (!current_program_scene) {
+				log_warn('Could not get current program scene, aborting delete_all_scenes');
+				return;
+			}
+			
+			const current_scene_name = current_program_scene.sceneName;
+			log_info(`Current program scene: {${current_scene_name}} - will not be deleted`, OBS_PREFIX);
+			
+			const scene_list_response = await this._request(OBS_REQUEST.GET_SCENE_LIST);
+			if (!scene_list_response || !scene_list_response.scenes) {
+				log_warn('Could not get scene list, aborting delete_all_scenes');
+				return;
+			}
+			
+			const scenes = scene_list_response.scenes;
+			const promises = [];
+			for (const scene of scenes) {
+				if (scene.sceneName === current_scene_name)
+					continue;
+
+				log_info(`Deleting scene {${scene.sceneName}}`, OBS_PREFIX);
+				promises.push(this._request(OBS_REQUEST.REMOVE_SCENE, {
+					sceneName: scene.sceneName
+				}));
+			}
+			
+			if (promises.length === 0) {
+				log_info('No scenes to delete (only current program scene exists)', OBS_PREFIX);
+				return;
+			}
+			
+			await Promise.all(promises);
+			
+			log_info(`Successfully deleted {${promises.length}} scenes`, OBS_PREFIX);
+		} catch (error) {
+			log_warn(`Error during delete_all_scenes: ${error}`);
+		}
+	}
+
+	rename_scene(scene_name: string, new_name: string) {
+		log_info(`Renaming scene {${scene_name}} to {${new_name}}`, OBS_PREFIX);
+		return this._request(OBS_REQUEST.SET_SCENE_NAME, {
+			sceneName: scene_name,
+			newSceneName: new_name
+		});
+	}
+
 	on_time(media_name: string, timestamp: number, callback: Function) {
 		let tracker = media_trackers.get(media_name);
 		if (!tracker) {
