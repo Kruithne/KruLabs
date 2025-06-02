@@ -480,22 +480,27 @@ class MediaTracker {
 		if (!this.playback_started_at)
 			return;
 		
-		const elapsed = Date.now() - this.playback_started_at;
-		this.expected_position = elapsed;
+		let current_position;
 		
 		try {
 			const status = await this._get_current_media_status();
 			if (status && status.mediaCursor !== null) {
-				this.expected_position = status.mediaCursor;
+				current_position = status.mediaCursor;
 				this.playback_started_at = Date.now() - status.mediaCursor;
+			} else {
+				const elapsed = Date.now() - this.playback_started_at;
+				current_position = elapsed;
 			}
 		} catch (e) {
-			// ignore
+			const elapsed = Date.now() - this.playback_started_at;
+			current_position = elapsed;
 		}
 		
+		this.expected_position = current_position;
+		
 		for (let cb of this.callbacks) {
-			if (!cb.fired && this.expected_position >= cb.timestamp) {
-				log_verbose(`triggering media callback for {${this.media_name}} at timestamp {${cb.timestamp}ms}`, 'MEDIA');
+			if (!cb.fired && current_position >= cb.timestamp) {
+				log_info(`triggering media callback for {${this.media_name}} at timestamp {${current_position}ms}`, 'MEDIA');
 				cb.fired = true;
 				cb.callback(this.media_name, cb.timestamp);
 			}
@@ -955,8 +960,7 @@ class OBSConnection {
 						 event_data?.mediaAction === OBS_MEDIA_INPUT_ACTION.PAUSE);
 					
 					for (const [tracker_name, tracker] of media_trackers.entries()) {
-						// Check if this input name matches our tracked media name
-						if (input_name.includes(tracker_name)) {
+						if (input_name === tracker_name) {
 							if (event_type === OBS_EVENT_TYPE.MEDIA_INPUT_PLAYBACK_STARTED) {
 								tracker._handle_media_start();
 							} else if (event_type === OBS_EVENT_TYPE.MEDIA_INPUT_PLAYBACK_ENDED || is_stop_action) {
