@@ -1254,10 +1254,6 @@ class OBSConnection {
 						this.connection_resolver(this);
 						this.connection_resolver = null;
 					}
-					
-					this._request(OBS_REQUEST.GET_VERSION).then(res => {
-						log_info(`OBS host running version {${res?.obsVersion}} (${res?.platformDescription})`, OBS_PREFIX)
-					});
 				}
 			}
 		} catch (e) {
