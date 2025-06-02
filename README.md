@@ -55,6 +55,7 @@ obs.create_scene('SCENE_A');
 
 ```ts
 obs.scene('SCENE_NAME'); // goto
+obs.get_current_scene(); // returns scene name
 obs.create_scene('SCENE_NAME');
 obs.delete_scene('SCENE_NAME');
 obs.delete_all_scenes(); // does not delete current scene

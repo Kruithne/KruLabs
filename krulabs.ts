@@ -924,16 +924,20 @@ class OBSConnection {
 			mediaAction: OBS_MEDIA_INPUT_ACTION.PLAY
 		});
 	}
+
+	async get_current_scene() {
+		const current_scene = await this._request(OBS_REQUEST.GET_CURRENT_PROGRAM_SCENE);
+		if (!current_scene)
+			throw new Error('failed to get current program scene');
+
+		return current_scene.sceneName;
+	}
 	
 	async pause_all() {
 		log(`{pause_all} > pausing all media in current scene`, OBS_PREFIX);
 		
 		try {
-			const current_scene = await this._request(OBS_REQUEST.GET_CURRENT_PROGRAM_SCENE);
-			if (!current_scene) {
-				warn('{pause_all} > failed to get current program scene');
-				return;
-			}
+			const current_scene = await this.get_current_scene();
 			
 			const scene_items = await this._request(OBS_REQUEST.GET_SCENE_ITEM_LIST, {
 				sceneName: current_scene.sceneName
@@ -983,11 +987,7 @@ class OBSConnection {
 		log(`{play_all} > resuming all media in current scene`, OBS_PREFIX);
 		
 		try {
-			const current_scene = await this._request(OBS_REQUEST.GET_CURRENT_PROGRAM_SCENE);
-			if (!current_scene) {
-				warn('{play_all} > failed to get current program scene');
-				return;
-			}
+			const current_scene = await this.get_current_scene();
 			
 			const scene_items = await this._request(OBS_REQUEST.GET_SCENE_ITEM_LIST, {
 				sceneName: current_scene.sceneName
@@ -1065,11 +1065,7 @@ class OBSConnection {
 		log(`{seek_all} > Seeking all media in current scene to {${timestamp_ms}ms}`, OBS_PREFIX);
 		
 		try {
-			const current_scene = await this._request(OBS_REQUEST.GET_CURRENT_PROGRAM_SCENE);
-			if (!current_scene) {
-				warn('{seek_all} > failed to get current program scene');
-				return;
-			}
+			const current_scene = await this.get_current_scene();
 			
 			const scene_items = await this._request(OBS_REQUEST.GET_SCENE_ITEM_LIST, {
 				sceneName: current_scene.sceneName
@@ -1123,14 +1119,8 @@ class OBSConnection {
 	
 	async delete_all_scenes() {
 		try {
-			const current_program_scene = await this._request(OBS_REQUEST.GET_CURRENT_PROGRAM_SCENE);
-			if (!current_program_scene) {
-				warn('{delete_all_scenes} > failed to get current program scene, aborting');
-				return;
-			}
-			
-			const current_scene_name = current_program_scene.sceneName;
-			log(`{delete_all_scenes} > current program scene {${current_scene_name}} will not be deleted`, OBS_PREFIX);
+			const current_scene = await this.get_current_scene();
+			log(`{delete_all_scenes} > current program scene {${current_scene}} will not be deleted`, OBS_PREFIX);
 			
 			const scene_list_response = await this._request(OBS_REQUEST.GET_SCENE_LIST);
 			if (!scene_list_response || !scene_list_response.scenes) {
@@ -1141,7 +1131,7 @@ class OBSConnection {
 			const scenes = scene_list_response.scenes;
 			const promises = [];
 			for (const scene of scenes) {
-				if (scene.sceneName === current_scene_name)
+				if (scene.sceneName === current_scene)
 					continue;
 				
 				log(`{delete_all_scenes} > deleting scene {${scene.sceneName}}`, OBS_PREFIX);
