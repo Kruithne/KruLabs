@@ -2,14 +2,13 @@
 
 KruLabs is a bespoke automation system for theatre production.
 
-## Disclaimer
+## ⚠️ Disclaimer
 
 KruLabs is purpose built. It is not intended for general-purpose use and is not supported for such. This project is open-sourced for educational and research purposes. It is not recommended to use this software.
 
-## Responsibility
 Neither the author nor the contributor of this software are responsible for any damages caused by the use of this software. This software is provided as-is, with no warranty or guarantee of any kind. By using this software you understand the potential risks and assume all responsibility.
 
-## Installation
+## 🛠️ Installation
 
 ```bash
 # install bun (if not already installed)
@@ -20,7 +19,7 @@ curl -fsSL https://bun.sh/install | bash # linux & macOS
 git clone https://github.com/Kruithne/KruLabs.git
 ```
 
-## Usage
+## 📔 Usage
 
 ### ETC Integration
 
@@ -31,25 +30,17 @@ const etc = await connect_etc('localhost', 3037);
 etc.fire_cue(5);
 ```
 
-#### Fire Cue
+#### Cue Management
 
 ```ts
 etc.fire_cue(5);
-```
-
-#### Record Cue
-
-```ts
 etc.record_cue(5, 'CUE_NAME');
-```
-
-#### Trigger On Cue
-
-```ts
 etc.on_cue(5, () => {
-	// fires when cue 5 is triggered on the board
+	// fires when cue 5 is triggered
 });
 ```
+
+---
 
 ### OBS Integration
 
@@ -60,51 +51,29 @@ const obs = await connect_obs('localhost', 4456, 'password');
 obs.create_scene('SCENE_A');
 ```
 
-#### Scene Creation
+#### Scene Management
 
 ```ts
+obs.scene('SCENE_NAME'); // goto
 obs.create_scene('SCENE_NAME');
-```
-
-#### Delete Scene
-
-```ts
 obs.delete_scene('SCENE_NAME');
-```
-
-#### Delete All Scenes
-
-> [!NOTE]
-> There must always be at least one scene, so this will not delete the current program scene.
-
-```ts
-obs.delete_all_scenes('SCENE_NAME');
-```
-
-#### Rename Scene
-
-```ts
+obs.delete_all_scenes(); // does not delete current scene
 obs.rename_scene('OLD_SCENE_NAME', 'NEW_SCENE_NAME');
+
 ```
 
-#### Trigger Scene Change
+#### Media Playback
 
 ```ts
-obs.scene('SCENE_NAME');
-```
+obs.play('SOME_MEDIA.mp4');
+obs.play_all();
+obs.pause('SOME_MEDIA.mp4');
+obs.seek('SOME_MEDIA.mp4', 5000);
+obs.seek('SOME_MEDIA.mp4', 5000, true) // modulo seek
+obs.seek_all(5000);
+obs.seek_all(5000, true); // modulo seek
 
-#### Trigger On Media Timestamp
-
-> [!WARN]
-> This feature is still experimental.
-
-```ts
 obs.on_time('SOME_MEDIA.mp4', 5000, () => {
-	// fires when SOME_MEDIA.mp4 reaches 5s
+	// fires when SOME_MEDIA.mp4 reaches 5 seconds
 });
 ```
-
-####
-
-## License
-This project is licensed under the MIT license. For more information, please refer to the [LICENSE](LICENSE) file.
