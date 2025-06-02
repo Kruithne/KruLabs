@@ -194,6 +194,12 @@ function ws_close(ws: ServerWebSocket, code: number, reason: string) {
 	ws_socket_timeout.delete(ws);
 }
 
+function ws_send(ws: ServerWebSocket, id: string, data: any = null) {
+	const payload = JSON.stringify({ id, data });
+	verbose(`SEND {${id}} to {${ws.remoteAddress}} ({${format_bytes(payload.length)}})`, WS_PREFIX);
+	ws.sendText(payload);
+}
+
 function ws_message(ws: ServerWebSocket, message: string | Buffer) {
 	try {
 		if (typeof message !== 'string')
@@ -203,6 +209,8 @@ function ws_message(ws: ServerWebSocket, message: string | Buffer) {
 		if (typeof json.id !== 'string')
 			throw new Error('JSON payload did not include a valid `id` field.');
 
+		verbose(`RECV {${json.id}} from {${ws.remoteAddress}} ({${format_bytes(message.length)}})`, WS_PREFIX);
+		
 		const socket_type = ws_sockets.get(ws);
 		if (socket_type !== undefined) {
 			ws_socket_handlers.get(socket_type)?.(ws);
@@ -227,6 +235,10 @@ function ws_message(ws: ServerWebSocket, message: string | Buffer) {
 
 			ws_socket_map.get(json.type)?.add(ws);
 			ws_sockets.set(ws, json.type);
+
+			ws_send(ws, 'identified');
+
+			log(`identified {${ws.remoteAddress}} as {${json.type}}`, WS_PREFIX);
 		}
 	} catch (e) {
 		ws.close(4000, (e as Error).message);
@@ -246,6 +258,9 @@ const http_interfaces = new Map<string, BunFile>();
 const http_server = Bun.serve({
 	port: 19531,
 	async fetch(req) {
+		if (http_server.upgrade(req))
+			return;
+
 		const url = new URL(req.url);
 
 		if (url.pathname.startsWith('/static/')) {
@@ -316,7 +331,7 @@ class TouchpadInterface {
 
 const registered_touchpads = new Map<string, TouchpadInterface>();
 
-export function create_touchpad(name: string, color: ColorInput) {
+export function create_touchpad(name: string) {
 	const slug = slug_string(name);
 
 	if (registered_touchpads.has(slug))
