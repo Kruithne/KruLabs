@@ -22,7 +22,68 @@ git clone https://github.com/Kruithne/KruLabs.git
 
 ## Usage
 
-```todo```
+### ETC Integration
+
+```ts
+import { connect_etc } from '../krulabs';
+
+const etc = await connect_etc('localhost', 3037);
+etc.fire_cue(5);
+```
+
+#### Fire Cue
+
+```ts
+etc.fire_cue(5);
+```
+
+#### Record Cue
+
+```ts
+etc.record_cue(5, 'CUE_NAME');
+```
+
+#### Trigger On Cue
+
+```ts
+etc.on_cue(5, () => {
+	// fires when cue 5 is triggered on the board
+});
+```
+
+### OBS Integration
+
+```ts
+import { connect_obs } from '../krulabs';
+
+const obs = await connect_obs('localhost', 4456, 'password');
+obs.create_scene('SCENE_A');
+```
+
+#### Scene Creation
+
+```ts
+obs.create_scene('SCENE_NAME');
+```
+
+#### Trigger Scene Change
+
+```ts
+obs.scene('SCENE_NAME');
+```
+
+#### Trigger On Media Timestamp
+
+> [!WARN]
+> This feature is still experimental.
+
+```ts
+obs.on_time('SOME_MEDIA.mp4', 5000, () => {
+	// fires when SOME_MEDIA.mp4 reaches 5s
+});
+```
+
+####
 
 ## License
 This project is licensed under the MIT license. For more information, please refer to the [LICENSE](LICENSE) file.
