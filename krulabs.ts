@@ -784,6 +784,10 @@ class MediaTracker {
 
 const media_trackers = new Map<string, MediaTracker>();
 
+type OBSSceneItem = {
+	sourceName: string;
+};
+
 class OBSConnection {
 	socket: WebSocket|undefined;
 	identified: boolean = false;
@@ -932,27 +936,27 @@ class OBSConnection {
 
 		return current_scene.sceneName;
 	}
+
+	async _get_scene_items(): Promise<string[]> {
+		const result = await this._request(OBS_REQUEST.GET_SCENE_ITEM_LIST, {
+			sceneName: await this.get_current_scene()
+		});
+
+		const scene_items = result?.sceneItems as OBSSceneItem[];
+		if (!scene_items)
+			throw new Error('failed to get scene item list');
+
+		return scene_items.map(e => e.sourceName);
+	}
 	
 	async pause_all() {
 		log(`{pause_all} > pausing all media in current scene`, OBS_PREFIX);
 		
 		try {
-			const current_scene = await this.get_current_scene();
-			
-			const scene_items = await this._request(OBS_REQUEST.GET_SCENE_ITEM_LIST, {
-				sceneName: current_scene
-			});
-			
-			if (!scene_items || !scene_items.sceneItems) {
-				warn('{pause_all} > failed to get scene items');
-				return;
-			}
-			
+			const scene_items = await this._get_scene_items();
 			const media_pause_promises = [];
 			
-			for (const item of scene_items.sceneItems) {
-				const input_name = item.sourceName;
-				
+			for (const input_name of scene_items) {
 				try {
 					const input_status = await this._request(OBS_REQUEST.GET_MEDIA_INPUT_STATUS, {
 						inputName: input_name
@@ -987,22 +991,10 @@ class OBSConnection {
 		log(`{play_all} > resuming all media in current scene`, OBS_PREFIX);
 		
 		try {
-			const current_scene = await this.get_current_scene();
-			
-			const scene_items = await this._request(OBS_REQUEST.GET_SCENE_ITEM_LIST, {
-				sceneName: current_scene
-			});
-			
-			if (!scene_items || !scene_items.sceneItems) {
-				warn('{play_all} > failed to get scene items');
-				return;
-			}
-			
+			const scene_items = await this._get_scene_items();
 			const media_play_promises = [];
 			
-			for (const item of scene_items.sceneItems) {
-				const input_name = item.sourceName;
-				
+			for (const input_name of scene_items) {
 				try {
 					const input_status = await this._request(OBS_REQUEST.GET_MEDIA_INPUT_STATUS, {
 						inputName: input_name
@@ -1065,22 +1057,10 @@ class OBSConnection {
 		log(`{seek_all} > Seeking all media in current scene to {${timestamp_ms}ms}`, OBS_PREFIX);
 		
 		try {
-			const current_scene = await this.get_current_scene();
-			
-			const scene_items = await this._request(OBS_REQUEST.GET_SCENE_ITEM_LIST, {
-				sceneName: current_scene
-			});
-			
-			if (!scene_items || !scene_items.sceneItems) {
-				warn('{seek_all} > failed to get scene items');
-				return;
-			}
-			
+			const scene_items = await this._get_scene_items();
 			const media_seek_promises = [];
 			
-			for (const item of scene_items.sceneItems) {
-				const input_name = item.sourceName;
-				
+			for (const input_name of scene_items) {
 				try {
 					const input_status = await this._request(OBS_REQUEST.GET_MEDIA_INPUT_STATUS, {
 						inputName: input_name
