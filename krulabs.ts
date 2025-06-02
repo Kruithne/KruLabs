@@ -214,7 +214,7 @@ function ws_message(ws: ServerWebSocket, message: string | Buffer) {
 			ws_sockets.set(ws, json.type);
 		}
 	} catch (e) {
-		//log_warn(`{ws_message()} > error processing message: ${e}`);
+		//log_warn(`{ws_message} > error processing message: ${e}`);
 		ws.close(4000, (e as Error).message);
 	}
 }
@@ -875,28 +875,28 @@ class OBSConnection {
 	}
 	
 	scene(scene_name: string) {
-		log_info(`{scene()} > switching to scene {${scene_name}}`, OBS_PREFIX);
+		log_info(`{scene} > switching to scene {${scene_name}}`, OBS_PREFIX);
 		this._request(OBS_REQUEST.SET_CURRENT_PROGRAM_SCENE, {
 			sceneName: scene_name
 		});
 	}
 	
 	create_scene(scene_name: string) {
-		log_info(`{create_scene()} > creating scene {${scene_name}}`, OBS_PREFIX);
+		log_info(`{create_scene} > creating scene {${scene_name}}`, OBS_PREFIX);
 		this._request(OBS_REQUEST.CREATE_SCENE, {
 			sceneName: scene_name
 		});
 	}
 	
 	delete_scene(scene_name: string) {
-		log_info(`{delete_scene()} > deleting scene {${scene_name}}`, OBS_PREFIX);
+		log_info(`{delete_scene} > deleting scene {${scene_name}}`, OBS_PREFIX);
 		return this._request(OBS_REQUEST.REMOVE_SCENE, {
 			sceneName: scene_name
 		});
 	}
 	
 	pause(media_name: string) {
-		log_info(`{pause()} > pausing media {${media_name}}`, OBS_PREFIX);
+		log_info(`{pause} > pausing media {${media_name}}`, OBS_PREFIX);
 		return this._request(OBS_REQUEST.TRIGGER_MEDIA_INPUT_ACTION, {
 			inputName: media_name,
 			mediaAction: OBS_MEDIA_INPUT_ACTION.PAUSE
@@ -904,7 +904,7 @@ class OBSConnection {
 	}
 	
 	play(media_name: string) {
-		log_info(`{play()} > playing media {${media_name}}`, OBS_PREFIX);
+		log_info(`{play} > playing media {${media_name}}`, OBS_PREFIX);
 		return this._request(OBS_REQUEST.TRIGGER_MEDIA_INPUT_ACTION, {
 			inputName: media_name,
 			mediaAction: OBS_MEDIA_INPUT_ACTION.PLAY
@@ -912,12 +912,12 @@ class OBSConnection {
 	}
 	
 	async pause_all() {
-		log_info(`{pause_all()} > pausing all media in current scene`, OBS_PREFIX);
+		log_info(`{pause_all} > pausing all media in current scene`, OBS_PREFIX);
 		
 		try {
 			const current_scene = await this._request(OBS_REQUEST.GET_CURRENT_PROGRAM_SCENE);
 			if (!current_scene) {
-				log_warn('{pause_all()} > failed to get current program scene');
+				log_warn('{pause_all} > failed to get current program scene');
 				return;
 			}
 			
@@ -926,7 +926,7 @@ class OBSConnection {
 			});
 			
 			if (!scene_items || !scene_items.sceneItems) {
-				log_warn('{pause_all()} > failed to get scene items');
+				log_warn('{pause_all} > failed to get scene items');
 				return;
 			}
 			
@@ -941,7 +941,7 @@ class OBSConnection {
 					});
 					
 					if (input_status && input_status.mediaState === 'OBS_MEDIA_STATE_PLAYING') {
-						log_info(`{pause_all()} > pausing media {${input_name}}`, OBS_PREFIX);
+						log_info(`{pause_all} > pausing media {${input_name}}`, OBS_PREFIX);
 						media_pause_promises.push(
 							this._request(OBS_REQUEST.TRIGGER_MEDIA_INPUT_ACTION, {
 								inputName: input_name,
@@ -956,22 +956,22 @@ class OBSConnection {
 			
 			if (media_pause_promises.length > 0) {
 				await Promise.all(media_pause_promises);
-				log_info(`{pause_all()} > paused {${media_pause_promises.length}} media inputs`, OBS_PREFIX);
+				log_info(`{pause_all} > paused {${media_pause_promises.length}} media inputs`, OBS_PREFIX);
 			} else {
-				log_info('{pause_all()} > no playing media found in current scene', OBS_PREFIX);
+				log_info('{pause_all} > no playing media found in current scene', OBS_PREFIX);
 			}
 		} catch (error) {
-			log_warn(`{pause_all()} > error: ${error}`);
+			log_warn(`{pause_all} > error: ${error}`);
 		}
 	}
 	
 	async play_all() {
-		log_info(`{play_all()} > resuming all media in current scene`, OBS_PREFIX);
+		log_info(`{play_all} > resuming all media in current scene`, OBS_PREFIX);
 		
 		try {
 			const current_scene = await this._request(OBS_REQUEST.GET_CURRENT_PROGRAM_SCENE);
 			if (!current_scene) {
-				log_warn('{play_all()} > failed to get current program scene');
+				log_warn('{play_all} > failed to get current program scene');
 				return;
 			}
 			
@@ -980,7 +980,7 @@ class OBSConnection {
 			});
 			
 			if (!scene_items || !scene_items.sceneItems) {
-				log_warn('{play_all()} > failed to get scene items');
+				log_warn('{play_all} > failed to get scene items');
 				return;
 			}
 			
@@ -995,7 +995,7 @@ class OBSConnection {
 					});
 					
 					if (input_status && (input_status.mediaState === 'OBS_MEDIA_STATE_PAUSED' || input_status.mediaState === 'OBS_MEDIA_STATE_STOPPED' || input_status.mediaState === 'OBS_MEDIA_STATE_ENDED')) {
-						log_info(`{play_all()} > playing media {${input_name}}`, OBS_PREFIX);
+						log_info(`{play_all} > playing media {${input_name}}`, OBS_PREFIX);
 						media_play_promises.push(
 							this._request(OBS_REQUEST.TRIGGER_MEDIA_INPUT_ACTION, {
 								inputName: input_name,
@@ -1010,17 +1010,17 @@ class OBSConnection {
 			
 			if (media_play_promises.length > 0) {
 				await Promise.all(media_play_promises);
-				log_info(`{play_all()} > started playing {${media_play_promises.length}} media inputs`, OBS_PREFIX);
+				log_info(`{play_all} > started playing {${media_play_promises.length}} media inputs`, OBS_PREFIX);
 			} else {
-				log_info('{play_all()} > no paused/stopped media found in current scene', OBS_PREFIX);
+				log_info('{play_all} > no paused/stopped media found in current scene', OBS_PREFIX);
 			}
 		} catch (error) {
-			log_warn(`{play_all()} > error: ${error}`);
+			log_warn(`{play_all} > error: ${error}`);
 		}
 	}
 	
 	async seek(media_name: string, timestamp_ms: number, loop: boolean = false) {
-		log_info(`{seek()} > seeking media {${media_name}} to {${timestamp_ms}ms}`, OBS_PREFIX);
+		log_info(`{seek} > seeking media {${media_name}} to {${timestamp_ms}ms}`, OBS_PREFIX);
 		
 		let final_timestamp = timestamp_ms;
 		
@@ -1033,11 +1033,11 @@ class OBSConnection {
 				if (media_status && media_status.mediaDuration && media_status.mediaDuration > 0) {
 					final_timestamp = timestamp_ms % media_status.mediaDuration;
 					if (final_timestamp !== timestamp_ms) {
-						log_info(`{seek()} > Looped seek: {${timestamp_ms}ms} -> {${final_timestamp}ms} (duration: {${media_status.mediaDuration}ms})`, OBS_PREFIX);
+						log_info(`{seek} > Looped seek: {${timestamp_ms}ms} -> {${final_timestamp}ms} (duration: {${media_status.mediaDuration}ms})`, OBS_PREFIX);
 					}
 				}
 			} catch (e) {
-				log_warn(`{seek()} > failed to get media duration for looping calculation: ${e}`);
+				log_warn(`{seek} > failed to get media duration for looping calculation: ${e}`);
 			}
 		}
 		
@@ -1048,12 +1048,12 @@ class OBSConnection {
 	}
 	
 	async seek_all(timestamp_ms: number, loop: boolean = false) {
-		log_info(`{seek_all()} > Seeking all media in current scene to {${timestamp_ms}ms}`, OBS_PREFIX);
+		log_info(`{seek_all} > Seeking all media in current scene to {${timestamp_ms}ms}`, OBS_PREFIX);
 		
 		try {
 			const current_scene = await this._request(OBS_REQUEST.GET_CURRENT_PROGRAM_SCENE);
 			if (!current_scene) {
-				log_warn('{seek_all()} > failed to get current program scene');
+				log_warn('{seek_all} > failed to get current program scene');
 				return;
 			}
 			
@@ -1062,7 +1062,7 @@ class OBSConnection {
 			});
 			
 			if (!scene_items || !scene_items.sceneItems) {
-				log_warn('{seek_all()} > failed to get scene items');
+				log_warn('{seek_all} > failed to get scene items');
 				return;
 			}
 			
@@ -1083,7 +1083,7 @@ class OBSConnection {
 							final_timestamp = timestamp_ms % input_status.mediaDuration;
 						}
 						
-						log_info(`{seek_all()} > seeking media {${input_name}} to {${final_timestamp}ms}`, OBS_PREFIX);
+						log_info(`{seek_all} > seeking media {${input_name}} to {${final_timestamp}ms}`, OBS_PREFIX);
 						media_seek_promises.push(
 							this._request(OBS_REQUEST.SET_MEDIA_INPUT_CURSOR, {
 								inputName: input_name,
@@ -1098,12 +1098,12 @@ class OBSConnection {
 			
 			if (media_seek_promises.length > 0) {
 				await Promise.all(media_seek_promises);
-				log_info(`{seek_all()} > seeked {${media_seek_promises.length}} media inputs`, OBS_PREFIX);
+				log_info(`{seek_all} > seeked {${media_seek_promises.length}} media inputs`, OBS_PREFIX);
 			} else {
-				log_info('{seek_all()} > no media found in current scene', OBS_PREFIX);
+				log_info('{seek_all} > no media found in current scene', OBS_PREFIX);
 			}
 		} catch (error) {
-			log_warn(`{seek_all()} > error: ${error}`);
+			log_warn(`{seek_all} > error: ${error}`);
 		}
 	}
 	
@@ -1111,16 +1111,16 @@ class OBSConnection {
 		try {
 			const current_program_scene = await this._request(OBS_REQUEST.GET_CURRENT_PROGRAM_SCENE);
 			if (!current_program_scene) {
-				log_warn('{delete_all_scenes()} > failed to get current program scene, aborting');
+				log_warn('{delete_all_scenes} > failed to get current program scene, aborting');
 				return;
 			}
 			
 			const current_scene_name = current_program_scene.sceneName;
-			log_info(`{delete_all_scenes()} > current program scene {${current_scene_name}} will not be deleted`, OBS_PREFIX);
+			log_info(`{delete_all_scenes} > current program scene {${current_scene_name}} will not be deleted`, OBS_PREFIX);
 			
 			const scene_list_response = await this._request(OBS_REQUEST.GET_SCENE_LIST);
 			if (!scene_list_response || !scene_list_response.scenes) {
-				log_warn('{delete_all_scenes()} > failed to get scene list, aborting');
+				log_warn('{delete_all_scenes} > failed to get scene list, aborting');
 				return;
 			}
 			
@@ -1130,27 +1130,27 @@ class OBSConnection {
 				if (scene.sceneName === current_scene_name)
 					continue;
 				
-				log_info(`{delete_all_scenes()} > deleting scene {${scene.sceneName}}`, OBS_PREFIX);
+				log_info(`{delete_all_scenes} > deleting scene {${scene.sceneName}}`, OBS_PREFIX);
 				promises.push(this._request(OBS_REQUEST.REMOVE_SCENE, {
 					sceneName: scene.sceneName
 				}));
 			}
 			
 			if (promises.length === 0) {
-				log_info('{delete_all_scenes()} > no valid scenes to delete', OBS_PREFIX);
+				log_info('{delete_all_scenes} > no valid scenes to delete', OBS_PREFIX);
 				return;
 			}
 			
 			await Promise.all(promises);
 			
-			log_info(`{delete_all_scenes()} > successfully deleted {${promises.length}} scenes`, OBS_PREFIX);
+			log_info(`{delete_all_scenes} > successfully deleted {${promises.length}} scenes`, OBS_PREFIX);
 		} catch (error) {
-			log_warn(`{delete_all_scenes()} > error: ${error}`);
+			log_warn(`{delete_all_scenes} > error: ${error}`);
 		}
 	}
 	
 	rename_scene(scene_name: string, new_name: string) {
-		log_info(`{rename_scene()} > renaming scene {${scene_name}} to {${new_name}}`, OBS_PREFIX);
+		log_info(`{rename_scene} > renaming scene {${scene_name}} to {${new_name}}`, OBS_PREFIX);
 		return this._request(OBS_REQUEST.SET_SCENE_NAME, {
 			sceneName: scene_name,
 			newSceneName: new_name
