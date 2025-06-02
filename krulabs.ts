@@ -997,354 +997,348 @@ class OBSConnection {
 				log_verbose(`RECV {${OBS_OP_CODE_TO_STR[message.op]}} [{${event_type}}] size {${format_bytes(message_size)}}`, OBS_PREFIX);
 				
 				// Handle media events for registered trackers
-				if (event_type === OBS_EVENT_TYPE.MEDIA_INPUT_PLAYBACK_STARTED || 
-					event_type === OBS_EVENT_TYPE.MEDIA_INPUT_PLAYBACK_ENDED ||
-					event_type === OBS_EVENT_TYPE.MEDIA_INPUT_ACTION_TRIGGERED) {
+				if (event_type === OBS_EVENT_TYPE.MEDIA_INPUT_PLAYBACK_STARTED || event_type === OBS_EVENT_TYPE.MEDIA_INPUT_PLAYBACK_ENDED || event_type === OBS_EVENT_TYPE.MEDIA_INPUT_ACTION_TRIGGERED) {						
+					const input_name = event_data?.inputName || '';
 						
-						const input_name = event_data?.inputName || '';
-						
-						// For action triggered events, check if it's a stop action
-						const is_stop_action = event_type === OBS_EVENT_TYPE.MEDIA_INPUT_ACTION_TRIGGERED && 
-						(event_data?.mediaAction === OBS_MEDIA_INPUT_ACTION.STOP || 
-							event_data?.mediaAction === OBS_MEDIA_INPUT_ACTION.PAUSE);
-							
-							for (const [tracker_name, tracker] of media_trackers.entries()) {
-								if (input_name === tracker_name) {
-									if (event_type === OBS_EVENT_TYPE.MEDIA_INPUT_PLAYBACK_STARTED) {
-										tracker._handle_media_start();
-									} else if (event_type === OBS_EVENT_TYPE.MEDIA_INPUT_PLAYBACK_ENDED || is_stop_action) {
-										tracker._handle_media_stop();
-									}
-								}
+					// For action triggered events, check if it's a stop action
+					const is_stop_action = event_type === OBS_EVENT_TYPE.MEDIA_INPUT_ACTION_TRIGGERED && (event_data?.mediaAction === OBS_MEDIA_INPUT_ACTION.STOP || event_data?.mediaAction === OBS_MEDIA_INPUT_ACTION.PAUSE);
+					for (const [tracker_name, tracker] of media_trackers.entries()) {
+						if (input_name === tracker_name) {
+							if (event_type === OBS_EVENT_TYPE.MEDIA_INPUT_PLAYBACK_STARTED) {
+								tracker._handle_media_start();
+							} else if (event_type === OBS_EVENT_TYPE.MEDIA_INPUT_PLAYBACK_ENDED || is_stop_action) {
+								tracker._handle_media_stop();
 							}
 						}
-					} else if (message.op === OBS_OP_CODE.REQUEST_BATCH_RESPONSE) {
-						const request_id = message.d.requestId;
-						const request_results = message.d.results;
-						
-						log_verbose(`RECV {${OBS_OP_CODE_TO_STR[message.op]}} [BATCH * {${request_results.length}}] size {${format_bytes(message_size)}}`, OBS_PREFIX);
-						
-						// todo handle this response if needed?
-					} else if (message.op === OBS_OP_CODE.REQUEST_RESPONSE) {
-						const request_type = message.d.requestType;
-						const request_id = message.d.requestId;
-						
-						log_verbose(`RECV {${OBS_OP_CODE_TO_STR[message.op]}} [{${request_type}}] size {${format_bytes(message_size)}}`, OBS_PREFIX);
-						
-						const resolver = obs_request_map.get(request_id);
-						if (resolver) {
-							log_verbose(`received tracked {${request_type}} response [{${request_id}}]`, OBS_PREFIX);
-							obs_request_map.delete(request_id);
-							
-							const request_status = message.d.requestStatus;
-							if (request_status.result) {
-								resolver(message.d.responseData);
-							} else {
-								log_verbose(`request {${request_id}} failed with code {${request_status.code}} (${request_status.comment ?? 'n/a'})`, OBS_PREFIX);
-								resolver(null);
-							}
-						} else {
-							log_verbose(`dropping non-tracked {${request_type}} response [{${request_id}}]`, OBS_PREFIX);
-						}
+					}
+				}
+			} else if (message.op === OBS_OP_CODE.REQUEST_BATCH_RESPONSE) {
+				const request_id = message.d.requestId;
+				const request_results = message.d.results;
+				
+				log_verbose(`RECV {${OBS_OP_CODE_TO_STR[message.op]}} [BATCH * {${request_results.length}}] size {${format_bytes(message_size)}}`, OBS_PREFIX);
+				
+				// todo handle this response if needed?
+			} else if (message.op === OBS_OP_CODE.REQUEST_RESPONSE) {
+				const request_type = message.d.requestType;
+				const request_id = message.d.requestId;
+				
+				log_verbose(`RECV {${OBS_OP_CODE_TO_STR[message.op]}} [{${request_type}}] size {${format_bytes(message_size)}}`, OBS_PREFIX);
+				
+				const resolver = obs_request_map.get(request_id);
+				if (resolver) {
+					log_verbose(`received tracked {${request_type}} response [{${request_id}}]`, OBS_PREFIX);
+					obs_request_map.delete(request_id);
+					
+					const request_status = message.d.requestStatus;
+					if (request_status.result) {
+						resolver(message.d.responseData);
 					} else {
-						log_verbose(`RECV {${OBS_OP_CODE_TO_STR[message.op]}} size {${format_bytes(message_size)}}`, OBS_PREFIX);
-						
-						if (message.op === OBS_OP_CODE.HELLO) {
-							const auth = message.d.authentication;
-							const payload: OBSMessageData = {
-								rpcVersion: message.d.rpcVersion,
-								eventSubscriptions: OBS_EVENT_SUB.ALL
-							};
-							
-							if (auth) {
-								payload.authentication = obs_create_auth_string(
-									this.obs_password,
-									auth.salt,
-									auth.challenge
-								);
-							}
-							
-							this._send(OBS_OP_CODE.IDENTIFY, payload);
-						} else if (message.op === OBS_OP_CODE.IDENTIFIED) {
-							this.identified = true;
-							log_info(`successfully identified with OBS host {${this.obs_host}} using RPC version {${message.d.negotiatedRpcVersion}}`, OBS_PREFIX);
-							
-							if (this.connection_resolver) {
-								this.connection_resolver(this);
-								this.connection_resolver = null;
-							}
-							
-							this._request(OBS_REQUEST.GET_VERSION).then(res => {
-								log_info(`OBS host running version {${res?.obsVersion}} (${res?.platformDescription})`, OBS_PREFIX)
-							});
-						}
+						log_verbose(`request {${request_id}} failed with code {${request_status.code}} (${request_status.comment ?? 'n/a'})`, OBS_PREFIX);
+						resolver(null);
 					}
-				} catch (e) {
-					const error = e as Error;
-					log_warn(`failed to parse OBS message due to ${error.name}: ${error.message}`);
+				} else {
+					log_verbose(`dropping non-tracked {${request_type}} response [{${request_id}}]`, OBS_PREFIX);
 				}
-			}
-		}
-		
-		export async function connect_obs(obs_host: string, obs_port: number, obs_password: string): Promise<OBSConnection> {
-			const connection = new OBSConnection(obs_host, obs_port, obs_password);
-			return await connection.ready;
-		}
-		// endregion
-		
-		// region etc
-		const ETC_PREFIX = 'ETC';
-		const ETC_RECONNECT_DELAY = 500;
-		
-		function osc_write_int32(val: number): Uint8Array {
-			const buf = new ArrayBuffer(4);
-			const view = new DataView(buf);
-			
-			view.setInt32(0, val, false);
-			
-			return new Uint8Array(buf);
-		}
-		
-		function osc_write_string(str: string): Uint8Array {
-			const encoder = new TextEncoder();
-			const bytes = encoder.encode(str + '\0');
-			const padded_len = (bytes.length + 3) & ~0x03;
-			const padded = new Uint8Array(padded_len);
-			
-			padded.set(bytes);
-			
-			return padded;
-		}
-		
-		function osc_create_message(address: string, args: any[] = []): Uint8Array {
-			// Build type tag string
-			let type_tag = ',';
-			for (const arg of args) {
-				if (typeof arg === 'number')
-					type_tag += 'i';
-				else if (typeof arg === 'string')
-					type_tag += 's';
-			}
-			
-			// Encode address and type tag
-			const addr_bytes = osc_write_string(address);
-			const type_bytes = osc_write_string(type_tag);
-			
-			// Encode arguments
-			const arg_bytes: Uint8Array[] = [];
-			for (const arg of args) {
-				if (typeof arg === 'number')
-					arg_bytes.push(osc_write_int32(arg));
-				else if (typeof arg === 'string')
-					arg_bytes.push(osc_write_string(arg));
-			}
-			
-			// Calculate total length
-			const total_len = addr_bytes.length + type_bytes.length + arg_bytes.reduce((acc, val) => acc + val.length, 0);
-			
-			// Combine all parts with length prefix
-			const len_prefix = osc_write_int32(total_len);
-			const message = new Uint8Array(len_prefix.length + total_len);
-			
-			let offset = 0;
-			message.set(len_prefix, offset);
-			offset += len_prefix.length;
-			
-			message.set(addr_bytes, offset);
-			offset += addr_bytes.length;
-			
-			message.set(type_bytes, offset);
-			offset += type_bytes.length;
-			
-			for (const bytes of arg_bytes) {
-				message.set(bytes, offset);
-				offset += bytes.length;
-			}
-			
-			return message;
-		}
-		
-		class ETCConnection {
-			socket: TCPSocket|null = null;
-			reconnect_timer: Timer|null = null;
-			connected: boolean = false;
-			
-			etc_host: string;
-			etc_port: number;
-			cue_callbacks: Map<number, Function[]> = new Map();
-			
-			private connection_promise: Promise<ETCConnection>;
-			private connection_resolver: ((connection: ETCConnection) => void) | null = null;
-			
-			constructor(etc_host: string, etc_port: number) {
-				this.etc_host = etc_host;
-				this.etc_port = etc_port;
+			} else {
+				log_verbose(`RECV {${OBS_OP_CODE_TO_STR[message.op]}} size {${format_bytes(message_size)}}`, OBS_PREFIX);
 				
-				this.connection_promise = new Promise<ETCConnection>(resolve => {
-					this.connection_resolver = resolve;
-				});
-				
-				this._connect();
-			}
-			
-			get ready(): Promise<ETCConnection> {
-				return this.connection_promise;
-			}
-			
-			async _connect() {
-				this._disconnect();
-				
-				try {
-					Bun.connect({
-						hostname: this.etc_host,
-						port: this.etc_port,
-						socket: {
-							open: (socket) => {
-								log_info(`connected to ETC host {${this.etc_host}}`, ETC_PREFIX);
-								this.connected = true;
-								this.socket = socket;
-								
-								if (this.connection_resolver) {
-									this.connection_resolver(this);
-									this.connection_resolver = null;
-								}
-							},
-							
-							data: (socket, data: any) => {
-								this._handle_data(data);
-							},
-							
-							error: (socket, error) => {
-								log_warn(`${error.name} raised in ETC socket: ${error.message}`);
-							},
-							
-							close: () => {
-								this.socket = null;
-								this.connected = false;
-								
-								log_info(`lost connection to ETC host`, ETC_PREFIX);
-								
-								log_info(`reconnecting to ETC host in {${ETC_RECONNECT_DELAY}ms}`, ETC_PREFIX);
-								this.reconnect_timer = setTimeout(() => this._connect(), ETC_RECONNECT_DELAY);
-							}
-						}
+				if (message.op === OBS_OP_CODE.HELLO) {
+					const auth = message.d.authentication;
+					const payload: OBSMessageData = {
+						rpcVersion: message.d.rpcVersion,
+						eventSubscriptions: OBS_EVENT_SUB.ALL
+					};
+					
+					if (auth) {
+						payload.authentication = obs_create_auth_string(
+							this.obs_password,
+							auth.salt,
+							auth.challenge
+						);
+					}
+					
+					this._send(OBS_OP_CODE.IDENTIFY, payload);
+				} else if (message.op === OBS_OP_CODE.IDENTIFIED) {
+					this.identified = true;
+					log_info(`successfully identified with OBS host {${this.obs_host}} using RPC version {${message.d.negotiatedRpcVersion}}`, OBS_PREFIX);
+					
+					if (this.connection_resolver) {
+						this.connection_resolver(this);
+						this.connection_resolver = null;
+					}
+					
+					this._request(OBS_REQUEST.GET_VERSION).then(res => {
+						log_info(`OBS host running version {${res?.obsVersion}} (${res?.platformDescription})`, OBS_PREFIX)
 					});
-				} catch (e) {
-					const err = e as Error;
-					log_warn(`{${err.name}} raised connecting to ETC host: ${err.message}`);
-					
-					log_info(`reconnecting to ETC host in {${ETC_RECONNECT_DELAY}ms}`, ETC_PREFIX);
-					this.reconnect_timer = setTimeout(() => this._connect(), ETC_RECONNECT_DELAY);
 				}
-				
-				return this.ready;
 			}
-			
-			_disconnect() {
-				if (this.reconnect_timer !== null)
-					clearTimeout(this.reconnect_timer);
-				
-				this.socket?.end();
-				
-				this.socket = null;
-				this.connected = false;
-				this.reconnect_timer = null;
-			}
-			
-			_send_command(address: string, ...args: any[]) {
-				if (!this.connected || !this.socket)
-					return;
-				
-				if (!address.startsWith('/eos/')) {
-					if (address.startsWith('/'))
-						address = '/eos' + address;
-					else
-					address = '/eos/' + address;
-				}
-				
-				log_verbose(`SEND {${address}} [${args.map(e => `{${e}}`).join(', ')}]`, ETC_PREFIX);
-				
-				const message = osc_create_message(address, args);
-				this.socket?.write(message);
-			}
-			
-			_handle_data(data: Uint8Array) {
-				try {
-					if (data.length < 8)
-						return;
-					
-					const length_view = new DataView(data.buffer, data.byteOffset, 4);
-					const packet_length = length_view.getInt32(0, false);
-					
-					if (packet_length !== data.length - 4) {
-						log_warn(`OSC packet length mismatch: expected ${packet_length}, got ${data.length - 4}`);
-						return;
-					}
-					
-					if (packet_length % 4 !== 0) {
-						log_warn(`OSC packet size ${packet_length} not multiple of 4`);
-						return;
-					}
-					
-					const osc_content = data.subarray(4);
-					const decoder = new TextDecoder();
-					
-					let address_end = osc_content.indexOf(0);
-					if (address_end === -1) {
-						log_warn(`no null terminator found in OSC address`);
-						return;
-					}
-					
-					const address = decoder.decode(osc_content.subarray(0, address_end));
-					const address_padded = (address_end + 4) & ~0x03; // arguments, type tags, etc
-					
-					log_verbose(`RECV {${address}} size {${format_bytes(data.length)}}`, ETC_PREFIX);
-					
-					if (address === '/eos/out/event/cue/fire' || address.startsWith('/eos/out/event/cue/')) {
-						const parts = address.split('/');
-						if (parts.length >= 6) {
-							const cue_list = parseInt(parts[5], 10);
-							const cue_number = parseFloat(parts[6]);
-							
-							if (cue_list !== 1) // fix for core busking
-							return;
-							
-							log_verbose(`received cue fire event: list {${cue_list}} cue {${cue_number}}`, ETC_PREFIX);
-							
-							const callbacks = this.cue_callbacks.get(cue_number);
-							if (callbacks) {
-								for (const callback of callbacks)
-									callback(cue_number, cue_list);
-							}
+		} catch (e) {
+			const error = e as Error;
+			log_warn(`failed to parse OBS message due to ${error.name}: ${error.message}`);
+		}
+	}
+}
+		
+export async function connect_obs(obs_host: string, obs_port: number, obs_password: string): Promise<OBSConnection> {
+	const connection = new OBSConnection(obs_host, obs_port, obs_password);
+	return await connection.ready;
+}
+// endregion
+		
+// region etc
+const ETC_PREFIX = 'ETC';
+const ETC_RECONNECT_DELAY = 500;
+
+function osc_write_int32(val: number): Uint8Array {
+	const buf = new ArrayBuffer(4);
+	const view = new DataView(buf);
+	
+	view.setInt32(0, val, false);
+	
+	return new Uint8Array(buf);
+}
+
+function osc_write_string(str: string): Uint8Array {
+	const encoder = new TextEncoder();
+	const bytes = encoder.encode(str + '\0');
+	const padded_len = (bytes.length + 3) & ~0x03;
+	const padded = new Uint8Array(padded_len);
+	
+	padded.set(bytes);
+	
+	return padded;
+}
+
+function osc_create_message(address: string, args: any[] = []): Uint8Array {
+	// Build type tag string
+	let type_tag = ',';
+	for (const arg of args) {
+		if (typeof arg === 'number')
+			type_tag += 'i';
+		else if (typeof arg === 'string')
+			type_tag += 's';
+	}
+	
+	// Encode address and type tag
+	const addr_bytes = osc_write_string(address);
+	const type_bytes = osc_write_string(type_tag);
+	
+	// Encode arguments
+	const arg_bytes: Uint8Array[] = [];
+	for (const arg of args) {
+		if (typeof arg === 'number')
+			arg_bytes.push(osc_write_int32(arg));
+		else if (typeof arg === 'string')
+			arg_bytes.push(osc_write_string(arg));
+	}
+	
+	// Calculate total length
+	const total_len = addr_bytes.length + type_bytes.length + arg_bytes.reduce((acc, val) => acc + val.length, 0);
+	
+	// Combine all parts with length prefix
+	const len_prefix = osc_write_int32(total_len);
+	const message = new Uint8Array(len_prefix.length + total_len);
+	
+	let offset = 0;
+	message.set(len_prefix, offset);
+	offset += len_prefix.length;
+	
+	message.set(addr_bytes, offset);
+	offset += addr_bytes.length;
+	
+	message.set(type_bytes, offset);
+	offset += type_bytes.length;
+	
+	for (const bytes of arg_bytes) {
+		message.set(bytes, offset);
+		offset += bytes.length;
+	}
+	
+	return message;
+}
+
+class ETCConnection {
+	socket: TCPSocket|null = null;
+	reconnect_timer: Timer|null = null;
+	connected: boolean = false;
+	
+	etc_host: string;
+	etc_port: number;
+	cue_callbacks: Map<number, Function[]> = new Map();
+	
+	private connection_promise: Promise<ETCConnection>;
+	private connection_resolver: ((connection: ETCConnection) => void) | null = null;
+	
+	constructor(etc_host: string, etc_port: number) {
+		this.etc_host = etc_host;
+		this.etc_port = etc_port;
+		
+		this.connection_promise = new Promise<ETCConnection>(resolve => {
+			this.connection_resolver = resolve;
+		});
+		
+		this._connect();
+	}
+	
+	get ready(): Promise<ETCConnection> {
+		return this.connection_promise;
+	}
+	
+	async _connect() {
+		this._disconnect();
+		
+		try {
+			Bun.connect({
+				hostname: this.etc_host,
+				port: this.etc_port,
+				socket: {
+					open: (socket) => {
+						log_info(`connected to ETC host {${this.etc_host}}`, ETC_PREFIX);
+						this.connected = true;
+						this.socket = socket;
+						
+						if (this.connection_resolver) {
+							this.connection_resolver(this);
+							this.connection_resolver = null;
 						}
+					},
+					
+					data: (socket, data: any) => {
+						this._handle_data(data);
+					},
+					
+					error: (socket, error) => {
+						log_warn(`${error.name} raised in ETC socket: ${error.message}`);
+					},
+					
+					close: () => {
+						this.socket = null;
+						this.connected = false;
+						
+						log_info(`lost connection to ETC host`, ETC_PREFIX);
+						
+						log_info(`reconnecting to ETC host in {${ETC_RECONNECT_DELAY}ms}`, ETC_PREFIX);
+						this.reconnect_timer = setTimeout(() => this._connect(), ETC_RECONNECT_DELAY);
 					}
-				} catch (e) {
-					const err = e as Error;
-					log_warn(`error parsing OSC data: ${err.message}`);
 				}
-			}
+			});
+		} catch (e) {
+			const err = e as Error;
+			log_warn(`{${err.name}} raised connecting to ETC host: ${err.message}`);
 			
-			fire_cue(cue_number: number) {
-				this._send_command('cue/' + cue_number + '/fire');
-			}
-			
-			record_cue(cue_number: number, label: string = '') {
-				this._send_command('/cue/record', cue_number);
-				
-				if (label && label.length > 0)
-					this._send_command('/cue/label', cue_number, label);
-			}
-			
-			on_cue(cue_number: number, callback: Function) {
-				if (!this.cue_callbacks.has(cue_number))
-					this.cue_callbacks.set(cue_number, []);
-				
-				this.cue_callbacks.get(cue_number)?.push(callback);
-			}
+			log_info(`reconnecting to ETC host in {${ETC_RECONNECT_DELAY}ms}`, ETC_PREFIX);
+			this.reconnect_timer = setTimeout(() => this._connect(), ETC_RECONNECT_DELAY);
 		}
 		
-		export async function connect_etc(etc_host: string, etc_port: number): Promise<ETCConnection> {
-			const connection = new ETCConnection(etc_host, etc_port);
-			return await connection.ready;
+		return this.ready;
+	}
+	
+	_disconnect() {
+		if (this.reconnect_timer !== null)
+			clearTimeout(this.reconnect_timer);
+		
+		this.socket?.end();
+		
+		this.socket = null;
+		this.connected = false;
+		this.reconnect_timer = null;
+	}
+	
+	_send_command(address: string, ...args: any[]) {
+		if (!this.connected || !this.socket)
+			return;
+		
+		if (!address.startsWith('/eos/')) {
+			if (address.startsWith('/'))
+				address = '/eos' + address;
+			else
+			address = '/eos/' + address;
 		}
-		// endregion
+		
+		log_verbose(`SEND {${address}} [${args.map(e => `{${e}}`).join(', ')}]`, ETC_PREFIX);
+		
+		const message = osc_create_message(address, args);
+		this.socket?.write(message);
+	}
+	
+	_handle_data(data: Uint8Array) {
+		try {
+			if (data.length < 8)
+				return;
+			
+			const length_view = new DataView(data.buffer, data.byteOffset, 4);
+			const packet_length = length_view.getInt32(0, false);
+			
+			if (packet_length !== data.length - 4) {
+				log_warn(`OSC packet length mismatch: expected ${packet_length}, got ${data.length - 4}`);
+				return;
+			}
+			
+			if (packet_length % 4 !== 0) {
+				log_warn(`OSC packet size ${packet_length} not multiple of 4`);
+				return;
+			}
+			
+			const osc_content = data.subarray(4);
+			const decoder = new TextDecoder();
+			
+			let address_end = osc_content.indexOf(0);
+			if (address_end === -1) {
+				log_warn(`no null terminator found in OSC address`);
+				return;
+			}
+			
+			const address = decoder.decode(osc_content.subarray(0, address_end));
+			const address_padded = (address_end + 4) & ~0x03; // arguments, type tags, etc
+			
+			log_verbose(`RECV {${address}} size {${format_bytes(data.length)}}`, ETC_PREFIX);
+			
+			if (address === '/eos/out/event/cue/fire' || address.startsWith('/eos/out/event/cue/')) {
+				const parts = address.split('/');
+				if (parts.length >= 6) {
+					const cue_list = parseInt(parts[5], 10);
+					const cue_number = parseFloat(parts[6]);
+					
+					if (cue_list !== 1) // fix for core busking
+					return;
+					
+					log_verbose(`received cue fire event: list {${cue_list}} cue {${cue_number}}`, ETC_PREFIX);
+					
+					const callbacks = this.cue_callbacks.get(cue_number);
+					if (callbacks) {
+						for (const callback of callbacks)
+							callback(cue_number, cue_list);
+					}
+				}
+			}
+		} catch (e) {
+			const err = e as Error;
+			log_warn(`error parsing OSC data: ${err.message}`);
+		}
+	}
+	
+	fire_cue(cue_number: number) {
+		this._send_command('cue/' + cue_number + '/fire');
+	}
+	
+	record_cue(cue_number: number, label: string = '') {
+		this._send_command('/cue/record', cue_number);
+		
+		if (label && label.length > 0)
+			this._send_command('/cue/label', cue_number, label);
+	}
+	
+	on_cue(cue_number: number, callback: Function) {
+		if (!this.cue_callbacks.has(cue_number))
+			this.cue_callbacks.set(cue_number, []);
+		
+		this.cue_callbacks.get(cue_number)?.push(callback);
+	}
+}
+
+export async function connect_etc(etc_host: string, etc_port: number): Promise<ETCConnection> {
+	const connection = new ETCConnection(etc_host, etc_port);
+	return await connection.ready;
+}
+// endregion
