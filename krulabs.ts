@@ -124,9 +124,8 @@ export function timespan(span: string): number {
 			return (hours * 3600 + minutes * 60 + seconds) * 1000;
 		}
 		
-		if (numbers.length === 1) {
+		if (numbers.length === 1)
 			return numbers[0] * 60 * 1000;
-		}
 	}
 	
 	const matches = clean_span.match(/(\d+\.?\d*)\s*([smh]?)/g) || [];
@@ -210,7 +209,7 @@ function ws_message(ws: ServerWebSocket, message: string | Buffer) {
 			throw new Error('JSON payload did not include a valid `id` field.');
 
 		verbose(`RECV {${json.id}} from {${ws.remoteAddress}} ({${format_bytes(message.length)}})`, WS_PREFIX);
-		
+
 		const socket_type = ws_sockets.get(ws);
 		if (socket_type !== undefined) {
 			ws_socket_handlers.get(socket_type)?.(ws);
