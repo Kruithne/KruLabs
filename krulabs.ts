@@ -661,6 +661,218 @@ class OBSConnection {
 		});
 	}
 
+	pause(media_name: string) {
+		log_info(`Pausing media {${media_name}}`, OBS_PREFIX);
+		return this._request(OBS_REQUEST.TRIGGER_MEDIA_INPUT_ACTION, {
+			inputName: media_name,
+			mediaAction: OBS_MEDIA_INPUT_ACTION.PAUSE
+		});
+	}
+
+	play(media_name: string) {
+		log_info(`Playing media {${media_name}}`, OBS_PREFIX);
+		return this._request(OBS_REQUEST.TRIGGER_MEDIA_INPUT_ACTION, {
+			inputName: media_name,
+			mediaAction: OBS_MEDIA_INPUT_ACTION.PLAY
+		});
+	}
+
+	async pause_all() {
+		log_info(`Pausing all media in current scene`, OBS_PREFIX);
+		
+		try {
+			const current_scene = await this._request(OBS_REQUEST.GET_CURRENT_PROGRAM_SCENE);
+			if (!current_scene) {
+				log_warn('Failed to get current program scene');
+				return;
+			}
+			
+			const scene_items = await this._request(OBS_REQUEST.GET_SCENE_ITEM_LIST, {
+				sceneName: current_scene.sceneName
+			});
+			
+			if (!scene_items || !scene_items.sceneItems) {
+				log_warn('Failed to get scene items');
+				return;
+			}
+			
+			const media_pause_promises = [];
+			
+			for (const item of scene_items.sceneItems) {
+				const input_name = item.sourceName;
+				
+				try {
+					const input_status = await this._request(OBS_REQUEST.GET_MEDIA_INPUT_STATUS, {
+						inputName: input_name
+					});
+					
+					if (input_status && input_status.mediaState === 'OBS_MEDIA_STATE_PLAYING') {
+						log_info(`Pausing media {${input_name}}`, OBS_PREFIX);
+						media_pause_promises.push(
+							this._request(OBS_REQUEST.TRIGGER_MEDIA_INPUT_ACTION, {
+								inputName: input_name,
+								mediaAction: OBS_MEDIA_INPUT_ACTION.PAUSE
+							})
+						);
+					}
+				} catch (e) {
+					// Not a media input, skip
+				}
+			}
+			
+			if (media_pause_promises.length > 0) {
+				await Promise.all(media_pause_promises);
+				log_info(`Paused ${media_pause_promises.length} media inputs`, OBS_PREFIX);
+			} else {
+				log_info('No playing media found in current scene', OBS_PREFIX);
+			}
+		} catch (error) {
+			log_warn(`Error during pause_all: ${error}`);
+		}
+	}
+
+	async play_all() {
+		log_info(`Playing/resuming all media in current scene`, OBS_PREFIX);
+		
+		try {
+			const current_scene = await this._request(OBS_REQUEST.GET_CURRENT_PROGRAM_SCENE);
+			if (!current_scene) {
+				log_warn('Could not get current program scene');
+				return;
+			}
+			
+			const scene_items = await this._request(OBS_REQUEST.GET_SCENE_ITEM_LIST, {
+				sceneName: current_scene.sceneName
+			});
+			
+			if (!scene_items || !scene_items.sceneItems) {
+				log_warn('Could not get scene items');
+				return;
+			}
+			
+			const media_play_promises = [];
+			
+			for (const item of scene_items.sceneItems) {
+				const input_name = item.sourceName;
+				
+				try {
+					const input_status = await this._request(OBS_REQUEST.GET_MEDIA_INPUT_STATUS, {
+						inputName: input_name
+					});
+					
+					if (input_status && (input_status.mediaState === 'OBS_MEDIA_STATE_PAUSED' || input_status.mediaState === 'OBS_MEDIA_STATE_STOPPED' || input_status.mediaState === 'OBS_MEDIA_STATE_ENDED')) {
+						log_info(`Playing media {${input_name}}`, OBS_PREFIX);
+						media_play_promises.push(
+							this._request(OBS_REQUEST.TRIGGER_MEDIA_INPUT_ACTION, {
+								inputName: input_name,
+								mediaAction: OBS_MEDIA_INPUT_ACTION.PLAY
+							})
+						);
+					}
+				} catch (e) {
+					// Not a media input, skip
+				}
+			}
+			
+			if (media_play_promises.length > 0) {
+				await Promise.all(media_play_promises);
+				log_info(`Started playing ${media_play_promises.length} media inputs`, OBS_PREFIX);
+			} else {
+				log_info('No paused/stopped media found in current scene', OBS_PREFIX);
+			}
+		} catch (error) {
+			log_warn(`Error during play_all: ${error}`);
+		}
+	}
+
+	async seek(media_name: string, timestamp_ms: number, loop: boolean = false) {
+		log_info(`Seeking media {${media_name}} to {${timestamp_ms}ms}`, OBS_PREFIX);
+		
+		let final_timestamp = timestamp_ms;
+		
+		if (loop) {
+			try {
+				const media_status = await this._request(OBS_REQUEST.GET_MEDIA_INPUT_STATUS, {
+					inputName: media_name
+				});
+				
+				if (media_status && media_status.mediaDuration && media_status.mediaDuration > 0) {
+					final_timestamp = timestamp_ms % media_status.mediaDuration;
+					if (final_timestamp !== timestamp_ms) {
+						log_info(`Looped seek: ${timestamp_ms}ms -> ${final_timestamp}ms (duration: ${media_status.mediaDuration}ms)`, OBS_PREFIX);
+					}
+				}
+			} catch (e) {
+				log_warn(`Could not get media duration for looping calculation: ${e}`);
+			}
+		}
+		
+		return this._request(OBS_REQUEST.SET_MEDIA_INPUT_CURSOR, {
+			inputName: media_name,
+			mediaCursor: final_timestamp
+		});
+	}
+
+	async seek_all(timestamp_ms: number, loop: boolean = false) {
+		log_info(`Seeking all media in current scene to {${timestamp_ms}ms}`, OBS_PREFIX);
+		
+		try {
+			const current_scene = await this._request(OBS_REQUEST.GET_CURRENT_PROGRAM_SCENE);
+			if (!current_scene) {
+				log_warn('Could not get current program scene');
+				return;
+			}
+			
+			const scene_items = await this._request(OBS_REQUEST.GET_SCENE_ITEM_LIST, {
+				sceneName: current_scene.sceneName
+			});
+			
+			if (!scene_items || !scene_items.sceneItems) {
+				log_warn('Could not get scene items');
+				return;
+			}
+			
+			const media_seek_promises = [];
+			
+			for (const item of scene_items.sceneItems) {
+				const input_name = item.sourceName;
+				
+				try {
+					const input_status = await this._request(OBS_REQUEST.GET_MEDIA_INPUT_STATUS, {
+						inputName: input_name
+					});
+					
+					if (input_status && input_status.mediaDuration !== null) {
+						let final_timestamp = timestamp_ms;
+						
+						if (loop && input_status.mediaDuration > 0) {
+							final_timestamp = timestamp_ms % input_status.mediaDuration;
+						}
+						
+						log_info(`Seeking media {${input_name}} to {${final_timestamp}ms}`, OBS_PREFIX);
+						media_seek_promises.push(
+							this._request(OBS_REQUEST.SET_MEDIA_INPUT_CURSOR, {
+								inputName: input_name,
+								mediaCursor: final_timestamp
+							})
+						);
+					}
+				} catch (e) {
+					// Not a media input, skip
+				}
+			}
+			
+			if (media_seek_promises.length > 0) {
+				await Promise.all(media_seek_promises);
+				log_info(`Seeked ${media_seek_promises.length} media inputs`, OBS_PREFIX);
+			} else {
+				log_info('No media found in current scene', OBS_PREFIX);
+			}
+		} catch (error) {
+			log_warn(`Error during seek_all: ${error}`);
+		}
+	}
+
 	async delete_all_scenes() {
 		try {
 			const current_program_scene = await this._request(OBS_REQUEST.GET_CURRENT_PROGRAM_SCENE);
