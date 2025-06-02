@@ -24,20 +24,36 @@ function format_bytes(bytes: number): string {
 // endregion
 
 // region logging
-export function log(message: string, prefix = 'INFO') {
-	const formatted_message = (`[{${prefix}}] ` + message).replace(/\{([^}]+)\}/g, `\x1b[36m$1\x1b[0m`);
-	process.stdout.write(formatted_message + '\n');
+type LogPrefix = {
+	prefix: string;
+	ansi: string;
+};
+
+function create_log_prefix(prefix: string, color: Bun.ColorInput): LogPrefix {
+	return {
+		prefix,
+		ansi: Bun.color(color, 'ansi-256') ?? ''
+	};
 }
 
-export function log_verbose(message: string, prefix = 'INFO') {
+const ERR_PREFIX = create_log_prefix('WARN', 'red');
+
+function log(message: string, prefix: LogPrefix) {
+	message = `[{${prefix.prefix}}] ${message}\n`;
+	message = message.replace(/\{([^}]+)\}/g, `${prefix.ansi}$1\x1b[0m`);
+
+	process.stdout.write(message);
+}
+
+function verbose(message: string, prefix: LogPrefix) {
 	if (!process.argv.includes('--verbose'))
 		return;
 	
 	log(message, prefix);
 }
 
-export function log_warn(message: string) {
-	process.stdout.write('\x1b[93mWARNING: \x1b[31m' + message + '\x1b[0m\n');
+function warn(message: string) {
+	log(message, ERR_PREFIX);
 }
 // endregion
 
@@ -145,7 +161,7 @@ function slug_string(text: string): string {
 // endregion
 
 // region websocket
-const WS_PREFIX = 'WSS';
+const WS_PREFIX = create_log_prefix('WSS', '#9b59b6');
 const WS_ANONYMOUS_TIMEOUT = 2500;
 
 const WS_IDENTITY_TYPES = ['touchpad'] as const;
@@ -162,7 +178,6 @@ function ws_open(ws: ServerWebSocket) {
 
 	ws_socket_timeout.set(ws, setTimeout(() => {
 		ws.close(4001, 'Failed to provide identification payload');
-		//log_info(`timed out {${ws.remoteAddress}}, failed to provide identification payload`);
 	}, WS_ANONYMOUS_TIMEOUT));
 }
 
@@ -214,7 +229,6 @@ function ws_message(ws: ServerWebSocket, message: string | Buffer) {
 			ws_sockets.set(ws, json.type);
 		}
 	} catch (e) {
-		//log_warn(`{ws_message} > error processing message: ${e}`);
 		ws.close(4000, (e as Error).message);
 	}
 }
@@ -225,7 +239,7 @@ function ws_register_handler(type: string, handler: WebSocketHandler) {
 // endregion
 
 // region http
-const HTTP_PREFIX = 'HTTP';
+const HTTP_PREFIX = create_log_prefix('HTTP', '#3498db');
 
 const http_interfaces = new Map<string, BunFile>();
 
@@ -630,7 +644,7 @@ const OBS_MEDIA_INPUT_ACTION = {
 const OBS_RECONNECT_DELAY = 500;
 const OBS_RESPONSE_TIMEOUT = 500;
 
-const OBS_PREFIX = 'OBS';
+const OBS_PREFIX = create_log_prefix('OBS', '#f39c12');
 
 const OBS_OP_CODE_TO_STR = Object.fromEntries(
 	Object.entries(OBS_OP_CODE).map(([key, value]) => [value, key])
@@ -675,7 +689,7 @@ class MediaTracker {
 	}
 	
 	_handle_media_start() {
-		log_verbose(`media {${this.media_name}} started playback`, 'MEDIA');
+		verbose(`media {${this.media_name}} started playback`, OBS_PREFIX);
 		
 		this.playback_started_at = Date.now();
 		this.expected_position = 0;
@@ -687,10 +701,10 @@ class MediaTracker {
 	}
 	
 	_handle_media_stop() {
-		log(`media {${this.media_name}} stopped playback`, 'MEDIA');
+		log(`media {${this.media_name}} stopped playback`, OBS_PREFIX);
 		
 		if (this.check_interval) {
-			log_verbose(`clearing check interval for {${this.media_name}}`, 'MEDIA');
+			verbose(`clearing check interval for {${this.media_name}}`, OBS_PREFIX);
 			clearInterval(this.check_interval);
 			this.check_interval = null;
 		}
@@ -736,7 +750,7 @@ class MediaTracker {
 		
 		for (let cb of this.callbacks) {
 			if (!cb.fired && current_position >= cb.timestamp) {
-				log(`triggering media callback for {${this.media_name}} at timestamp {${current_position}ms}`, 'MEDIA');
+				log(`triggering media callback for {${this.media_name}} at timestamp {${current_position}ms}`, OBS_PREFIX);
 				cb.fired = true;
 				cb.callback(this.media_name, cb.timestamp);
 			}
@@ -821,7 +835,7 @@ class OBSConnection {
 		
 		this.socket?.send(payload_json);
 		
-		log_verbose(`SEND {${OBS_OP_CODE_TO_STR[op]}} size {${format_bytes(payload_size)}}`, OBS_PREFIX);
+		verbose(`SEND {${OBS_OP_CODE_TO_STR[op]}} size {${format_bytes(payload_size)}}`, OBS_PREFIX);
 	}
 	
 	_request(request_type: Enum<typeof OBS_REQUEST>, request_data: OBSMessageData = {}, timeout = OBS_RESPONSE_TIMEOUT): Promise<OBSMessageData|null> {
@@ -836,7 +850,7 @@ class OBSConnection {
 				resolve(value);
 			});
 			
-			log_verbose(`preparing OBS request {${request_type}} ID {${request_uuid}}`, OBS_PREFIX);
+			verbose(`preparing OBS request {${request_type}} ID {${request_uuid}}`, OBS_PREFIX);
 			
 			this._send(OBS_OP_CODE.REQUEST, {
 				requestType: request_type,
@@ -847,7 +861,7 @@ class OBSConnection {
 			if (timeout > 0) {
 				timeout_id = setTimeout(() => {
 					obs_request_map.delete(request_uuid);
-					log_warn(`timed out waiting for {${request_type}} response from OBS (timeout: {${timeout}ms})`);
+					warn(`timed out waiting for {${request_type}} response from OBS (timeout: {${timeout}ms})`);
 					resolve(null);
 				}, timeout);
 			}
@@ -871,7 +885,7 @@ class OBSConnection {
 	}
 	
 	_on_error(error: any) {
-		log_warn(`{${error.type}} raised in OBS socket: ${error.message}`);
+		warn(`{${error.type}} raised in OBS socket: ${error.message}`);
 	}
 	
 	scene(scene_name: string) {
@@ -917,7 +931,7 @@ class OBSConnection {
 		try {
 			const current_scene = await this._request(OBS_REQUEST.GET_CURRENT_PROGRAM_SCENE);
 			if (!current_scene) {
-				log_warn('{pause_all} > failed to get current program scene');
+				warn('{pause_all} > failed to get current program scene');
 				return;
 			}
 			
@@ -926,7 +940,7 @@ class OBSConnection {
 			});
 			
 			if (!scene_items || !scene_items.sceneItems) {
-				log_warn('{pause_all} > failed to get scene items');
+				warn('{pause_all} > failed to get scene items');
 				return;
 			}
 			
@@ -961,7 +975,7 @@ class OBSConnection {
 				log('{pause_all} > no playing media found in current scene', OBS_PREFIX);
 			}
 		} catch (error) {
-			log_warn(`{pause_all} > error: ${error}`);
+			warn(`{pause_all} > error: ${error}`);
 		}
 	}
 	
@@ -971,7 +985,7 @@ class OBSConnection {
 		try {
 			const current_scene = await this._request(OBS_REQUEST.GET_CURRENT_PROGRAM_SCENE);
 			if (!current_scene) {
-				log_warn('{play_all} > failed to get current program scene');
+				warn('{play_all} > failed to get current program scene');
 				return;
 			}
 			
@@ -980,7 +994,7 @@ class OBSConnection {
 			});
 			
 			if (!scene_items || !scene_items.sceneItems) {
-				log_warn('{play_all} > failed to get scene items');
+				warn('{play_all} > failed to get scene items');
 				return;
 			}
 			
@@ -1015,7 +1029,7 @@ class OBSConnection {
 				log('{play_all} > no paused/stopped media found in current scene', OBS_PREFIX);
 			}
 		} catch (error) {
-			log_warn(`{play_all} > error: ${error}`);
+			warn(`{play_all} > error: ${error}`);
 		}
 	}
 	
@@ -1037,7 +1051,7 @@ class OBSConnection {
 					}
 				}
 			} catch (e) {
-				log_warn(`{seek} > failed to get media duration for looping calculation: ${e}`);
+				warn(`{seek} > failed to get media duration for looping calculation: ${e}`);
 			}
 		}
 		
@@ -1053,7 +1067,7 @@ class OBSConnection {
 		try {
 			const current_scene = await this._request(OBS_REQUEST.GET_CURRENT_PROGRAM_SCENE);
 			if (!current_scene) {
-				log_warn('{seek_all} > failed to get current program scene');
+				warn('{seek_all} > failed to get current program scene');
 				return;
 			}
 			
@@ -1062,7 +1076,7 @@ class OBSConnection {
 			});
 			
 			if (!scene_items || !scene_items.sceneItems) {
-				log_warn('{seek_all} > failed to get scene items');
+				warn('{seek_all} > failed to get scene items');
 				return;
 			}
 			
@@ -1103,7 +1117,7 @@ class OBSConnection {
 				log('{seek_all} > no media found in current scene', OBS_PREFIX);
 			}
 		} catch (error) {
-			log_warn(`{seek_all} > error: ${error}`);
+			warn(`{seek_all} > error: ${error}`);
 		}
 	}
 	
@@ -1111,7 +1125,7 @@ class OBSConnection {
 		try {
 			const current_program_scene = await this._request(OBS_REQUEST.GET_CURRENT_PROGRAM_SCENE);
 			if (!current_program_scene) {
-				log_warn('{delete_all_scenes} > failed to get current program scene, aborting');
+				warn('{delete_all_scenes} > failed to get current program scene, aborting');
 				return;
 			}
 			
@@ -1120,7 +1134,7 @@ class OBSConnection {
 			
 			const scene_list_response = await this._request(OBS_REQUEST.GET_SCENE_LIST);
 			if (!scene_list_response || !scene_list_response.scenes) {
-				log_warn('{delete_all_scenes} > failed to get scene list, aborting');
+				warn('{delete_all_scenes} > failed to get scene list, aborting');
 				return;
 			}
 			
@@ -1145,7 +1159,7 @@ class OBSConnection {
 			
 			log(`{delete_all_scenes} > successfully deleted {${promises.length}} scenes`, OBS_PREFIX);
 		} catch (error) {
-			log_warn(`{delete_all_scenes} > error: ${error}`);
+			warn(`{delete_all_scenes} > error: ${error}`);
 		}
 	}
 	
@@ -1181,7 +1195,7 @@ class OBSConnection {
 				const event_type = message.d.eventType;
 				const event_data = message.d.eventData;
 				
-				log_verbose(`RECV {${OBS_OP_CODE_TO_STR[message.op]}} [{${event_type}}] size {${format_bytes(message_size)}}`, OBS_PREFIX);
+				verbose(`RECV {${OBS_OP_CODE_TO_STR[message.op]}} [{${event_type}}] size {${format_bytes(message_size)}}`, OBS_PREFIX);
 				
 				// Handle media events for registered trackers
 				if (event_type === OBS_EVENT_TYPE.MEDIA_INPUT_PLAYBACK_STARTED || event_type === OBS_EVENT_TYPE.MEDIA_INPUT_PLAYBACK_ENDED || event_type === OBS_EVENT_TYPE.MEDIA_INPUT_ACTION_TRIGGERED) {						
@@ -1203,32 +1217,32 @@ class OBSConnection {
 				const request_id = message.d.requestId;
 				const request_results = message.d.results;
 				
-				log_verbose(`RECV {${OBS_OP_CODE_TO_STR[message.op]}} [BATCH * {${request_results.length}}] size {${format_bytes(message_size)}}`, OBS_PREFIX);
+				verbose(`RECV {${OBS_OP_CODE_TO_STR[message.op]}} [BATCH * {${request_results.length}}] size {${format_bytes(message_size)}}`, OBS_PREFIX);
 				
 				// todo handle this response if needed?
 			} else if (message.op === OBS_OP_CODE.REQUEST_RESPONSE) {
 				const request_type = message.d.requestType;
 				const request_id = message.d.requestId;
 				
-				log_verbose(`RECV {${OBS_OP_CODE_TO_STR[message.op]}} [{${request_type}}] size {${format_bytes(message_size)}}`, OBS_PREFIX);
+				verbose(`RECV {${OBS_OP_CODE_TO_STR[message.op]}} [{${request_type}}] size {${format_bytes(message_size)}}`, OBS_PREFIX);
 				
 				const resolver = obs_request_map.get(request_id);
 				if (resolver) {
-					log_verbose(`received tracked {${request_type}} response [{${request_id}}]`, OBS_PREFIX);
+					verbose(`received tracked {${request_type}} response [{${request_id}}]`, OBS_PREFIX);
 					obs_request_map.delete(request_id);
 					
 					const request_status = message.d.requestStatus;
 					if (request_status.result) {
 						resolver(message.d.responseData);
 					} else {
-						log_verbose(`request {${request_id}} failed with code {${request_status.code}} (${request_status.comment ?? 'n/a'})`, OBS_PREFIX);
+						verbose(`request {${request_id}} failed with code {${request_status.code}} (${request_status.comment ?? 'n/a'})`, OBS_PREFIX);
 						resolver(null);
 					}
 				} else {
-					log_verbose(`dropping non-tracked {${request_type}} response [{${request_id}}]`, OBS_PREFIX);
+					verbose(`dropping non-tracked {${request_type}} response [{${request_id}}]`, OBS_PREFIX);
 				}
 			} else {
-				log_verbose(`RECV {${OBS_OP_CODE_TO_STR[message.op]}} size {${format_bytes(message_size)}}`, OBS_PREFIX);
+				verbose(`RECV {${OBS_OP_CODE_TO_STR[message.op]}} size {${format_bytes(message_size)}}`, OBS_PREFIX);
 				
 				if (message.op === OBS_OP_CODE.HELLO) {
 					const auth = message.d.authentication;
@@ -1258,7 +1272,7 @@ class OBSConnection {
 			}
 		} catch (e) {
 			const error = e as Error;
-			log_warn(`failed to parse OBS message due to ${error.name}: ${error.message}`);
+			warn(`failed to parse OBS message due to ${error.name}: ${error.message}`);
 		}
 	}
 }
@@ -1270,7 +1284,7 @@ export async function connect_obs(obs_host: string, obs_port: number, obs_passwo
 // endregion
 		
 // region etc
-const ETC_PREFIX = 'ETC';
+const ETC_PREFIX = create_log_prefix('ETC', '#2ecc71');
 const ETC_RECONNECT_DELAY = 500;
 
 function osc_write_int32(val: number): Uint8Array {
@@ -1392,7 +1406,7 @@ class ETCConnection {
 					},
 					
 					error: (socket, error) => {
-						log_warn(`${error.name} raised in ETC socket: ${error.message}`);
+						warn(`${error.name} raised in ETC socket: ${error.message}`);
 					},
 					
 					close: () => {
@@ -1408,7 +1422,7 @@ class ETCConnection {
 			});
 		} catch (e) {
 			const err = e as Error;
-			log_warn(`{${err.name}} raised connecting to ETC host: ${err.message}`);
+			warn(`{${err.name}} raised connecting to ETC host: ${err.message}`);
 			
 			log(`reconnecting to ETC host in {${ETC_RECONNECT_DELAY}ms}`, ETC_PREFIX);
 			this.reconnect_timer = setTimeout(() => this._connect(), ETC_RECONNECT_DELAY);
@@ -1439,7 +1453,7 @@ class ETCConnection {
 			address = '/eos/' + address;
 		}
 		
-		log_verbose(`SEND {${address}} [${args.map(e => `{${e}}`).join(', ')}]`, ETC_PREFIX);
+		verbose(`SEND {${address}} [${args.map(e => `{${e}}`).join(', ')}]`, ETC_PREFIX);
 		
 		const message = osc_create_message(address, args);
 		this.socket?.write(message);
@@ -1454,12 +1468,12 @@ class ETCConnection {
 			const packet_length = length_view.getInt32(0, false);
 			
 			if (packet_length !== data.length - 4) {
-				log_warn(`OSC packet length mismatch: expected ${packet_length}, got ${data.length - 4}`);
+				warn(`OSC packet length mismatch: expected ${packet_length}, got ${data.length - 4}`);
 				return;
 			}
 			
 			if (packet_length % 4 !== 0) {
-				log_warn(`OSC packet size ${packet_length} not multiple of 4`);
+				warn(`OSC packet size ${packet_length} not multiple of 4`);
 				return;
 			}
 			
@@ -1468,14 +1482,14 @@ class ETCConnection {
 			
 			let address_end = osc_content.indexOf(0);
 			if (address_end === -1) {
-				log_warn(`no null terminator found in OSC address`);
+				warn(`no null terminator found in OSC address`);
 				return;
 			}
 			
 			const address = decoder.decode(osc_content.subarray(0, address_end));
 			const address_padded = (address_end + 4) & ~0x03; // arguments, type tags, etc
 			
-			log_verbose(`RECV {${address}} size {${format_bytes(data.length)}}`, ETC_PREFIX);
+			verbose(`RECV {${address}} size {${format_bytes(data.length)}}`, ETC_PREFIX);
 			
 			if (address === '/eos/out/event/cue/fire' || address.startsWith('/eos/out/event/cue/')) {
 				const parts = address.split('/');
@@ -1486,7 +1500,7 @@ class ETCConnection {
 					if (cue_list !== 1) // fix for core busking
 					return;
 					
-					log_verbose(`received cue fire event: list {${cue_list}} cue {${cue_number}}`, ETC_PREFIX);
+					verbose(`received cue fire event: list {${cue_list}} cue {${cue_number}}`, ETC_PREFIX);
 					
 					const callbacks = this.cue_callbacks.get(cue_number);
 					if (callbacks) {
@@ -1497,7 +1511,7 @@ class ETCConnection {
 			}
 		} catch (e) {
 			const err = e as Error;
-			log_warn(`error parsing OSC data: ${err.message}`);
+			warn(`error parsing OSC data: ${err.message}`);
 		}
 	}
 	
