@@ -3,7 +3,7 @@
 	"type": "module",
 	"version": "3.0.0",
 	"scripts": {
-		"krulabs": "bun ./main.ts"
+		"krulabs": "bun ./krulabs.ts"
 	},
 	"devDependencies": {
 		"@types/bun": "^1.1.14"
