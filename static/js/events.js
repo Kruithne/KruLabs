@@ -34,6 +34,10 @@ class MultiMap {
 
 		return callbacks.size;
 	}
+
+	clear() {
+		this._map.clear();
+	}
 }
 
 function get_ws_url() {
@@ -97,6 +101,7 @@ export class EventsSocket {
 
 	_close(event) {
 		console.error('event socket disconnected: [%d] %s', event.code, event.reason);
+		this._events.clear();
 		this._queue_reconnect();
 	}
 
