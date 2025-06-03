@@ -4,7 +4,7 @@ import { createApp } from './vue.esm.prod.js';
 const touchpad_name = location.pathname.split('/').pop();
 document.title += ' :: ' + touchpad_name;
 
-const events = EventsSocket();
+const events = new EventsSocket();
 const state = createApp({
 	data() {
 		return {
