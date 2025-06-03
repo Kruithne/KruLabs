@@ -50,11 +50,17 @@ export class EventsSocket {
 		this._socket = null;
 		this._backoff = 0;
 		this._events = new MultiMap();
+		this._ready = false;
 
 		this._connect();
 	}
 
 	subscribe(id, callback) {
+		if (!this._ready) {
+			console.error('cannot subscribe to events before socket is connected');
+			return
+		}
+
 		this._events.insert(id, callback);
 
 		if (id.indexOf(':') !== -1)
@@ -62,10 +68,18 @@ export class EventsSocket {
 	}
 
 	publish(id, data) {
+		if (!this._ready) {
+			console.error('cannot publish events before socket is connected');
+			return;
+		}
+
 		this._send('publish', id, data);
 	}
 
 	_send(action, id, data) {
+		if (!this._ready)
+			return;
+
 		const payload = JSON.stringify({ action, id, data });
 		this._socket?.send(payload);
 	}
@@ -95,11 +109,14 @@ export class EventsSocket {
 
 	_open() {
 		this._backoff = 0;
+		this._ready = true;
+
 		console.log('events socket connected');
 		this._events.callback('connected');
 	}
 
 	_close(event) {
+		this._ready = false;
 		console.error('event socket disconnected: [%d] %s', event.code, event.reason);
 		this._events.clear();
 		this._queue_reconnect();
