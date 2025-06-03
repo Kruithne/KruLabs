@@ -85,6 +85,39 @@ touchpad.add('Example Button', () => {
 });
 ```
 
+### 📃 Event Subscription Network
+
+KruLabs exposes a high-speed WebSocket server which acts as a pub-sub event network. This is used by KruLabs interfaces, such as Touchpad and LED Projector, but can also be used for custom or external uses.
+
+```ts
+ws_publish('custom:example', {
+	// data must be a non-null object or undefined
+	pigs: false,
+	sheep: ['Barry', 'Bill', 'Ben']
+});
+
+ws_subscribe('custom:example', (data, sender) => {
+	// all events must use the namespace:event format
+
+	// use ws_send for direct response
+	ws_send(sender, 'custom:response', {});
+});
+```
+
+The server listens on the default KruLabs port (19531) and automatically upgrades connections. A client-side implementation can be found in `/static/js/events.js` for creating custom client-side interfaces.
+
+```js
+// always re-subscribe when connecting
+events.subscribe('connected', () => {
+	events.publish('touchpad:load', { layout: touchpad_name });
+
+	events.subscribe('touchpad:layout', data => {
+		state.buttons = data.buttons;
+	});
+});
+```
+
+
 ### 🛠️ Utility
 
 #### Timespan

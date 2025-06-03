@@ -1,11 +1,10 @@
-import { SocketInterface } from './socket.js'
+import { EventsSocket } from './events.js'
 import { createApp } from './vue.esm.prod.js';
 
 const touchpad_name = location.pathname.split('/').pop();
 document.title += ' :: ' + touchpad_name;
 
-const socket = new SocketInterface('touchpad');
-
+const events = EventsSocket();
 const state = createApp({
 	data() {
 		return {
@@ -16,15 +15,15 @@ const state = createApp({
 	methods: {
 		trigger(button) {
 			const index = this.buttons.indexOf(button);
-			socket.send('trigger', { layout: touchpad_name, index });
+			events.publish('touchpad:trigger', { layout: touchpad_name, index });
 		}
 	}
 }).mount('#container');
 
-socket.on('ready', () => {
-	socket.send('load', { layout: touchpad_name });
-});
+events.subscribe('connected', () => {
+	events.publish('touchpad:load', { layout: touchpad_name });
 
-socket.on('event:layout', data => {
-	state.buttons = data.buttons;
+	events.subscribe('touchpad:layout', data => {
+		state.buttons = data.buttons;
+	});
 });

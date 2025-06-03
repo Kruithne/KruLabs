@@ -36,47 +36,37 @@ class MultiMap {
 	}
 }
 
-class EventEmitter {
-	constructor() {
-		this._events = new MultiMap();
-	}
-
-	fire(event, ...params) {
-		this._events.callback(event, ...params);
-	}
-
-	on(event, callback) {
-		this._events.insert(event, callback);
-	}
-
-	once(event, callback) {
-		const wrapper = () => {
-			this._events.remove(event, wrapper);
-			callback();
-		};
-
-		this._events.insert(event, wrapper);
-	}
-}
-
 function get_ws_url() {
 	const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
 	return `${protocol}${window.location.host}`;
 }
 
-export class SocketInterface extends EventEmitter {
-	constructor(type) {
-		super();
-		this.type = type;
+export class EventsSocket {
+	constructor() {
 		this.socket = null;
-		this.ready = false;
 		this.backoff = 0;
+		this._events = new MultiMap();
 
 		this._connect();
 	}
 
+	subscribe(id, callback) {
+		this._events.insert(id, callback);
+
+		if (id.indexOf(':') !== -1)
+			this._send('subscribe', id);
+	}
+
+	publish(id, data) {
+		this._send('publish', id, data);
+	}
+
+	_send(action, id, data) {
+		const payload = JSON.stringify({ action, id, data });
+		this.socket?.send(payload);
+	}
+
 	_disconnect() {
-		this.ready = false;
 		this.socket?.close();
 	}
 
@@ -99,44 +89,27 @@ export class SocketInterface extends EventEmitter {
 		this.socket = socket;
 	}
 
-	send(id, data) {
-		if (this.ready || id === 'identify')
-			this._send({ id, data });
-	}
-
-	_send(object) {
-		const payload = JSON.stringify(object);
-		this.socket?.send(payload);
-	}
-
 	_open() {
 		this.backoff = 0;
-		this._send({ id: 'identify', type: this.type });
+		console.log('events socket connected');
+		this._events.callback('connected');
 	}
 
 	_close(event) {
-		console.error('socket disconnected: [%d] %s', event.code, event.reason);
-		this.ready = false;
-
+		console.error('event socket disconnected: [%d] %s', event.code, event.reason);
 		this._queue_reconnect();
 	}
 
 	_message(event) {
 		try {
 			const data = JSON.parse(event.data);
-
-			if (data.id === 'identified') {
-				this.ready = true;
-				this.fire('ready');
-			} else {
-				this.fire('event:' + data.id, data.data ?? null);
-			}
+			this._events.callback(data.id, data.data ?? null);
 		} catch (e) {
 			console.error('failed to process socket message: %o', e);
 		}
 	}
 
 	_error(event) {
-		console.error('socket error: %o', event);
+		console.error('event socket error: %o', event);
 	}
 }

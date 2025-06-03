@@ -34,6 +34,47 @@ function format_bytes(bytes: number): string {
 	return (bytes / Math.pow(1024, unit_index)).toFixed(2)
 	.replace(/\.0+$|(\.\d*[1-9])0+$/, '$1') + units[unit_index];
 }
+
+class MultiMap<T> {
+	_map: Map<string, Set<T>>;
+
+	constructor() {
+		this._map = new Map<string, Set<T>>();
+	}
+
+	insert(key: string, value: T) {
+		if (!this._map.has(key))
+			this._map.set(key, new Set<T>());
+
+		this._map.get(key)?.add(value);
+	}
+
+	remove(key: string, value: T) {
+		const set = this._map.get(key);
+		if (set === undefined)
+			return;
+
+		set.delete(value);
+
+		if (set.size === 0)
+			this._map.delete(key);
+	}
+
+	retrieve(key: string): Set<T> {
+		return this._map.get(key) ?? new Set<T>();
+	}
+
+	callback(key: string, ...params: any): number {
+		const callbacks = this._map.get(key);
+		if (callbacks === undefined)
+			return 0;
+
+		for (const callback of callbacks)
+			(callback as (...params: any) => void)(...params);
+
+		return callbacks.size;
+	}
+}
 // endregion
 
 // region logging
@@ -173,43 +214,52 @@ function slug_string(text: string): string {
 // endregion
 
 // region websocket
+type PayloadObject = { [key: string]: any };
+
 const WS_PREFIX = create_log_prefix('WSS', '#9b59b6');
-const WS_ANONYMOUS_TIMEOUT = 2500;
 
-const WS_IDENTITY_TYPES = ['touchpad'] as const;
-
-type WebSocketHandler = (ws: ServerWebSocket, id: string, data: JsonObject | null) => void;
-
-const ws_sockets = new Map<ServerWebSocket, string>();
-const ws_socket_map = new Map<string, Set<ServerWebSocket>>();
-const ws_socket_handlers = new Map<string, WebSocketHandler>();
-const ws_socket_timeout = new Map<ServerWebSocket, Timer>();
+type WebSocketSubscribedCallback = (data?: PayloadObject, sender?: ServerWebSocket) => void;
+type WebSocketSubscriber = ServerWebSocket | WebSocketSubscribedCallback;
+const ws_subscriptions = new MultiMap<WebSocketSubscriber>();
 
 function ws_open(ws: ServerWebSocket) {
 	log(`new websocket connection established from {${ws.remoteAddress}}`, WS_PREFIX);
-
-	ws_socket_timeout.set(ws, setTimeout(() => {
-		ws.close(4001, 'Failed to provide identification payload');
-	}, WS_ANONYMOUS_TIMEOUT));
 }
 
 function ws_close(ws: ServerWebSocket, code: number, reason: string) {
 	const reason_str = reason.length > 0 ? reason : 'general failure';
 	log(`connection closed from {${ws.remoteAddress}} with code {${code}}: ${reason_str}`, WS_PREFIX);
-
-	const socket_type = ws_sockets.get(ws);
-	if (socket_type !== undefined) {
-		ws_socket_map.get(socket_type)?.delete(ws);
-		ws_sockets.delete(ws);
-	}
-
-	ws_socket_timeout.delete(ws);
 }
 
-function ws_send(ws: ServerWebSocket, id: string, data: any = null) {
+export function ws_send(ws: ServerWebSocket, id: string, data: any = null) {
 	const payload = JSON.stringify({ id, data });
 	verbose(`SEND {${id}} to {${ws.remoteAddress}} ({${format_bytes(payload.length)}})`, WS_PREFIX);
 	ws.sendText(payload);
+}
+
+export function ws_publish(name: string, data?: PayloadObject, sender?: ServerWebSocket) {
+	const subscribers = ws_subscriptions.retrieve(name);
+	
+	for (const subscriber of subscribers) {
+		if (subscriber === sender)
+			continue;
+
+		try {
+			if (typeof subscriber === 'function') {
+				subscriber(data, sender);
+			} else {
+				ws_send(subscriber, name, data);
+			}
+		} catch (e) {
+			warn(`failed to send message to subscriber: ${(e as Error).message}`);
+		}
+	}
+
+	verbose(`PUBLISH {${name}} from {${sender ? sender.remoteAddress : 'server'}} to {${subscribers.size}} subscribers`, WS_PREFIX);
+}
+
+export function ws_subscribe(name: string, callback: WebSocketSubscribedCallback) {
+	ws_subscriptions.insert(name, callback);
 }
 
 function ws_message(ws: ServerWebSocket, message: string | Buffer) {
@@ -219,46 +269,23 @@ function ws_message(ws: ServerWebSocket, message: string | Buffer) {
 
 		const json = JSON.parse(message);
 		if (typeof json.id !== 'string')
-			throw new Error('JSON payload did not include a valid `id` field.');
+			throw new Error('Missing or invalid `event.id` (string)');
+		
+		if (json.action === 'publish') {
+			if (json.data === null || (json.data !== undefined && typeof json.data !== 'object'))
+				throw new Error('`event.data` can only be a non-null object or undefined');
 
-		verbose(`RECV {${json.id}} from {${ws.remoteAddress}} ({${format_bytes(message.length)}})`, WS_PREFIX);
-
-		const socket_type = ws_sockets.get(ws);
-		if (socket_type !== undefined) {
-			ws_socket_handlers.get(socket_type)?.(ws, json.id, json.data ?? null);
+			ws_publish(json.id, json.data, ws);
+		} else if (json.action === 'subscribe') {
+			ws_subscriptions.insert(json.id, ws);
+		} else if (json.action === 'unsubscribe') {
+			ws_subscriptions.remove(json.id, ws);
 		} else {
-			if (json.id !== 'identify')
-				throw new Error('First client payload must be `identify`');
-
-			if (typeof json.type !== 'string')
-				throw new Error('Identification payload missing valid `type` property');
-
-			if (!WS_IDENTITY_TYPES.includes(json.type))
-				throw new Error('Identification payload defined unknown type: ' + json.type);
-
-			if (!ws_socket_map.has(json.type))
-				ws_socket_map.set(json.type, new Set<ServerWebSocket>());
-
-			const timeout = ws_socket_timeout.get(ws);
-			if (timeout !== undefined) {
-				clearInterval(timeout);
-				ws_socket_timeout.delete(ws);
-			}
-
-			ws_socket_map.get(json.type)?.add(ws);
-			ws_sockets.set(ws, json.type);
-
-			ws_send(ws, 'identified');
-
-			log(`identified {${ws.remoteAddress}} as {${json.type}}`, WS_PREFIX);
+			throw new Error('`event.action` must be either `publish`, `subscribe` or `unsubscribe`');
 		}
 	} catch (e) {
 		ws.close(4000, (e as Error).message);
 	}
-}
-
-function ws_register_handler(type: string, handler: WebSocketHandler) {
-	ws_socket_handlers.set(type, handler);
 }
 // endregion
 
@@ -373,33 +400,36 @@ export function create_touchpad(name: string) {
 	return touchpad;
 }
 
-ws_register_handler('touchpad', (ws, id, data) => {
-	if (id === 'load') {
-		if (typeof data?.layout !== 'string')
-			throw new Error('load event expects data.layout to be a string');
+ws_subscribe('touchpad:load', (data, sender) => {
+	if (sender === undefined)
+		throw new Error('touchpad:load expects sender to be a socket');
 
-		const touchpad = registered_touchpads.get(data.layout);
-		if (touchpad === undefined)
-			throw new Error('load called on unknown layout');
+	if (typeof data?.layout !== 'string')
+		throw new Error('touchpad:load event expects data.layout to be a string');
 
-		ws_send(ws, 'layout', { buttons: touchpad.buttons });
-	} else if (id === 'trigger') {
-		if (typeof data?.layout !== 'string')
-			throw new Error('trigger event expects data.layout to be a string');
+	const touchpad = registered_touchpads.get(data.layout);
+	if (touchpad === undefined)
+		throw new Error('touchpad:load called on unknown layout');
 
-		if (typeof data?.index !== 'number')
-			throw new Error('trigger event expects data.index to be a number');
+	ws_send(sender, 'touchpad:layout', { buttons: touchpad.buttons });
+});
 
-		const touchpad = registered_touchpads.get(data.layout);
-		if (touchpad === undefined)
-			throw new Error('trigger called on unknown layout');
+ws_subscribe('touchpad:trigger', (data) => {
+	if (typeof data?.layout !== 'string')
+		throw new Error('touchpad:trigger event expects data.layout to be a string');
 
-		const button = touchpad.buttons[data.index];
-		if (button === undefined)
-			throw new Error('trigger called on unknown button');
+	if (typeof data?.index !== 'number')
+		throw new Error('touchpad:trigger event expects data.index to be a number');
 
-		button.callback();
-	}
+	const touchpad = registered_touchpads.get(data.layout);
+	if (touchpad === undefined)
+		throw new Error('touchpad:trigger called on unknown layout');
+
+	const button = touchpad.buttons[data.index];
+	if (button === undefined)
+		throw new Error('touchpad:trigger called on unknown button');
+
+	button.callback();
 });
 // endregion
 
