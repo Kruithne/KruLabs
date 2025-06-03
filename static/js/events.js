@@ -47,8 +47,8 @@ function get_ws_url() {
 
 export class EventsSocket {
 	constructor() {
-		this.socket = null;
-		this.backoff = 0;
+		this._socket = null;
+		this._backoff = 0;
 		this._events = new MultiMap();
 
 		this._connect();
@@ -67,17 +67,17 @@ export class EventsSocket {
 
 	_send(action, id, data) {
 		const payload = JSON.stringify({ action, id, data });
-		this.socket?.send(payload);
+		this._socket?.send(payload);
 	}
 
 	_disconnect() {
-		this.socket?.close();
+		this._socket?.close();
 	}
 
 	_queue_reconnect() {
-		this.backoff++;
+		this._backoff++;
 
-		const delay = Math.min(SOCKET_RECONNECT_DELAY * Math.pow(2, this.backoff - 1), SOCKET_BACKOFF_MAX);
+		const delay = Math.min(SOCKET_RECONNECT_DELAY * Math.pow(2, this._backoff - 1), SOCKET_BACKOFF_MAX);
 		console.info('reconnecting in %dms', delay);
 
 		setTimeout(this._connect.bind(this), delay);
@@ -90,11 +90,11 @@ export class EventsSocket {
 		socket.addEventListener('message', this._message.bind(this));
 		socket.addEventListener('error', this._error.bind(this));
 		
-		this.socket = socket;
+		this._socket = socket;
 	}
 
 	_open() {
-		this.backoff = 0;
+		this._backoff = 0;
 		console.log('events socket connected');
 		this._events.callback('connected');
 	}
