@@ -1,0 +1,33 @@
+[v-cloak] {
+	display: none;
+}
+
+body {
+	background: black;
+	color: white;
+	font-weight: bold;
+	font-family: monospace;
+	font-size: 20px;
+	user-select: none;
+}
+
+.button-grid {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 5px;
+	align-items: center;
+	margin: auto;
+}
+
+.button-grid .button {
+	width: 130px;
+	height: 130px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	text-shadow: black 0 0 5px;
+	border-radius: 10px;
+	text-align: center;
+	padding: 20px;
+	cursor: pointer;
+}

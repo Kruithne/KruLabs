@@ -183,7 +183,6 @@ type WebSocketHandler = (ws: ServerWebSocket, id: string, data: JsonObject | nul
 const ws_sockets = new Map<ServerWebSocket, string>();
 const ws_socket_map = new Map<string, Set<ServerWebSocket>>();
 const ws_socket_handlers = new Map<string, WebSocketHandler>();
-const ws_socket_initializers = new Map<string, (ws: ServerWebSocket) => void>();
 const ws_socket_timeout = new Map<ServerWebSocket, Timer>();
 
 function ws_open(ws: ServerWebSocket) {
@@ -249,8 +248,6 @@ function ws_message(ws: ServerWebSocket, message: string | Buffer) {
 			ws_socket_map.get(json.type)?.add(ws);
 			ws_sockets.set(ws, json.type);
 
-			ws_socket_initializers.get(json.type)?.(ws);
-
 			ws_send(ws, 'identified');
 
 			log(`identified {${ws.remoteAddress}} as {${json.type}}`, WS_PREFIX);
@@ -262,10 +259,6 @@ function ws_message(ws: ServerWebSocket, message: string | Buffer) {
 
 function ws_register_handler(type: string, handler: WebSocketHandler) {
 	ws_socket_handlers.set(type, handler);
-}
-
-function ws_register_initializer(type: string, initializer: (ws: ServerWebSocket) => void) {
-	ws_socket_initializers.set(type, initializer);
 }
 // endregion
 
@@ -342,9 +335,25 @@ get_ipv4_addresses().forEach(addr => log(`detected IPv4 interface address {${add
 // endregion
 
 // region touchpad
+type TouchpadButton = {
+	label: string;
+	color: string;
+	callback: () => void;
+};
+
 class TouchpadInterface {
-	add() {
-		// todo: add buttons
+	buttons: TouchpadButton[];
+
+	constructor() {
+		this.buttons = [];
+	}
+
+	add(label: string, callback: () => void, color: ColorInput = 'red') {
+		this.buttons.push({
+			label,
+			callback,
+			color: Bun.color(color, 'hex') ?? 'red',
+		});
 	}
 }
 
@@ -364,15 +373,32 @@ export function create_touchpad(name: string) {
 	return touchpad;
 }
 
-ws_register_initializer('touchpad', ws => {
-	// todo: send touchpad buttons to the client
-	ws_send(ws, 'load', { foo: 'bar' });
-});
-
 ws_register_handler('touchpad', (ws, id, data) => {
-	if (id === 'activate') {
-		console.log({ data });
-		// todo: use data.index into the button array
+	if (id === 'load') {
+		if (typeof data?.layout !== 'string')
+			throw new Error('load event expects data.layout to be a string');
+
+		const touchpad = registered_touchpads.get(data.layout);
+		if (touchpad === undefined)
+			throw new Error('load called on unknown layout');
+
+		ws_send(ws, 'layout', { buttons: touchpad.buttons });
+	} else if (id === 'trigger') {
+		if (typeof data?.layout !== 'string')
+			throw new Error('trigger event expects data.layout to be a string');
+
+		if (typeof data?.index !== 'number')
+			throw new Error('trigger event expects data.index to be a number');
+
+		const touchpad = registered_touchpads.get(data.layout);
+		if (touchpad === undefined)
+			throw new Error('trigger called on unknown layout');
+
+		const button = touchpad.buttons[data.index];
+		if (button === undefined)
+			throw new Error('trigger called on unknown button');
+
+		button.callback();
 	}
 });
 // endregion

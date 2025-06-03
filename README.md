@@ -19,9 +19,7 @@ curl -fsSL https://bun.sh/install | bash # linux & macOS
 git clone https://github.com/Kruithne/KruLabs.git
 ```
 
-## 📔 Usage
-
-### ETC Integration
+### 💡 ETC Integration
 
 ```ts
 import { connect_etc } from '../krulabs';
@@ -40,9 +38,7 @@ etc.on_cue(5, () => {
 });
 ```
 
----
-
-### OBS Integration
+### 🎬 OBS Integration
 
 ```ts
 import { connect_obs } from '../krulabs';
@@ -78,8 +74,17 @@ obs.on_time('SOME_MEDIA.mp4', 5000, () => {
 	// fires when SOME_MEDIA.mp4 reaches 5 seconds
 });
 ```
+### 📲 Touchpad
 
----
+```ts
+const touchpad = create_touchpad('example');
+// accessible at localhost:19531/touchpad/example
+
+touchpad.add('Example Button', () => {
+	// triggered on touch
+});
+```
+
 ### 🛠️ Utility
 
 #### Timespan
