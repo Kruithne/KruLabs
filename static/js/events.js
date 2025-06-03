@@ -56,15 +56,16 @@ export class EventsSocket {
 	}
 
 	subscribe(id, callback) {
-		if (!this._ready) {
-			console.error('cannot subscribe to events before socket is connected');
-			return
+		if (id.indexOf(':') !== -1) {
+			if (!this._ready) {
+				console.error('cannot subscribe to network events before socket is connected');
+				return
+			}
+
+			this._send('subscribe', id);
 		}
 
 		this._events.insert(id, callback);
-
-		if (id.indexOf(':') !== -1)
-			this._send('subscribe', id);
 	}
 
 	publish(id, data) {
