@@ -60,6 +60,17 @@ class MultiMap<T> {
 			this._map.delete(key);
 	}
 
+	retire(value: T) {
+		for (const [key, set] of this._map.entries()) {
+			if (set.has(value)) {
+				set.delete(value);
+
+				if (set.size === 0)
+					this._map.delete(key);
+			}
+		}
+	}
+
 	retrieve(key: string): Set<T> {
 		return this._map.get(key) ?? new Set<T>();
 	}
@@ -229,6 +240,8 @@ function ws_open(ws: ServerWebSocket) {
 function ws_close(ws: ServerWebSocket, code: number, reason: string) {
 	const reason_str = reason.length > 0 ? reason : 'general failure';
 	log(`connection closed from {${ws.remoteAddress}} with code {${code}}: ${reason_str}`, WS_PREFIX);
+
+	ws_subscriptions.retire(ws);
 }
 
 export function ws_send(ws: ServerWebSocket, id: string, data: any = null) {
@@ -239,6 +252,7 @@ export function ws_send(ws: ServerWebSocket, id: string, data: any = null) {
 
 export function ws_publish(name: string, data?: PayloadObject, sender?: ServerWebSocket) {
 	const subscribers = ws_subscriptions.retrieve(name);
+	verbose(`PUBLISH {${name}} from {${sender ? sender.remoteAddress : 'server'}} to {${subscribers.size}} subscribers`, WS_PREFIX);
 	
 	for (const subscriber of subscribers) {
 		if (subscriber === sender)
@@ -254,8 +268,6 @@ export function ws_publish(name: string, data?: PayloadObject, sender?: ServerWe
 			warn(`failed to send message to subscriber: ${(e as Error).message}`);
 		}
 	}
-
-	verbose(`PUBLISH {${name}} from {${sender ? sender.remoteAddress : 'server'}} to {${subscribers.size}} subscribers`, WS_PREFIX);
 }
 
 export function ws_subscribe(name: string, callback: WebSocketSubscribedCallback) {
@@ -278,6 +290,7 @@ function ws_message(ws: ServerWebSocket, message: string | Buffer) {
 			ws_publish(json.id, json.data, ws);
 		} else if (json.action === 'subscribe') {
 			ws_subscriptions.insert(json.id, ws);
+			verbose(`SUBSCRIBE {${json.id}} from {${ws.remoteAddress}}`, WS_PREFIX);
 		} else if (json.action === 'unsubscribe') {
 			ws_subscriptions.remove(json.id, ws);
 		} else {
@@ -357,6 +370,80 @@ function get_host_url(): string {
 
 log(`interfaces listening on port {${http_server.port}}`, HTTP_PREFIX);
 get_ipv4_addresses().forEach(addr => log(`detected IPv4 interface address {${addr}}`, HTTP_PREFIX));
+// endregion
+
+// region led projection
+const registered_led_projectors = new Map<string, LEDProjectionInterface>();
+
+class LEDProjectionInterface {
+	name: string;
+	event_name: string;
+
+	size_x: number;
+	size_y: number;
+
+	constructor(name: string) {
+		this.name = name;
+		this.event_name = 'led:update#' + name;
+
+		this.size_x = 5;
+		this.size_y = 5;
+	}
+
+	color(color: ColorInput) {
+		const rgb = Bun.color(color, '{rgb}');
+		ws_publish(this.event_name, { action: 'color', color: rgb });
+	}
+
+	layout(size_x: number, size_y: number) {
+		this.size_x = size_x;
+		this.size_y = size_y;
+
+		this._send_layout();
+	}
+
+	wave(color_1: ColorInput, color_2: ColorInput, rotation?: number, speed?: number, sharp?: boolean) {
+		const rgb_1 = Bun.color(color_1, '{rgb}');
+		const rgb_2 = Bun.color(color_2, '{rgb}');
+		
+		ws_publish(this.event_name, {
+			action: 'wave',
+			color_1: rgb_1,
+			color_2: rgb_2,
+			rotation: rotation || 0,
+			speed: speed || 1.0,
+			sharp: sharp || false
+		});
+	}
+
+	_send_layout() {
+		ws_publish(this.event_name, {
+			action: 'layout',
+			size_x: this.size_x,
+			size_y: this.size_y
+		});
+	}
+}
+
+export function create_led_projection(name: string) {
+	const slug = slug_string(name);
+
+	if (registered_led_projectors.has(slug))
+		throw new Error(`LED fixture name ${slug} already in use`);
+
+	const projector = new LEDProjectionInterface(name);
+	registered_led_projectors.set(slug, projector);
+
+	return projector;
+}
+
+ws_subscribe('led:layout', data => {
+	const fixture = registered_led_projectors.get(data?.name);
+	if (fixture === undefined)
+		throw new Error(`LED projector requested unknown fixture layout: ` + data?.name);
+
+	fixture._send_layout();
+});
 // endregion
 
 // region touchpad

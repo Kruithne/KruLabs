@@ -1,7 +1,7 @@
 const SOCKET_RECONNECT_DELAY = 100; // backoff base
 const SOCKET_BACKOFF_MAX = 5000; // maximum backoff
 
-class MultiMap {
+class EventMap {
 	constructor() {
 		this._map = new Map();
 	}
@@ -38,6 +38,13 @@ class MultiMap {
 	clear() {
 		this._map.clear();
 	}
+
+	clear_remote() {
+		for (const key of this._map.keys()) {
+			if (key.indexOf(':') !== -1)
+				this._map.delete(key);
+		}
+	}
 }
 
 function get_ws_url() {
@@ -49,7 +56,7 @@ export class EventsSocket {
 	constructor() {
 		this._socket = null;
 		this._backoff = 0;
-		this._events = new MultiMap();
+		this._events = new EventMap();
 		this._ready = false;
 
 		this._connect();
@@ -119,7 +126,7 @@ export class EventsSocket {
 	_close(event) {
 		this._ready = false;
 		console.error('event socket disconnected: [%d] %s', event.code, event.reason);
-		this._events.clear();
+		this._events.clear_remote();
 		this._queue_reconnect();
 	}
 
