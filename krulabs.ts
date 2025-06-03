@@ -292,8 +292,6 @@ function ws_message(ws: ServerWebSocket, message: string | Buffer) {
 // region http
 const HTTP_PREFIX = create_log_prefix('HTTP', '#3498db');
 
-const http_interfaces = new Map<string, BunFile>();
-
 const http_server = Bun.serve({
 	port: 19531,
 	async fetch(req) {
@@ -313,9 +311,16 @@ const http_server = Bun.serve({
 					return new Response(static_file);
 			}
 		} else {
-			const file = http_interfaces.get(url.pathname);
-			if (file)
-				return new Response(file);
+			const parts = url.pathname.split('/');
+			const interface_name = parts[1];
+
+			if (interface_name) {
+				const file_path = path.join(__dirname, 'interface', interface_name + '.html');
+				const file = Bun.file(file_path);
+
+				if (await file.exists())
+					return new Response(file);
+			}
 		}
 
 		return new Response('Resource not found', { status: 404 });
@@ -348,13 +353,6 @@ function get_ipv4_addresses(): string[] {
 
 function get_host_url(): string {
 	return `http://localhost:${http_server.port}`;
-}
-
-function register_http_interface(type: string, route: string, file: string) {
-	const file_path = path.join(__dirname, file);
-	http_interfaces.set(route, Bun.file(file_path));
-
-	log(`registered {${type}} interface at {${get_host_url() + route}}`, HTTP_PREFIX);
 }
 
 log(`interfaces listening on port {${http_server.port}}`, HTTP_PREFIX);
@@ -394,8 +392,6 @@ export function create_touchpad(name: string) {
 
 	const touchpad = new TouchpadInterface();
 	registered_touchpads.set(slug, touchpad);
-
-	register_http_interface('touchpad', '/touchpad/' + slug, 'interface/touchpad.html');
 
 	return touchpad;
 }
