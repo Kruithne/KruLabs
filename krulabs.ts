@@ -1610,6 +1610,8 @@ class ETCConnection {
 	etc_host: string;
 	etc_port: number;
 	cue_callbacks: Map<number, Function[]> = new Map();
+
+	cue_list: number;
 	
 	private connection_promise: Promise<ETCConnection>;
 	private connection_resolver: ((connection: ETCConnection) => void) | null = null;
@@ -1617,6 +1619,7 @@ class ETCConnection {
 	constructor(etc_host: string, etc_port: number) {
 		this.etc_host = etc_host;
 		this.etc_port = etc_port;
+		this.cue_list = 1;
 		
 		this.connection_promise = new Promise<ETCConnection>(resolve => {
 			this.connection_resolver = resolve;
@@ -1627,6 +1630,10 @@ class ETCConnection {
 	
 	get ready(): Promise<ETCConnection> {
 		return this.connection_promise;
+	}
+
+	set_cue_list(cue_list: number) {
+		this.cue_list = cue_list;
 	}
 	
 	async _connect() {
@@ -1744,8 +1751,8 @@ class ETCConnection {
 					const cue_list = parseInt(parts[5], 10);
 					const cue_number = parseFloat(parts[6]);
 					
-					if (cue_list !== 1) // fix for core busking
-					return;
+					if (this.cue_list > -1 && cue_list !== this.cue_list)
+						return;
 					
 					verbose(`received cue fire event: list {${cue_list}} cue {${cue_number}}`, ETC_PREFIX);
 					
@@ -1763,14 +1770,14 @@ class ETCConnection {
 	}
 	
 	fire_cue(cue_number: number) {
-		this._send_command('cue/' + cue_number + '/fire');
+		this._send_command(`cue/${this.cue_list}/${cue_number}/fire`);
 	}
-	
+
 	record_cue(cue_number: number, label: string = '') {
-		this._send_command('/cue/record', cue_number);
+		this._send_command(`/cue/${this.cue_list}/record`, cue_number);
 		
 		if (label && label.length > 0)
-			this._send_command('/cue/label', cue_number, label);
+			this._send_command(`/cue/${this.cue_list}/label`, cue_number, label);
 	}
 	
 	on_cue(cue_number: number, callback: Function) {

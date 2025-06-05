@@ -31,6 +31,7 @@ etc.fire_cue(5);
 #### Cue Management
 
 ```ts
+etc.set_cue_list(2); // set cue list to use
 etc.fire_cue(5);
 etc.record_cue(5, 'CUE_NAME');
 etc.on_cue(5, () => {
