@@ -539,10 +539,14 @@ ws_subscribe('led:layout', data => {
 // endregion
 
 // region touchpad
+type TouchpadButtonType = 'press' | 'toggle' | 'hold';
 type TouchpadButton = {
+	type: TouchpadButtonType,
 	label: string;
 	color: string;
-	callback: () => void;
+	release_callback?: () => void;
+	press_callback: () => void;
+	state?: boolean;
 };
 
 class TouchpadInterface {
@@ -552,11 +556,33 @@ class TouchpadInterface {
 		this.buttons = [];
 	}
 
-	add(label: string, callback: () => void, color: ColorInput = 'red') {
+	press(label: string, callback: () => void, color: ColorInput = 'red') {
 		this.buttons.push({
+			type: 'press',
 			label,
-			callback,
+			press_callback: callback,
+			color: Bun.color(color, 'hex') ?? 'red'
+		});
+	}
+
+	hold(label: string, press: () => void, release: () => void, color: ColorInput = 'red') {
+		this.buttons.push({
+			type: 'hold',
+			label,
+			release_callback: release,
+			press_callback: press,
+			color: Bun.color(color, 'hex') ?? 'red'
+		});
+	}
+
+	toggle(label: string, on: () => void, off: () => void, color: ColorInput = 'red') {
+		this.buttons.push({
+			type: 'toggle',
+			label,
+			press_callback: on,
+			release_callback: off,
 			color: Bun.color(color, 'hex') ?? 'red',
+			state: false
 		});
 	}
 }
@@ -589,23 +615,50 @@ ws_subscribe('touchpad:load', (data, sender) => {
 	ws_send(sender, 'touchpad:layout', { buttons: touchpad.buttons });
 });
 
-ws_subscribe('touchpad:trigger', (data) => {
+ws_subscribe('touchpad:press', (data) => {
 	if (typeof data?.layout !== 'string')
-		throw new Error('touchpad:trigger event expects data.layout to be a string');
+		throw new Error('touchpad:press event expects data.layout to be a string');
 
 	if (typeof data?.index !== 'number')
-		throw new Error('touchpad:trigger event expects data.index to be a number');
+		throw new Error('touchpad:press event expects data.index to be a number');
 
 	const touchpad = registered_touchpads.get(data.layout);
 	if (touchpad === undefined)
-		throw new Error('touchpad:trigger called on unknown layout');
+		throw new Error('touchpad:press called on unknown layout');
 
 	const button = touchpad.buttons[data.index];
 	if (button === undefined)
-		throw new Error('touchpad:trigger called on unknown button');
+		throw new Error('touchpad:press called on unknown button');
 
-	button.callback();
+	if (button.type === 'press' || button.type === 'hold') {
+		button.press_callback();
+	} else if (button.type === 'toggle') {
+		button.state = !button.state;
+		button.state ? button.press_callback() : button.release_callback?.();
+	} else {
+		throw new Error('touchpad:press called on unknown button type: ' + button.type);
+	}
 });
+
+ws_subscribe('touchpad:release', (data) => {
+	if (typeof data?.layout !== 'string')
+		throw new Error('touchpad:release event expects data.layout to be a string');
+
+	if (typeof data?.index !== 'number')
+		throw new Error('touchpad:release event expects data.index to be a number');
+
+	const touchpad = registered_touchpads.get(data.layout);
+	if (touchpad === undefined)
+		throw new Error('touchpad:release called on unknown layout');
+
+	const button = touchpad.buttons[data.index];
+	if (button === undefined)
+		throw new Error('touchpad:release called on unknown button');
+
+	if (button.type === 'hold')
+		button.release_callback?.();
+});
+
 // endregion
 
 // region vlc

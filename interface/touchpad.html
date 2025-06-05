@@ -10,7 +10,15 @@
 	<body>
 		<div id="container" v-cloak>
 			<div class="button-grid">
-				<div class="button" v-for="button of buttons" @click="trigger(button)" :style="{ backgroundColor: button.color }">{{ button.label }}</div>
+				<div
+					class="button"
+					v-for="button of buttons"
+					@mousedown="press(button)"
+					@mouseup="release()"
+					@touchstart="press(button)"
+					@touchend="release()"
+					:style="{ backgroundColor: button.color }"
+				>{{ button.label }}</div>
 			</div>
 		</div>
 	</body>

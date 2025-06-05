@@ -139,8 +139,20 @@ example('lab(50% 50% 50%)'); // LAB strings
 const touchpad = create_touchpad('example');
 // accessible at localhost:19531/touchpad/example
 
-touchpad.add('Example Button', () => {
-	// triggered on touch
+touchpad.press('Button', () => {
+	// button pressed
+});
+
+touchpad.toggle('Toggle', () => {
+	// button toggled on
+}, () => {
+	// button toggled off
+});
+
+touchpad.hold('Hold', () => {
+	// button held
+}, () => {
+	// button released
 });
 ```
 Buttons can be optionally coloured using any supported colour input as documented in the [Colour](#-colour) section.
