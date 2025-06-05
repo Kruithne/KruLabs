@@ -23,7 +23,8 @@ const send_color_update = (fixture_name, color_hex) => {
 };
 
 const send_wave_update = (fixture_name, wave_config) => {
-	if (!fixture_name) return;
+	if (!fixture_name)
+		return;
 	
 	const color_1 = hex_to_rgb(wave_config.color_1);
 	const color_2 = hex_to_rgb(wave_config.color_2);
@@ -41,7 +42,8 @@ const send_wave_update = (fixture_name, wave_config) => {
 };
 
 const send_fade_update = (fixture_name, action, time_ms) => {
-	if (!fixture_name) return;
+	if (!fixture_name)
+		return;
 	
 	events.publish(`led:update#${fixture_name}`, {
 		action: action,
@@ -69,19 +71,23 @@ const state = createApp({
 		on_fixture_name_change() {
 			this.send_current_update();
 		},
+
 		on_mode_change() {
 			this.send_current_update();
 		},
+
 		on_color_change() {
 			if (this.mode === 'color') {
 				send_color_update(this.fixture_name, this.color);
 			}
 		},
+
 		on_wave_change() {
 			if (this.mode === 'wave') {
 				send_wave_update(this.fixture_name, this.wave);
 			}
 		},
+
 		send_current_update() {
 			if (this.mode === 'color') {
 				send_color_update(this.fixture_name, this.color);
@@ -89,22 +95,24 @@ const state = createApp({
 				send_wave_update(this.fixture_name, this.wave);
 			}
 		},
+
 		fade_out() {
 			send_fade_update(this.fixture_name, 'fade_out', this.fade_time);
 		},
+
 		fade_in() {
 			send_fade_update(this.fixture_name, 'fade_in', this.fade_time);
 		}
 	},
 	computed: {
 		api_code() {
-			if (!this.fixture_name) return 'Enter fixture name to see API code';
+			if (!this.fixture_name)
+				return 'Enter fixture name to see API code';
 			
-			if (this.mode === 'color') {
+			if (this.mode === 'color')
 				return `led.color('${this.color}');`;
-			} else {
-				return `led.wave('${this.wave.color_1}', '${this.wave.color_2}', ${this.wave.rotation}, ${this.wave.speed}, ${this.wave.sharp});`;
-			}
+			
+			return `led.wave('${this.wave.color_1}', '${this.wave.color_2}', ${this.wave.rotation}, ${this.wave.speed}, ${this.wave.sharp});`;
 		}
 	},
 	template: `
