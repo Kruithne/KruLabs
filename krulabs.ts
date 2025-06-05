@@ -608,6 +608,54 @@ ws_subscribe('touchpad:trigger', (data) => {
 });
 // endregion
 
+// region vlc
+const VLC_PREFIX = create_log_prefix('OBS', '#e85e00');
+
+class VLCInterface {
+	auth_header: string;
+	vlc_url: string;
+
+	constructor(password: string, port: number) {
+		this.auth_header = 'Basic ' + btoa(':' + password);
+		this.vlc_url = `http://localhost:${port}/requests/status.xml?command=`;
+	}
+
+	command(cmd: string) {
+		log(`COMMAND {${cmd}}`, VLC_PREFIX);
+		fetch(this.vlc_url + cmd, {
+			method: 'GET',
+			headers: {
+				'Authorization': this.auth_header
+			}
+		});
+	}
+
+	toggle_playback() {
+		this.command('pl_pause');
+	}
+
+	volume(pct: number) {
+		this.command(`volume&val=${Math.floor((pct / 100) * 256)}`);
+	}
+
+	fade(start_vol: number, end_vol: number, duration: number = 2000, steps: number = 20): Promise<void> {
+		return new Promise(async resolve => {
+			for (let i = 0; i <= steps; i++) {
+				const volume = Math.floor(start_vol + (i / steps) * (end_vol - start_vol));
+				this.volume(volume);
+				if (i < steps)
+					await Bun.sleep(duration / steps);
+			}
+			resolve();
+		});
+	}
+}
+
+export function connect_vlc(password: string, port: number = 8080) {
+	return new VLCInterface(password, port);
+}
+// endregion
+
 // region obs
 interface OBSMessage {
 	op: number;

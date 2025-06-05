@@ -76,6 +76,26 @@ obs.on_time('SOME_MEDIA.mp4', 5000, () => {
 });
 ```
 
+### 📽️ VLC Integration
+
+```ts
+import { connect_vlc } from '../krulabs';
+const vlc = await connect_vlc('password', 8080);
+```
+
+#### API
+```ts
+vlc.toggle_playback();
+vlc.volume(50); // 50%
+
+await vlc.fade(
+	100, // from pct
+	0, // to pct
+	10000, // duration ms
+	20 // steps
+);
+```
+
 ### 🎨 Colour
 
 Numerous interfaces in KruLabs accept colour input. These inputs can be specified in the following formats.
