@@ -17,7 +17,8 @@
 					@mouseup="release()"
 					@touchstart="press(button)"
 					@touchend="release()"
-					:style="{ backgroundColor: button.color }"
+					:style="{ backgroundColor: button.bg_color, borderColor: button.border_color }"
+					:class="{ active: active_button == button }"
 				>{{ button.label }}</div>
 			</div>
 		</div>

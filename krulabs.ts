@@ -543,11 +543,22 @@ type TouchpadButtonType = 'press' | 'toggle' | 'hold';
 type TouchpadButton = {
 	type: TouchpadButtonType,
 	label: string;
-	color: string;
+	bg_color: string;
+	border_color: string;
 	release_callback?: () => void;
 	press_callback: () => void;
 	state?: boolean;
 };
+
+
+function touchpad_create_button_colors(color: ColorInput) {
+	const hex = (Bun.color(color, 'hex') ?? 'FF0000');
+
+	return {
+		button: hex + 'B3',
+		border: hex
+	};
+}
 
 class TouchpadInterface {
 	buttons: TouchpadButton[];
@@ -557,31 +568,37 @@ class TouchpadInterface {
 	}
 
 	press(label: string, callback: () => void, color: ColorInput = 'red') {
+		const hex = touchpad_create_button_colors(color);
 		this.buttons.push({
 			type: 'press',
 			label,
 			press_callback: callback,
-			color: Bun.color(color, 'hex') ?? 'red'
+			bg_color: hex.button,
+			border_color: hex.border
 		});
 	}
 
 	hold(label: string, press: () => void, release: () => void, color: ColorInput = 'red') {
+		const hex = touchpad_create_button_colors(color);
 		this.buttons.push({
 			type: 'hold',
 			label,
 			release_callback: release,
 			press_callback: press,
-			color: Bun.color(color, 'hex') ?? 'red'
+			bg_color: hex.button,
+			border_color: hex.border
 		});
 	}
 
 	toggle(label: string, on: () => void, off: () => void, color: ColorInput = 'red') {
+		const hex = touchpad_create_button_colors(color);
 		this.buttons.push({
 			type: 'toggle',
 			label,
 			press_callback: on,
 			release_callback: off,
-			color: Bun.color(color, 'hex') ?? 'red',
+			bg_color: hex.button,
+			border_color: hex.border,
 			state: false
 		});
 	}

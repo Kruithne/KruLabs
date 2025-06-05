@@ -30,4 +30,9 @@ body {
 	text-align: center;
 	padding: 20px;
 	cursor: pointer;
+	border: 2px solid white;
+}
+
+.button-grid .button:hover, .button-grid .button.active {
+	border-color: white !important;
 }
