@@ -1827,6 +1827,22 @@ class ETCConnection {
 		if (label && label.length > 0)
 			this._send_command(`/cue/${this.cue_list}/label`, cue_number, label);
 	}
+
+	intensity(channel: number, intensity: number) {
+		this._send_command(`/chan/${channel}/at`, intensity);
+	}
+
+	color(channel: number, color: ColorInput) {
+		const rgb = Bun.color(color, '{rgb}');
+		if (!rgb) {
+			warn(`invalid color input: ${color}`);
+			return;
+		}
+
+		this._send_command(`/chan/${channel}/param/red`, Math.round((rgb.r / 255) * 100));
+		this._send_command(`/chan/${channel}/param/green`, Math.round((rgb.g / 255) * 100));
+		this._send_command(`/chan/${channel}/param/blue`, Math.round((rgb.b / 255) * 100));
+	}
 	
 	on_cue(cue_number: number, callback: Function) {
 		if (!this.cue_callbacks.has(cue_number))

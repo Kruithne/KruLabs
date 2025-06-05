@@ -39,6 +39,12 @@ etc.on_cue(5, () => {
 });
 ```
 
+#### Fixtures
+```ts
+etc.intensity(50, 100); // Chan 50 @ 100
+etc.color(50, 'red'); // see 🎨 Colour section
+```
+
 ### 🎬 OBS Integration
 
 ```ts
