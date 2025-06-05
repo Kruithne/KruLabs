@@ -1744,7 +1744,7 @@ class ETCConnection {
 		this.reconnect_timer = null;
 	}
 	
-	_send_command(address: string, ...args: any[]) {
+	command(address: string, ...args: any[]) {
 		if (!this.connected || !this.socket)
 			return;
 		
@@ -1818,18 +1818,18 @@ class ETCConnection {
 	}
 	
 	fire_cue(cue_number: number) {
-		this._send_command(`cue/${this.cue_list}/${cue_number}/fire`);
+		this.command(`cue/${this.cue_list}/${cue_number}/fire`);
 	}
 
 	record_cue(cue_number: number, label: string = '') {
-		this._send_command(`/cue/${this.cue_list}/record`, cue_number);
+		this.command(`/cue/${this.cue_list}/record`, cue_number);
 		
 		if (label && label.length > 0)
-			this._send_command(`/cue/${this.cue_list}/label`, cue_number, label);
+			this.command(`/cue/${this.cue_list}/label`, cue_number, label);
 	}
 
 	intensity(channel: number, intensity: number) {
-		this._send_command(`/chan/${channel}/at`, intensity);
+		this.command(`/chan/${channel}/at`, intensity);
 	}
 
 	color(channel: number, color: ColorInput) {
@@ -1839,9 +1839,9 @@ class ETCConnection {
 			return;
 		}
 
-		this._send_command(`/chan/${channel}/param/red`, Math.round((rgb.r / 255) * 100));
-		this._send_command(`/chan/${channel}/param/green`, Math.round((rgb.g / 255) * 100));
-		this._send_command(`/chan/${channel}/param/blue`, Math.round((rgb.b / 255) * 100));
+		this.command(`/chan/${channel}/param/red`, Math.round((rgb.r / 255) * 100));
+		this.command(`/chan/${channel}/param/green`, Math.round((rgb.g / 255) * 100));
+		this.command(`/chan/${channel}/param/blue`, Math.round((rgb.b / 255) * 100));
 	}
 	
 	on_cue(cue_number: number, callback: Function) {
