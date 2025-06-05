@@ -446,6 +446,21 @@ class LEDProjectionInterface {
 		});
 	}
 
+	swirl(color_1: ColorInput, color_2: ColorInput, threshold: number = 0.5, speed: number = 1.0, swirl_factor: number = 0.0, clockwise: boolean = true) {
+		const rgb_1 = Bun.color(color_1, '{rgb}');
+		const rgb_2 = Bun.color(color_2, '{rgb}');
+		
+		ws_publish(this.event_name, {
+			action: 'swirl',
+			color_1: rgb_1,
+			color_2: rgb_2,
+			threshold: threshold,
+			speed: speed,
+			swirl_factor: swirl_factor,
+			clockwise: clockwise
+		});
+	}
+
 	_send_layout() {
 		ws_publish(this.event_name, {
 			action: 'layout',

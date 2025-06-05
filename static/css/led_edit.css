@@ -337,3 +337,45 @@ input[type="range"]::-webkit-slider-thumb {
 	background-color: #005a99;
 	border-color: #005a99;
 }
+
+.swirl_section {
+	background-color: #333333;
+	border-radius: 6px;
+	padding: 16px;
+}
+
+.swirl_section h3 {
+	margin: 0 0 12px 0;
+	color: #ffffff;
+	font-size: 14px;
+	font-weight: 500;
+}
+
+.swirl_control {
+	display: flex;
+	align-items: center;
+	margin-bottom: 12px;
+	gap: 12px;
+}
+
+.swirl_control:last-child {
+	margin-bottom: 0;
+}
+
+.swirl_control label {
+	margin: 0;
+	min-width: 100px;
+	font-size: 13px;
+}
+
+.swirl_control input[type="range"] {
+	flex: 1;
+	margin: 0;
+}
+
+.swirl_control .value {
+	min-width: 50px;
+	text-align: right;
+	font-size: 13px;
+	color: #999999;
+}

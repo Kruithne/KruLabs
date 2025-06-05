@@ -35,6 +35,14 @@ let chase_duration = 1000;
 let chase_smooth = false;
 let chase_start_time = performance.now();
 
+let swirl_color_1 = { r: 1.0, g: 0.0, b: 0.0 };
+let swirl_color_2 = { r: 0.0, g: 1.0, b: 0.0 };
+let swirl_threshold = 0.5;
+let swirl_speed = 1.0;
+let swirl_factor = 0.0;
+let swirl_clockwise = true;
+let swirl_start_time = performance.now();
+
 const vertex_shader_source = `
 	attribute vec2 a_position;
 	varying vec2 v_uv;
@@ -170,6 +178,63 @@ const chase_fragment_shader = `
 	}
 `;
 
+const swirl_fragment_shader = `
+	precision mediump float;
+	
+	uniform float u_grid_x;
+	uniform float u_grid_y;
+	uniform vec3 u_swirl_color_1;
+	uniform vec3 u_swirl_color_2;
+	uniform float u_swirl_threshold;
+	uniform float u_swirl_speed;
+	uniform float u_swirl_factor;
+	uniform bool u_swirl_clockwise;
+	uniform float u_time;
+	uniform float u_fade;
+	uniform float u_cell_size;
+	varying vec2 v_uv;
+	
+	void main() {
+		vec2 grid_uv = fract(v_uv * vec2(u_grid_x, u_grid_y));
+		vec2 center = vec2(0.5);
+		float dist = distance(grid_uv, center);
+		float circle = step(dist, u_cell_size);
+		
+		// Calculate position relative to LED center for the swirl effect
+		vec2 grid_id = floor(v_uv * vec2(u_grid_x, u_grid_y));
+		vec2 led_center = (grid_id + 0.5) / vec2(u_grid_x, u_grid_y);
+		
+		// Calculate UV relative to center of entire grid
+		vec2 centered_uv = led_center - vec2(0.5);
+		
+		// Calculate angle and distance from center
+		float angle = atan(centered_uv.y, centered_uv.x);
+		float radius = length(centered_uv);
+		
+		// Apply swirl factor to create spiral effect
+		float swirl_angle = angle + radius * u_swirl_factor * 20.0;
+		
+		// Add rotation based on time and speed
+		float rotation_offset = u_time * u_swirl_speed * (u_swirl_clockwise ? 1.0 : -1.0);
+		swirl_angle += rotation_offset;
+		
+		// Create radial pattern (sunburst effect)
+		float pattern = sin(swirl_angle * 8.0) * 0.5 + 0.5;
+		
+		// Apply threshold for sharp transitions
+		float mix_factor = pattern;
+		if (pattern > u_swirl_threshold) {
+			mix_factor = 1.0;
+		} else {
+			mix_factor = 0.0;
+		}
+		
+		vec3 final_color = mix(u_swirl_color_1, u_swirl_color_2, mix_factor);
+		
+		gl_FragColor = vec4(final_color * circle * u_fade, 1.0);
+	}
+`;
+
 const create_shader = (type, source) => {
 	const shader = gl.createShader(type);
 	gl.shaderSource(shader, source);
@@ -204,6 +269,7 @@ const create_program = (fragment_source) => {
 const solid_program = create_program(solid_fragment_shader);
 const wave_program = create_program(wave_fragment_shader);
 const chase_program = create_program(chase_fragment_shader);
+const swirl_program = create_program(swirl_fragment_shader);
 
 let current_mode = 'solid';
 let current_program = solid_program;
@@ -228,6 +294,11 @@ const wave_uniforms = get_uniform_locations(wave_program, [
 const chase_uniforms = get_uniform_locations(chase_program, [
 	'u_grid_x', 'u_grid_y', 'u_chase_color_1', 'u_chase_color_2', 'u_chase_color_3', 'u_chase_color_4',
 	'u_chase_time', 'u_chase_duration', 'u_chase_smooth', 'u_chase_count', 'u_fade', 'u_cell_size'
+]);
+
+const swirl_uniforms = get_uniform_locations(swirl_program, [
+	'u_grid_x', 'u_grid_y', 'u_swirl_color_1', 'u_swirl_color_2', 'u_swirl_threshold',
+	'u_swirl_speed', 'u_swirl_factor', 'u_swirl_clockwise', 'u_time', 'u_fade', 'u_cell_size'
 ]);
 
 const get_position_attribute = (program) => {
@@ -307,6 +378,18 @@ const render = () => {
 		gl.uniform1i(chase_uniforms.u_chase_count, chase_count);
 		gl.uniform1f(chase_uniforms.u_fade, fade_level);
 		gl.uniform1f(chase_uniforms.u_cell_size, cell_size);
+	} else if (current_mode === 'swirl') {
+		gl.uniform1f(swirl_uniforms.u_grid_x, grid_size_x);
+		gl.uniform1f(swirl_uniforms.u_grid_y, grid_size_y);
+		gl.uniform3f(swirl_uniforms.u_swirl_color_1, swirl_color_1.r, swirl_color_1.g, swirl_color_1.b);
+		gl.uniform3f(swirl_uniforms.u_swirl_color_2, swirl_color_2.r, swirl_color_2.g, swirl_color_2.b);
+		gl.uniform1f(swirl_uniforms.u_swirl_threshold, swirl_threshold);
+		gl.uniform1f(swirl_uniforms.u_swirl_speed, swirl_speed);
+		gl.uniform1f(swirl_uniforms.u_swirl_factor, swirl_factor);
+		gl.uniform1i(swirl_uniforms.u_swirl_clockwise, swirl_clockwise);
+		gl.uniform1f(swirl_uniforms.u_time, (performance.now() - swirl_start_time) / 1000.0);
+		gl.uniform1f(swirl_uniforms.u_fade, fade_level);
+		gl.uniform1f(swirl_uniforms.u_cell_size, cell_size);
 	}
 	
 	gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -391,6 +474,24 @@ events.subscribe('connected', () => {
 				chase_duration = data.time || 1000;
 				chase_smooth = data.smooth || false;
 				chase_start_time = performance.now();
+				break;
+
+			case 'swirl':
+				current_mode = 'swirl';
+				current_program = swirl_program;
+				
+				swirl_color_1.r = data.color_1.r / 255;
+				swirl_color_1.g = data.color_1.g / 255;
+				swirl_color_1.b = data.color_1.b / 255;
+				swirl_color_2.r = data.color_2.r / 255;
+				swirl_color_2.g = data.color_2.g / 255;
+				swirl_color_2.b = data.color_2.b / 255;
+				
+				swirl_threshold = data.threshold || 0.5;
+				swirl_speed = data.speed || 1.0;
+				swirl_factor = data.swirl_factor || 0.0;
+				swirl_clockwise = data.clockwise !== undefined ? data.clockwise : true;
+				swirl_start_time = performance.now();
 				break;
 		}
 	});

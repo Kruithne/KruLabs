@@ -77,6 +77,26 @@ const send_chase_update = (fixture_name, chase_config) => {
 	});
 };
 
+const send_swirl_update = (fixture_name, swirl_config) => {
+	if (!fixture_name)
+		return;
+	
+	const color_1 = hex_to_rgb(swirl_config.color_1);
+	const color_2 = hex_to_rgb(swirl_config.color_2);
+	
+	if (color_1 && color_2) {
+		events.publish(`led:update#${fixture_name}`, {
+			action: 'swirl',
+			color_1: color_1,
+			color_2: color_2,
+			threshold: swirl_config.threshold,
+			speed: swirl_config.speed,
+			swirl_factor: swirl_config.swirl_factor,
+			clockwise: swirl_config.clockwise
+		});
+	}
+};
+
 const state = createApp({
 	data() {
 		return {
@@ -100,6 +120,14 @@ const state = createApp({
 				colors: ['#ff0000', '#00ff00'],
 				time: 1000,
 				smooth: false
+			},
+			swirl: {
+				color_1: '#ff0000',
+				color_2: '#00ff00',
+				threshold: 0.5,
+				speed: 1.0,
+				swirl_factor: 0.0,
+				clockwise: true
 			}
 		}
 	},
@@ -130,6 +158,12 @@ const state = createApp({
 			}
 		},
 
+		on_swirl_change() {
+			if (this.mode === 'swirl') {
+				send_swirl_update(this.fixture_name, this.swirl);
+			}
+		},
+
 		send_current_update() {
 			if (this.mode === 'color') {
 				send_color_update(this.fixture_name, this.color);
@@ -137,6 +171,8 @@ const state = createApp({
 				send_wave_update(this.fixture_name, this.wave);
 			} else if (this.mode === 'chase') {
 				send_chase_update(this.fixture_name, this.chase);
+			} else if (this.mode === 'swirl') {
+				send_swirl_update(this.fixture_name, this.swirl);
 			}
 		},
 
@@ -175,6 +211,8 @@ const state = createApp({
 				return `led.wave('${this.wave.color_1}', '${this.wave.color_2}', ${this.wave.rotation}, ${this.wave.speed}, ${this.wave.sharp});`;
 			else if (this.mode === 'chase')
 				return `led.chase([${this.chase.colors.map(c => `'${c}'`).join(', ')}], ${this.chase.time}, ${this.chase.smooth});`;
+			else if (this.mode === 'swirl')
+				return `led.swirl('${this.swirl.color_1}', '${this.swirl.color_2}', ${this.swirl.threshold}, ${this.swirl.speed}, ${this.swirl.swirl_factor}, ${this.swirl.clockwise});`;
 			
 			return 'Enter fixture name to see API code';
 		},
@@ -204,6 +242,7 @@ const state = createApp({
 					<option value="color">Color</option>
 					<option value="wave">Wave</option>
 					<option value="chase">Chase</option>
+					<option value="swirl">Swirl</option>
 				</select>
 			</div>
 
@@ -353,6 +392,78 @@ const state = createApp({
 						<button @click="remove_chase_color(index)" :disabled="chase.colors.length <= 1" class="remove_color">×</button>
 					</div>
 					<button @click="add_chase_color" class="add_color">Add Color</button>
+				</div>
+			</div>
+
+			<div v-if="mode === 'swirl'" class="section swirl_section">
+				<h3>Swirl Settings</h3>
+				<div class="swirl_control">
+					<label for="swirl_color_1">Color 1:</label>
+					<input 
+						type="color" 
+						id="swirl_color_1"
+						v-model="swirl.color_1" 
+						@input="on_swirl_change"
+					>
+				</div>
+				<div class="swirl_control">
+					<label for="swirl_color_2">Color 2:</label>
+					<input 
+						type="color" 
+						id="swirl_color_2"
+						v-model="swirl.color_2" 
+						@input="on_swirl_change"
+					>
+				</div>
+				<div class="swirl_control">
+					<label for="swirl_threshold">Threshold:</label>
+					<input 
+						type="range" 
+						id="swirl_threshold"
+						v-model.number="swirl.threshold"
+						@input="on_swirl_change"
+						min="0"
+						max="1"
+						step="0.01"
+					>
+					<span class="value">{{ swirl.threshold.toFixed(2) }}</span>
+				</div>
+				<div class="swirl_control">
+					<label for="swirl_speed">Speed:</label>
+					<input 
+						type="range" 
+						id="swirl_speed"
+						v-model.number="swirl.speed"
+						@input="on_swirl_change"
+						min="0"
+						max="5"
+						step="0.1"
+					>
+					<span class="value">{{ swirl.speed.toFixed(1) }}</span>
+				</div>
+				<div class="swirl_control">
+					<label for="swirl_factor">Swirl Factor:</label>
+					<input 
+						type="range" 
+						id="swirl_factor"
+						v-model.number="swirl.swirl_factor"
+						@input="on_swirl_change"
+						min="0"
+						max="2"
+						step="0.1"
+					>
+					<span class="value">{{ swirl.swirl_factor.toFixed(1) }}</span>
+				</div>
+				<div class="swirl_control checkbox_control">
+					<label for="swirl_clockwise">
+						<input 
+							type="checkbox" 
+							id="swirl_clockwise"
+							v-model="swirl.clockwise" 
+							@change="on_swirl_change"
+						>
+						Clockwise rotation
+					</label>
 				</div>
 			</div>
 
