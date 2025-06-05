@@ -74,6 +74,26 @@ obs.on_time('SOME_MEDIA.mp4', 5000, () => {
 	// fires when SOME_MEDIA.mp4 reaches 5 seconds
 });
 ```
+
+### 🎨 Colour
+
+Numerous interfaces in KruLabs accept colour input. These inputs can be specified in the following formats.
+
+```ts
+example('red'); // standard CSS color names
+example(0xff0000); // numbers
+example('#f00'); // hex strings
+example('rgb(255, 0, 0)'); // RGB strings
+example('rgba(255, 0, 0, 1)'); // RGBA strings
+example('hsl(0, 100%, 50%)'); // HSL strings
+example('hsla(0, 100%, 50%, 1)'); // HSLA strings
+example({ r: 255, g: 0, b: 0 }); // RGB objects
+example({ r: 255, g: 0, b: 0, a: 1 }); // RGBA objects
+example([255, 0, 0]); // RGB arrays
+example([255, 0, 0, 255]); // RGBA arrays
+example('lab(50% 50% 50%)'); // LAB strings
+```
+
 ### 📲 Touchpad
 
 ```ts
@@ -84,6 +104,90 @@ touchpad.add('Example Button', () => {
 	// triggered on touch
 });
 ```
+Buttons can be optionally coloured using any supported colour input as documented in the [Colour](#-colour) section.
+
+```ts
+touchpad.add('Red Button', () => {}, 'red');
+```
+
+
+### 💡 LED Projector
+
+KruLabs provides an LED projector interface system. This allows the creation and control of realtime digital LED fixtures.
+
+These can be used directly as a full projection, or integrate as a browser source into projection software such as OBS.
+
+```ts
+const led = create_led_projection('example');
+// available at localhost:19531/led/example
+```
+All colour inputs for LED functions are documented in the [Colour](#-colour) section.
+
+#### LED API
+
+```ts
+led.layout(
+	30, // grid_x
+	30, // grid_y
+	0.3 // cell_size
+);
+
+led.color('red'); // static color
+led.fade_in(1000); // fade in over 1 second
+led.fade_out(1000); // fade out over 1 second
+
+led.wave(
+	'red', // primary color 
+	'white', // secondary color
+	60, // rotation (degrees)
+	90, // speed
+	true // sharp
+);
+
+led.chase(
+	['red', 'orange', 'yellow', 'green', 'blue'], // colour array
+	1000, // interpolation or snap time
+	false // if true, colours interpolate, otherwise snap
+);
+
+led.swirl(
+	'black', // primary color
+	'white', // secondary color
+	0.5, // threshold
+	1, // speed
+	0.2, // swirl factor
+	true // clockwise
+);
+
+led.voronoi(
+	'red', // primary color
+	'white', // secondary color
+	'Y+', // X+, X-, Y+, Y-
+	1, // speed
+	0.35, // threshold
+	'minkowski' // minkowski, euclidean, manhattan, chebyshev
+);
+
+led.rings(
+	'red', // primary color
+	'white', // secondary color
+	2.6, // speed
+	true, // outward
+	0.5 // threshold
+);
+
+led.rain(
+	'white', // primary color
+	'black', // secondary color
+	0.4, // speed
+	0.1, // direction X
+	5, // direction Y
+	80 // columns
+);
+```
+#### LED Editor
+
+In addition to the LED fixture interface, KruLabs also exposes the an editor on `localhost:19351/led_edit/` which can be used to directly address LED fixtures created with `create_led_projection()` for rapid prototyping.
 
 ### 📃 Event Subscription Network
 
