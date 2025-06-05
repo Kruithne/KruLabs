@@ -97,6 +97,26 @@ const send_swirl_update = (fixture_name, swirl_config) => {
 	}
 };
 
+const send_voronoi_update = (fixture_name, voronoi_config) => {
+	if (!fixture_name)
+		return;
+	
+	const color_1 = hex_to_rgb(voronoi_config.color_1);
+	const color_2 = hex_to_rgb(voronoi_config.color_2);
+	
+	if (color_1 && color_2) {
+		events.publish(`led:update#${fixture_name}`, {
+			action: 'voronoi',
+			color_1: color_1,
+			color_2: color_2,
+			direction: voronoi_config.direction,
+			speed: voronoi_config.speed,
+			threshold: voronoi_config.threshold,
+			distance_mode: voronoi_config.distance_mode
+		});
+	}
+};
+
 const state = createApp({
 	data() {
 		return {
@@ -128,6 +148,14 @@ const state = createApp({
 				speed: 1.0,
 				swirl_factor: 0.0,
 				clockwise: true
+			},
+			voronoi: {
+				color_1: '#ff0000',
+				color_2: '#00ff00',
+				direction: 'X+',
+				speed: 1.0,
+				threshold: 0.5,
+				distance_mode: 'euclidean'
 			}
 		}
 	},
@@ -164,6 +192,12 @@ const state = createApp({
 			}
 		},
 
+		on_voronoi_change() {
+			if (this.mode === 'voronoi') {
+				send_voronoi_update(this.fixture_name, this.voronoi);
+			}
+		},
+
 		send_current_update() {
 			if (this.mode === 'color') {
 				send_color_update(this.fixture_name, this.color);
@@ -173,6 +207,8 @@ const state = createApp({
 				send_chase_update(this.fixture_name, this.chase);
 			} else if (this.mode === 'swirl') {
 				send_swirl_update(this.fixture_name, this.swirl);
+			} else if (this.mode === 'voronoi') {
+				send_voronoi_update(this.fixture_name, this.voronoi);
 			}
 		},
 
@@ -213,6 +249,8 @@ const state = createApp({
 				return `led.chase([${this.chase.colors.map(c => `'${c}'`).join(', ')}], ${this.chase.time}, ${this.chase.smooth});`;
 			else if (this.mode === 'swirl')
 				return `led.swirl('${this.swirl.color_1}', '${this.swirl.color_2}', ${this.swirl.threshold}, ${this.swirl.speed}, ${this.swirl.swirl_factor}, ${this.swirl.clockwise});`;
+			else if (this.mode === 'voronoi')
+				return `led.voronoi('${this.voronoi.color_1}', '${this.voronoi.color_2}', '${this.voronoi.direction}', ${this.voronoi.speed}, ${this.voronoi.threshold}, '${this.voronoi.distance_mode}');`;
 			
 			return 'Enter fixture name to see API code';
 		},
@@ -243,6 +281,7 @@ const state = createApp({
 					<option value="wave">Wave</option>
 					<option value="chase">Chase</option>
 					<option value="swirl">Swirl</option>
+					<option value="voronoi">Voronoi</option>
 				</select>
 			</div>
 
@@ -464,6 +503,80 @@ const state = createApp({
 						>
 						Clockwise rotation
 					</label>
+				</div>
+			</div>
+
+			<div v-if="mode === 'voronoi'" class="section voronoi_section">
+				<h3>Voronoi Settings</h3>
+				<div class="voronoi_control">
+					<label for="voronoi_color_1">Color 1:</label>
+					<input 
+						type="color" 
+						id="voronoi_color_1"
+						v-model="voronoi.color_1" 
+						@input="on_voronoi_change"
+					>
+				</div>
+				<div class="voronoi_control">
+					<label for="voronoi_color_2">Color 2:</label>
+					<input 
+						type="color" 
+						id="voronoi_color_2"
+						v-model="voronoi.color_2" 
+						@input="on_voronoi_change"
+					>
+				</div>
+				<div class="voronoi_control">
+					<label for="voronoi_direction">Direction:</label>
+					<select 
+						id="voronoi_direction"
+						v-model="voronoi.direction"
+						@change="on_voronoi_change"
+					>
+						<option value="X+">X+ (Left)</option>
+						<option value="X-">X- (Right)</option>
+						<option value="Y+">Y+ (Down)</option>
+						<option value="Y-">Y- (Up)</option>
+					</select>
+				</div>
+				<div class="voronoi_control">
+					<label for="voronoi_speed">Speed:</label>
+					<input 
+						type="range" 
+						id="voronoi_speed"
+						v-model.number="voronoi.speed"
+						@input="on_voronoi_change"
+						min="0"
+						max="5"
+						step="0.1"
+					>
+					<span class="value">{{ voronoi.speed.toFixed(1) }}</span>
+				</div>
+				<div class="voronoi_control">
+					<label for="voronoi_threshold">Threshold:</label>
+					<input 
+						type="range" 
+						id="voronoi_threshold"
+						v-model.number="voronoi.threshold"
+						@input="on_voronoi_change"
+						min="0"
+						max="1"
+						step="0.01"
+					>
+					<span class="value">{{ voronoi.threshold.toFixed(2) }}</span>
+				</div>
+				<div class="voronoi_control">
+					<label for="voronoi_distance_mode">Distance Mode:</label>
+					<select 
+						id="voronoi_distance_mode"
+						v-model="voronoi.distance_mode"
+						@change="on_voronoi_change"
+					>
+						<option value="euclidean">Euclidean (Circles)</option>
+						<option value="manhattan">Manhattan (Diamonds)</option>
+						<option value="chebyshev">Chebyshev (Squares)</option>
+						<option value="minkowski">Minkowski (Stars)</option>
+					</select>
 				</div>
 			</div>
 

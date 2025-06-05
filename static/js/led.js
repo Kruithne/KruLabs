@@ -43,6 +43,15 @@ let swirl_factor = 0.0;
 let swirl_clockwise = true;
 let swirl_start_time = performance.now();
 
+let voronoi_color_1 = { r: 1.0, g: 0.0, b: 0.0 };
+let voronoi_color_2 = { r: 0.0, g: 1.0, b: 0.0 };
+let voronoi_direction_x = 1.0;
+let voronoi_direction_y = 0.0;
+let voronoi_speed = 1.0;
+let voronoi_threshold = 0.5;
+let voronoi_distance_mode = 0; // 0=euclidean, 1=manhattan, 2=chebyshev, 3=minkowski
+let voronoi_start_time = performance.now();
+
 const vertex_shader_source = `
 	attribute vec2 a_position;
 	varying vec2 v_uv;
@@ -235,6 +244,101 @@ const swirl_fragment_shader = `
 	}
 `;
 
+const voronoi_fragment_shader = `
+	precision mediump float;
+	
+	uniform float u_grid_x;
+	uniform float u_grid_y;
+	uniform vec3 u_voronoi_color_1;
+	uniform vec3 u_voronoi_color_2;
+	uniform float u_voronoi_direction_x;
+	uniform float u_voronoi_direction_y;
+	uniform float u_voronoi_speed;
+	uniform float u_voronoi_threshold;
+	uniform int u_voronoi_distance_mode;
+	uniform float u_time;
+	uniform float u_fade;
+	uniform float u_cell_size;
+	varying vec2 v_uv;
+	
+	// Hash function for pseudo-random numbers
+	vec2 hash(vec2 p) {
+		p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)));
+		return -1.0 + 2.0 * fract(sin(p) * 43758.5453123);
+	}
+	
+	// Distance functions
+	float euclidean_distance(vec2 a, vec2 b) {
+		return length(a - b);
+	}
+	
+	float manhattan_distance(vec2 a, vec2 b) {
+		vec2 diff = abs(a - b);
+		return diff.x + diff.y;
+	}
+	
+	float chebyshev_distance(vec2 a, vec2 b) {
+		vec2 diff = abs(a - b);
+		return max(diff.x, diff.y);
+	}
+	
+	float minkowski_distance(vec2 a, vec2 b) {
+		vec2 diff = abs(a - b);
+		return pow(pow(diff.x, 0.5) + pow(diff.y, 0.5), 1.0/0.5);
+	}
+	
+	float get_distance(vec2 a, vec2 b, int mode) {
+		if (mode == 0) return euclidean_distance(a, b);
+		else if (mode == 1) return manhattan_distance(a, b);
+		else if (mode == 2) return chebyshev_distance(a, b);
+		else return minkowski_distance(a, b);
+	}
+	
+	void main() {
+		vec2 grid_uv = fract(v_uv * vec2(u_grid_x, u_grid_y));
+		vec2 center = vec2(0.5);
+		float dist = distance(grid_uv, center);
+		float circle = step(dist, u_cell_size);
+		
+		vec2 grid_id = floor(v_uv * vec2(u_grid_x, u_grid_y));
+		vec2 led_center = (grid_id + 0.5) / vec2(u_grid_x, u_grid_y);
+		
+		vec2 offset = vec2(u_voronoi_direction_x, u_voronoi_direction_y) * u_time * u_voronoi_speed * 0.1;
+		vec2 scrolled_pos = led_center + offset;
+		
+		vec2 voronoi_pos = scrolled_pos * 8.0;
+		
+		vec2 cell = floor(voronoi_pos);
+		vec2 fract_pos = fract(voronoi_pos);
+		
+		float min_dist = 10.0;
+		
+		for (int j = -1; j <= 1; j++) {
+			for (int i = -1; i <= 1; i++) {
+				vec2 neighbor = vec2(float(i), float(j));
+				vec2 neighbor_cell = cell + neighbor;
+				vec2 point = neighbor + hash(neighbor_cell) * 0.5 + 0.5;
+				
+				float d = get_distance(fract_pos, point, u_voronoi_distance_mode);
+				min_dist = min(min_dist, d);
+			}
+		}
+		
+		float pattern = min_dist;
+		
+		float mix_factor = pattern;
+		if (pattern > u_voronoi_threshold) {
+			mix_factor = 1.0;
+		} else {
+			mix_factor = 0.0;
+		}
+		
+		vec3 final_color = mix(u_voronoi_color_1, u_voronoi_color_2, mix_factor);
+		
+		gl_FragColor = vec4(final_color * circle * u_fade, 1.0);
+	}
+`;
+
 const create_shader = (type, source) => {
 	const shader = gl.createShader(type);
 	gl.shaderSource(shader, source);
@@ -270,6 +374,7 @@ const solid_program = create_program(solid_fragment_shader);
 const wave_program = create_program(wave_fragment_shader);
 const chase_program = create_program(chase_fragment_shader);
 const swirl_program = create_program(swirl_fragment_shader);
+const voronoi_program = create_program(voronoi_fragment_shader);
 
 let current_mode = 'solid';
 let current_program = solid_program;
@@ -299,6 +404,11 @@ const chase_uniforms = get_uniform_locations(chase_program, [
 const swirl_uniforms = get_uniform_locations(swirl_program, [
 	'u_grid_x', 'u_grid_y', 'u_swirl_color_1', 'u_swirl_color_2', 'u_swirl_threshold',
 	'u_swirl_speed', 'u_swirl_factor', 'u_swirl_clockwise', 'u_time', 'u_fade', 'u_cell_size'
+]);
+
+const voronoi_uniforms = get_uniform_locations(voronoi_program, [
+	'u_grid_x', 'u_grid_y', 'u_voronoi_color_1', 'u_voronoi_color_2', 'u_voronoi_direction_x', 'u_voronoi_direction_y',
+	'u_voronoi_speed', 'u_voronoi_threshold', 'u_voronoi_distance_mode', 'u_time', 'u_fade', 'u_cell_size'
 ]);
 
 const get_position_attribute = (program) => {
@@ -390,6 +500,19 @@ const render = () => {
 		gl.uniform1f(swirl_uniforms.u_time, (performance.now() - swirl_start_time) / 1000.0);
 		gl.uniform1f(swirl_uniforms.u_fade, fade_level);
 		gl.uniform1f(swirl_uniforms.u_cell_size, cell_size);
+	} else if (current_mode === 'voronoi') {
+		gl.uniform1f(voronoi_uniforms.u_grid_x, grid_size_x);
+		gl.uniform1f(voronoi_uniforms.u_grid_y, grid_size_y);
+		gl.uniform3f(voronoi_uniforms.u_voronoi_color_1, voronoi_color_1.r, voronoi_color_1.g, voronoi_color_1.b);
+		gl.uniform3f(voronoi_uniforms.u_voronoi_color_2, voronoi_color_2.r, voronoi_color_2.g, voronoi_color_2.b);
+		gl.uniform1f(voronoi_uniforms.u_voronoi_direction_x, voronoi_direction_x);
+		gl.uniform1f(voronoi_uniforms.u_voronoi_direction_y, voronoi_direction_y);
+		gl.uniform1f(voronoi_uniforms.u_voronoi_speed, voronoi_speed);
+		gl.uniform1f(voronoi_uniforms.u_voronoi_threshold, voronoi_threshold);
+		gl.uniform1i(voronoi_uniforms.u_voronoi_distance_mode, voronoi_distance_mode);
+		gl.uniform1f(voronoi_uniforms.u_time, (performance.now() - voronoi_start_time) / 1000.0);
+		gl.uniform1f(voronoi_uniforms.u_fade, fade_level);
+		gl.uniform1f(voronoi_uniforms.u_cell_size, cell_size);
 	}
 	
 	gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -492,6 +615,49 @@ events.subscribe('connected', () => {
 				swirl_factor = data.swirl_factor || 0.0;
 				swirl_clockwise = data.clockwise !== undefined ? data.clockwise : true;
 				swirl_start_time = performance.now();
+				break;
+
+			case 'voronoi':
+				current_mode = 'voronoi';
+				current_program = voronoi_program;
+				
+				voronoi_color_1.r = data.color_1.r / 255;
+				voronoi_color_1.g = data.color_1.g / 255;
+				voronoi_color_1.b = data.color_1.b / 255;
+				voronoi_color_2.r = data.color_2.r / 255;
+				voronoi_color_2.g = data.color_2.g / 255;
+				voronoi_color_2.b = data.color_2.b / 255;
+				
+				const direction = data.direction || 'X+';
+				if (direction === 'X+') {
+					voronoi_direction_x = 1.0;
+					voronoi_direction_y = 0.0;
+				} else if (direction === 'X-') {
+					voronoi_direction_x = -1.0;
+					voronoi_direction_y = 0.0;
+				} else if (direction === 'Y+') {
+					voronoi_direction_x = 0.0;
+					voronoi_direction_y = 1.0;
+				} else if (direction === 'Y-') {
+					voronoi_direction_x = 0.0;
+					voronoi_direction_y = -1.0;
+				}
+				
+				voronoi_speed = data.speed || 1.0;
+				voronoi_threshold = data.threshold || 0.5;
+				
+				const distance_mode = data.distance_mode || 'euclidean';
+				if (distance_mode === 'euclidean') {
+					voronoi_distance_mode = 0;
+				} else if (distance_mode === 'manhattan') {
+					voronoi_distance_mode = 1;
+				} else if (distance_mode === 'chebyshev') {
+					voronoi_distance_mode = 2;
+				} else if (distance_mode === 'minkowski') {
+					voronoi_distance_mode = 3;
+				}
+				
+				voronoi_start_time = performance.now();
 				break;
 		}
 	});

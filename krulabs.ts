@@ -375,6 +375,9 @@ get_ipv4_addresses().forEach(addr => log(`detected IPv4 interface address {${add
 // region led projection
 const registered_led_projectors = new Map<string, LEDProjectionInterface>();
 
+export type Voronoi = 'euclidean' | 'manhattan' | 'chebyshev' | 'minkowski';
+export type Direction = 'X+' | 'X-' | 'Y+' | 'Y-';
+
 class LEDProjectionInterface {
 	name: string;
 	event_name: string;
@@ -458,6 +461,21 @@ class LEDProjectionInterface {
 			speed: speed,
 			swirl_factor: swirl_factor,
 			clockwise: clockwise
+		});
+	}
+
+	voronoi(color_1: ColorInput, color_2: ColorInput, direction: Direction = 'X+', speed: number = 1.0, threshold: number = 0.5, distance_mode: Voronoi = 'euclidean') {
+		const rgb_1 = Bun.color(color_1, '{rgb}');
+		const rgb_2 = Bun.color(color_2, '{rgb}');
+		
+		ws_publish(this.event_name, {
+			action: 'voronoi',
+			color_1: rgb_1,
+			color_2: rgb_2,
+			direction: direction,
+			speed: speed,
+			threshold: threshold,
+			distance_mode: distance_mode
 		});
 	}
 
