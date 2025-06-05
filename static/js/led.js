@@ -24,6 +24,17 @@ let fade_target_level = 1.0;
 let fade_duration = 0;
 let is_fading = false;
 
+let chase_colors = [
+	{ r: 1.0, g: 0.0, b: 0.0 },
+	{ r: 0.0, g: 1.0, b: 0.0 },
+	{ r: 0.0, g: 0.0, b: 1.0 },
+	{ r: 1.0, g: 1.0, b: 0.0 }
+];
+let chase_count = 2;
+let chase_duration = 1000;
+let chase_smooth = false;
+let chase_start_time = performance.now();
+
 const vertex_shader_source = `
 	attribute vec2 a_position;
 	varying vec2 v_uv;
@@ -99,6 +110,66 @@ const wave_fragment_shader = `
 	}
 `;
 
+const chase_fragment_shader = `
+	precision mediump float;
+	
+	uniform float u_grid_x;
+	uniform float u_grid_y;
+	uniform vec3 u_chase_color_1;
+	uniform vec3 u_chase_color_2;
+	uniform vec3 u_chase_color_3;
+	uniform vec3 u_chase_color_4;
+	uniform float u_chase_time;
+	uniform float u_chase_duration;
+	uniform bool u_chase_smooth;
+	uniform int u_chase_count;
+	uniform float u_fade;
+	uniform float u_cell_size;
+	varying vec2 v_uv;
+	
+	void main() {
+		vec2 grid_uv = fract(v_uv * vec2(u_grid_x, u_grid_y));
+		vec2 center = vec2(0.5);
+		float dist = distance(grid_uv, center);
+		float circle = step(dist, u_cell_size);
+		
+		float cycle_time = mod(u_chase_time, u_chase_duration * float(u_chase_count));
+		float color_index = cycle_time / u_chase_duration;
+		
+		vec3 final_color = u_chase_color_1;
+		
+		if (u_chase_smooth) {
+			float index_fract = fract(color_index);
+			int current_index = int(color_index);
+			int next_index = current_index + 1;
+			if (next_index >= u_chase_count) next_index = 0;
+			
+			vec3 current_color = u_chase_color_1;
+			vec3 next_color = u_chase_color_1;
+			
+			if (current_index == 0) current_color = u_chase_color_1;
+			else if (current_index == 1) current_color = u_chase_color_2;
+			else if (current_index == 2) current_color = u_chase_color_3;
+			else if (current_index == 3) current_color = u_chase_color_4;
+			
+			if (next_index == 0) next_color = u_chase_color_1;
+			else if (next_index == 1) next_color = u_chase_color_2;
+			else if (next_index == 2) next_color = u_chase_color_3;
+			else if (next_index == 3) next_color = u_chase_color_4;
+			
+			final_color = mix(current_color, next_color, index_fract);
+		} else {
+			int current_index = int(color_index);
+			if (current_index == 0) final_color = u_chase_color_1;
+			else if (current_index == 1) final_color = u_chase_color_2;
+			else if (current_index == 2) final_color = u_chase_color_3;
+			else if (current_index == 3) final_color = u_chase_color_4;
+		}
+		
+		gl_FragColor = vec4(final_color * circle * u_fade, 1.0);
+	}
+`;
+
 const create_shader = (type, source) => {
 	const shader = gl.createShader(type);
 	gl.shaderSource(shader, source);
@@ -132,6 +203,7 @@ const create_program = (fragment_source) => {
 
 const solid_program = create_program(solid_fragment_shader);
 const wave_program = create_program(wave_fragment_shader);
+const chase_program = create_program(chase_fragment_shader);
 
 let current_mode = 'solid';
 let current_program = solid_program;
@@ -151,6 +223,11 @@ const solid_uniforms = get_uniform_locations(solid_program, [
 const wave_uniforms = get_uniform_locations(wave_program, [
 	'u_grid_x', 'u_grid_y', 'u_wave_color_1', 'u_wave_color_2', 
 	'u_wave_rotation', 'u_time', 'u_wave_speed', 'u_wave_sharp', 'u_fade', 'u_cell_size'
+]);
+
+const chase_uniforms = get_uniform_locations(chase_program, [
+	'u_grid_x', 'u_grid_y', 'u_chase_color_1', 'u_chase_color_2', 'u_chase_color_3', 'u_chase_color_4',
+	'u_chase_time', 'u_chase_duration', 'u_chase_smooth', 'u_chase_count', 'u_fade', 'u_cell_size'
 ]);
 
 const get_position_attribute = (program) => {
@@ -217,6 +294,19 @@ const render = () => {
 		gl.uniform1i(wave_uniforms.u_wave_sharp, wave_sharp);
 		gl.uniform1f(wave_uniforms.u_fade, fade_level);
 		gl.uniform1f(wave_uniforms.u_cell_size, cell_size);
+	} else if (current_mode === 'chase') {
+		gl.uniform1f(chase_uniforms.u_grid_x, grid_size_x);
+		gl.uniform1f(chase_uniforms.u_grid_y, grid_size_y);
+		gl.uniform3f(chase_uniforms.u_chase_color_1, chase_colors[0].r, chase_colors[0].g, chase_colors[0].b);
+		gl.uniform3f(chase_uniforms.u_chase_color_2, chase_colors[1].r, chase_colors[1].g, chase_colors[1].b);
+		gl.uniform3f(chase_uniforms.u_chase_color_3, chase_colors[2].r, chase_colors[2].g, chase_colors[2].b);
+		gl.uniform3f(chase_uniforms.u_chase_color_4, chase_colors[3].r, chase_colors[3].g, chase_colors[3].b);
+		gl.uniform1f(chase_uniforms.u_chase_time, (performance.now() - chase_start_time) / 1000.0);
+		gl.uniform1f(chase_uniforms.u_chase_duration, chase_duration / 1000.0);
+		gl.uniform1i(chase_uniforms.u_chase_smooth, chase_smooth);
+		gl.uniform1i(chase_uniforms.u_chase_count, chase_count);
+		gl.uniform1f(chase_uniforms.u_fade, fade_level);
+		gl.uniform1f(chase_uniforms.u_cell_size, cell_size);
 	}
 	
 	gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -281,6 +371,26 @@ events.subscribe('connected', () => {
 				fade_target_level = 1.0;
 				fade_duration = data.time || 1000;
 				is_fading = true;
+				break;
+
+			case 'chase':
+				current_mode = 'chase';
+				current_program = chase_program;
+				
+				if (data.colors && data.colors.length > 0) {
+					for (let i = 0; i < 4; i++) {
+						if (i < data.colors.length) {
+							chase_colors[i].r = data.colors[i].r / 255;
+							chase_colors[i].g = data.colors[i].g / 255;
+							chase_colors[i].b = data.colors[i].b / 255;
+						}
+					}
+					chase_count = Math.min(data.colors.length, 4);
+				}
+				
+				chase_duration = data.time || 1000;
+				chase_smooth = data.smooth || false;
+				chase_start_time = performance.now();
 				break;
 		}
 	});

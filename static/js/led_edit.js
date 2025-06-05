@@ -63,6 +63,20 @@ const send_layout_update = (fixture_name, grid_x, grid_y, cell_size) => {
 	});
 };
 
+const send_chase_update = (fixture_name, chase_config) => {
+	if (!fixture_name)
+		return;
+	
+	const colors = chase_config.colors.map(hex_to_rgb).filter(rgb => rgb !== null);
+	
+	events.publish(`led:update#${fixture_name}`, {
+		action: 'chase',
+		colors: colors,
+		time: chase_config.time,
+		smooth: chase_config.smooth
+	});
+};
+
 const state = createApp({
 	data() {
 		return {
@@ -81,6 +95,11 @@ const state = createApp({
 				grid_x: 5,
 				grid_y: 5,
 				cell_size: 0.4
+			},
+			chase: {
+				colors: ['#ff0000', '#00ff00'],
+				time: 1000,
+				smooth: false
 			}
 		}
 	},
@@ -105,11 +124,19 @@ const state = createApp({
 			}
 		},
 
+		on_chase_change() {
+			if (this.mode === 'chase') {
+				send_chase_update(this.fixture_name, this.chase);
+			}
+		},
+
 		send_current_update() {
 			if (this.mode === 'color') {
 				send_color_update(this.fixture_name, this.color);
 			} else if (this.mode === 'wave') {
 				send_wave_update(this.fixture_name, this.wave);
+			} else if (this.mode === 'chase') {
+				send_chase_update(this.fixture_name, this.chase);
 			}
 		},
 
@@ -123,6 +150,18 @@ const state = createApp({
 
 		on_layout_change() {
 			send_layout_update(this.fixture_name, this.layout.grid_x, this.layout.grid_y, this.layout.cell_size);
+		},
+
+		add_chase_color() {
+			this.chase.colors.push('#ffffff');
+			this.on_chase_change();
+		},
+
+		remove_chase_color(index) {
+			if (this.chase.colors.length > 1) {
+				this.chase.colors.splice(index, 1);
+				this.on_chase_change();
+			}
 		}
 	},
 	computed: {
@@ -132,8 +171,12 @@ const state = createApp({
 			
 			if (this.mode === 'color')
 				return `led.color('${this.color}');`;
+			else if (this.mode === 'wave')
+				return `led.wave('${this.wave.color_1}', '${this.wave.color_2}', ${this.wave.rotation}, ${this.wave.speed}, ${this.wave.sharp});`;
+			else if (this.mode === 'chase')
+				return `led.chase([${this.chase.colors.map(c => `'${c}'`).join(', ')}], ${this.chase.time}, ${this.chase.smooth});`;
 			
-			return `led.wave('${this.wave.color_1}', '${this.wave.color_2}', ${this.wave.rotation}, ${this.wave.speed}, ${this.wave.sharp});`;
+			return 'Enter fixture name to see API code';
 		},
 		layout_api_code() {
 			if (!this.fixture_name)
@@ -160,6 +203,7 @@ const state = createApp({
 				<select id="mode" v-model="mode" @change="on_mode_change">
 					<option value="color">Color</option>
 					<option value="wave">Wave</option>
+					<option value="chase">Chase</option>
 				</select>
 			</div>
 
@@ -271,6 +315,44 @@ const state = createApp({
 						>
 						Sharp transitions
 					</label>
+				</div>
+			</div>
+
+			<div v-if="mode === 'chase'" class="section chase_section">
+				<h3>Chase Settings</h3>
+				<div class="chase_control">
+					<label for="chase_time">Time (ms):</label>
+					<input 
+						type="number" 
+						id="chase_time"
+						v-model.number="chase.time"
+						@input="on_chase_change"
+						min="100"
+						step="100"
+					>
+				</div>
+				<div class="chase_control checkbox_control">
+					<label for="chase_smooth">
+						<input 
+							type="checkbox" 
+							id="chase_smooth"
+							v-model="chase.smooth" 
+							@change="on_chase_change"
+						>
+						Smooth transitions
+					</label>
+				</div>
+				<div class="chase_colors">
+					<h4>Colors</h4>
+					<div v-for="(color, index) in chase.colors" :key="index" class="chase_color_item">
+						<input 
+							type="color" 
+							v-model="chase.colors[index]"
+							@input="on_chase_change"
+						>
+						<button @click="remove_chase_color(index)" :disabled="chase.colors.length <= 1" class="remove_color">×</button>
+					</div>
+					<button @click="add_chase_color" class="add_color">Add Color</button>
 				</div>
 			</div>
 

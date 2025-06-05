@@ -435,6 +435,17 @@ class LEDProjectionInterface {
 		});
 	}
 
+	chase(colors: ColorInput[], time_ms: number, smooth: boolean = false) {
+		const rgb_colors = colors.map(color => Bun.color(color, '{rgb}'));
+		
+		ws_publish(this.event_name, {
+			action: 'chase',
+			colors: rgb_colors,
+			time: time_ms,
+			smooth: smooth
+		});
+	}
+
 	_send_layout() {
 		ws_publish(this.event_name, {
 			action: 'layout',
