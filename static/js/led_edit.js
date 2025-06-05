@@ -117,12 +117,52 @@ const send_voronoi_update = (fixture_name, voronoi_config) => {
 	}
 };
 
+const send_rings_update = (fixture_name, rings_config) => {
+	if (!fixture_name)
+		return;
+	
+	const color_1 = hex_to_rgb(rings_config.color_1);
+	const color_2 = hex_to_rgb(rings_config.color_2);
+	
+	if (color_1 && color_2) {
+		events.publish(`led:update#${fixture_name}`, {
+			action: 'rings',
+			color_1: color_1,
+			color_2: color_2,
+			speed: rings_config.speed,
+			direction: rings_config.direction,
+			threshold: rings_config.threshold
+		});
+	}
+};
+
+const send_rain_update = (fixture_name, rain_config) => {
+	if (!fixture_name)
+		return;
+
+	const color_1 = hex_to_rgb(rain_config.color_1);
+	const color_2 = hex_to_rgb(rain_config.color_2);
+
+	if (color_1 && color_2) {
+		events.publish(`led:update#${fixture_name}`, {
+			action: 'rain',
+			color_1: color_1,
+			color_2: color_2,
+			speed: rain_config.speed || 1.0,
+			direction_x: rain_config.direction_x || 1.0,
+			direction_y: rain_config.direction_y || 0.0,
+			columns: rain_config.columns || 10.0
+		});
+	}
+};
+
 const state = createApp({
 	data() {
 		return {
 			fixture_name: '',
 			mode: 'color',
 			color: '#ff0000',
+
 			wave: {
 				color_1: '#ff0000',
 				color_2: '#00ff00',
@@ -130,17 +170,21 @@ const state = createApp({
 				speed: 1.0,
 				sharp: false
 			},
+
 			fade_time: 1000,
+
 			layout: {
 				grid_x: 5,
 				grid_y: 5,
 				cell_size: 0.4
 			},
+
 			chase: {
 				colors: ['#ff0000', '#00ff00'],
 				time: 1000,
 				smooth: false
 			},
+
 			swirl: {
 				color_1: '#ff0000',
 				color_2: '#00ff00',
@@ -149,6 +193,7 @@ const state = createApp({
 				swirl_factor: 0.0,
 				clockwise: true
 			},
+
 			voronoi: {
 				color_1: '#ff0000',
 				color_2: '#00ff00',
@@ -156,6 +201,23 @@ const state = createApp({
 				speed: 1.0,
 				threshold: 0.5,
 				distance_mode: 'euclidean'
+			},
+
+			rings: {
+				color_1: '#ff0000',
+				color_2: '#00ff00',
+				speed: 1.0,
+				direction: true,
+				threshold: 0.5
+			},
+
+			rain: {
+				color_1: '#ff0000',
+				color_2: '#00ff00',
+				speed: 1.0,
+				direction_x: 1.0,
+				direction_y: 0.0,
+				columns: 10.0
 			}
 		}
 	},
@@ -169,33 +231,38 @@ const state = createApp({
 		},
 
 		on_color_change() {
-			if (this.mode === 'color') {
+			if (this.mode === 'color')
 				send_color_update(this.fixture_name, this.color);
-			}
 		},
 
 		on_wave_change() {
-			if (this.mode === 'wave') {
+			if (this.mode === 'wave')
 				send_wave_update(this.fixture_name, this.wave);
-			}
 		},
 
 		on_chase_change() {
-			if (this.mode === 'chase') {
+			if (this.mode === 'chase')
 				send_chase_update(this.fixture_name, this.chase);
-			}
 		},
 
 		on_swirl_change() {
-			if (this.mode === 'swirl') {
+			if (this.mode === 'swirl')
 				send_swirl_update(this.fixture_name, this.swirl);
-			}
 		},
 
 		on_voronoi_change() {
-			if (this.mode === 'voronoi') {
+			if (this.mode === 'voronoi')
 				send_voronoi_update(this.fixture_name, this.voronoi);
-			}
+		},
+
+		on_rings_change() {
+			if (this.mode === 'rings')
+				send_rings_update(this.fixture_name, this.rings);
+		},
+
+		on_rain_change() {
+			if (this.mode === 'rain')
+				send_rain_update(this.fixture_name, this.rain);
 		},
 
 		send_current_update() {
@@ -209,6 +276,10 @@ const state = createApp({
 				send_swirl_update(this.fixture_name, this.swirl);
 			} else if (this.mode === 'voronoi') {
 				send_voronoi_update(this.fixture_name, this.voronoi);
+			} else if (this.mode === 'rings') {
+				send_rings_update(this.fixture_name, this.rings);
+			} else if (this.mode === 'rain') {
+				send_rain_update(this.fixture_name, this.rain);
 			}
 		},
 
@@ -251,6 +322,10 @@ const state = createApp({
 				return `led.swirl('${this.swirl.color_1}', '${this.swirl.color_2}', ${this.swirl.threshold}, ${this.swirl.speed}, ${this.swirl.swirl_factor}, ${this.swirl.clockwise});`;
 			else if (this.mode === 'voronoi')
 				return `led.voronoi('${this.voronoi.color_1}', '${this.voronoi.color_2}', '${this.voronoi.direction}', ${this.voronoi.speed}, ${this.voronoi.threshold}, '${this.voronoi.distance_mode}');`;
+			else if (this.mode === 'rings')
+				return `led.rings('${this.rings.color_1}', '${this.rings.color_2}', ${this.rings.speed}, ${this.rings.direction}, ${this.rings.threshold});`;
+			else if (this.mode === 'rain')
+				return `led.rain('${this.rain.color_1}', '${this.rain.color_2}', ${this.rain.speed}, ${this.rain.direction_x}, ${this.rain.direction_y}, ${this.rain.columns});`;
 			
 			return 'Enter fixture name to see API code';
 		},
@@ -282,6 +357,8 @@ const state = createApp({
 					<option value="chase">Chase</option>
 					<option value="swirl">Swirl</option>
 					<option value="voronoi">Voronoi</option>
+					<option value="rings">Rings</option>
+					<option value="rain">Rain</option>
 				</select>
 			</div>
 
@@ -577,6 +654,139 @@ const state = createApp({
 						<option value="chebyshev">Chebyshev (Squares)</option>
 						<option value="minkowski">Minkowski (Stars)</option>
 					</select>
+				</div>
+			</div>
+
+			<div v-if="mode === 'rings'" class="section rings_section">
+				<h3>Rings Settings</h3>
+				<div class="rings_control">
+					<label for="rings_color_1">Color 1:</label>
+					<input 
+						type="color" 
+						id="rings_color_1"
+						v-model="rings.color_1" 
+						@input="on_rings_change"
+					>
+				</div>
+				<div class="rings_control">
+					<label for="rings_color_2">Color 2:</label>
+					<input 
+						type="color" 
+						id="rings_color_2"
+						v-model="rings.color_2" 
+						@input="on_rings_change"
+					>
+				</div>
+				<div class="rings_control">
+					<label for="rings_speed">Speed:</label>
+					<input 
+						type="range" 
+						id="rings_speed"
+						v-model.number="rings.speed"
+						@input="on_rings_change"
+						min="0"
+						max="5"
+						step="0.1"
+					>
+					<span class="value">{{ rings.speed.toFixed(1) }}</span>
+				</div>
+				<div class="rings_control checkbox_control">
+					<label for="rings_direction">
+						<input 
+							type="checkbox" 
+							id="rings_direction"
+							v-model="rings.direction" 
+							@change="on_rings_change"
+						>
+						Outward direction (unchecked = inward)
+					</label>
+				</div>
+				<div class="rings_control">
+					<label for="rings_threshold">Threshold:</label>
+					<input 
+						type="range" 
+						id="rings_threshold"
+						v-model.number="rings.threshold"
+						@input="on_rings_change"
+						min="0"
+						max="1"
+						step="0.01"
+					>
+					<span class="value">{{ rings.threshold.toFixed(2) }}</span>
+				</div>
+			</div>
+
+			<div v-if="mode === 'rain'" class="section rain_section">
+				<h3>Rain Settings</h3>
+				<div class="rain_control">
+					<label for="rain_color_1">Color 1:</label>
+					<input 
+						type="color" 
+						id="rain_color_1"
+						v-model="rain.color_1" 
+						@input="on_rain_change"
+					>
+				</div>
+				<div class="rain_control">
+					<label for="rain_color_2">Color 2:</label>
+					<input 
+						type="color" 
+						id="rain_color_2"
+						v-model="rain.color_2" 
+						@input="on_rain_change"
+					>
+				</div>
+				<div class="rain_control">
+					<label for="rain_speed">Speed:</label>
+					<input 
+						type="range" 
+						id="rain_speed"
+						v-model.number="rain.speed"
+						@input="on_rain_change"
+						min="0.1"
+						max="5.0"
+						step="0.1"
+					>
+					<span class="value">{{ rain.speed.toFixed(1) }}</span>
+				</div>
+				<div class="rain_control">
+					<label for="rain_direction_x">Direction X:</label>
+					<input 
+						type="range" 
+						id="rain_direction_x"
+						v-model.number="rain.direction_x"
+						@input="on_rain_change"
+						min="-5.0"
+						max="5.0"
+						step="0.1"
+					>
+					<span class="value">{{ rain.direction_x.toFixed(1) }}</span>
+				</div>
+				<div class="rain_control">
+					<label for="rain_direction_y">Direction Y:</label>
+					<input 
+						type="range" 
+						id="rain_direction_y"
+						v-model.number="rain.direction_y"
+						@input="on_rain_change"
+						min="-5.0"
+						max="5.0"
+						step="0.1"
+					>
+					<span class="value">{{ rain.direction_y.toFixed(1) }}</span>
+				</div>
+				<div class="rain_control">
+					<label for="columns">Columns:</label>
+					<input 
+						type="number" 
+						id="columns"
+						v-model.number="rain.columns"
+						@input="on_rain_change"
+						min="1"
+						max="100"
+						step="1"
+					>
+					<span class="value">{{ rain.columns }}</span>
 				</div>
 			</div>
 

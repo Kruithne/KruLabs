@@ -479,6 +479,34 @@ class LEDProjectionInterface {
 		});
 	}
 
+	rings(color_1: ColorInput, color_2: ColorInput, speed: number = 1.0, direction: boolean = true, threshold: number = 0.5) {
+		const rgb_1 = Bun.color(color_1, '{rgb}');
+		const rgb_2 = Bun.color(color_2, '{rgb}');
+		
+		ws_publish(this.event_name, {
+			action: 'rings',
+			color_1: rgb_1,
+			color_2: rgb_2,
+			speed: speed,
+			direction: direction,
+			threshold: threshold
+		});
+	}
+
+	rain(color_1: ColorInput, color_2: ColorInput, speed: number = 1.0, direction: Direction = 'Y+', columns: number = 3) {
+		const rgb_1 = Bun.color(color_1, '{rgb}');
+		const rgb_2 = Bun.color(color_2, '{rgb}');
+		
+		ws_publish(this.event_name, {
+			action: 'rain',
+			color_1: rgb_1,
+			color_2: rgb_2,
+			speed: speed,
+			direction: direction,
+			columns: columns
+		});
+	}
+
 	_send_layout() {
 		ws_publish(this.event_name, {
 			action: 'layout',

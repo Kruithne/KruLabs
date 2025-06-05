@@ -52,6 +52,21 @@ let voronoi_threshold = 0.5;
 let voronoi_distance_mode = 0; // 0=euclidean, 1=manhattan, 2=chebyshev, 3=minkowski
 let voronoi_start_time = performance.now();
 
+let rings_color_1 = { r: 1.0, g: 0.0, b: 0.0 };
+let rings_color_2 = { r: 0.0, g: 1.0, b: 0.0 };
+let rings_speed = 1.0;
+let rings_direction = true; // true = outward, false = inward
+let rings_threshold = 0.5;
+let rings_start_time = performance.now();
+
+let rain_color_1 = { r: 1.0, g: 0.0, b: 0.0 };
+let rain_color_2 = { r: 0.0, g: 1.0, b: 0.0 };
+let rain_speed = 1.0;
+let rain_direction_x = 0.0;
+let rain_direction_y = 1.0; // Default Y+ (down)
+let rain_columns = 3;
+let rain_start_time = performance.now();
+
 const vertex_shader_source = `
 	attribute vec2 a_position;
 	varying vec2 v_uv;
@@ -339,6 +354,128 @@ const voronoi_fragment_shader = `
 	}
 `;
 
+const rings_fragment_shader = `
+	precision mediump float;
+	
+	uniform float u_grid_x;
+	uniform float u_grid_y;
+	uniform vec3 u_rings_color_1;
+	uniform vec3 u_rings_color_2;
+	uniform float u_rings_speed;
+	uniform bool u_rings_direction;
+	uniform float u_rings_threshold;
+	uniform float u_time;
+	uniform float u_fade;
+	uniform float u_cell_size;
+	varying vec2 v_uv;
+	
+	void main() {
+		vec2 grid_uv = fract(v_uv * vec2(u_grid_x, u_grid_y));
+		vec2 center = vec2(0.5);
+		float dist = distance(grid_uv, center);
+		float circle = step(dist, u_cell_size);
+		
+		// Calculate position relative to LED center for the rings effect
+		vec2 grid_id = floor(v_uv * vec2(u_grid_x, u_grid_y));
+		vec2 led_center = (grid_id + 0.5) / vec2(u_grid_x, u_grid_y);
+		
+		// Calculate distance from center of entire grid
+		vec2 centered_uv = led_center - vec2(0.5);
+		float radius = length(centered_uv);
+		
+		// Create time-based offset for animation
+		float time_offset = u_time * u_rings_speed * 0.5;
+		
+		// Apply direction - inward vs outward
+		float animated_radius;
+		if (u_rings_direction) {
+			// Outward direction
+			animated_radius = radius - time_offset;
+		} else {
+			// Inward direction  
+			animated_radius = radius + time_offset;
+		}
+		
+		// Create sine wave pattern for rings
+		float wave_value = sin(animated_radius * 12.56637) * 0.5 + 0.5; // 12.56637 = 4*PI for ring frequency
+		
+		// Apply threshold for sharp cutoff
+		float mix_factor;
+		if (wave_value > u_rings_threshold) {
+			mix_factor = 1.0;
+		} else {
+			mix_factor = 0.0;
+		}
+		
+		vec3 final_color = mix(u_rings_color_1, u_rings_color_2, mix_factor);
+		
+		gl_FragColor = vec4(final_color * circle * u_fade, 1.0);
+	}
+`;
+
+const rain_fragment_shader = `
+	precision mediump float;
+	
+	uniform float u_grid_x;
+	uniform float u_grid_y;
+	uniform vec3 u_rain_color_1;
+	uniform vec3 u_rain_color_2;
+	uniform float u_rain_speed;
+	uniform float u_rain_direction_x;
+	uniform float u_rain_direction_y;
+	uniform float u_rain_columns;
+	uniform float u_time;
+	uniform float u_fade;
+	uniform float u_cell_size;
+	varying vec2 v_uv;
+	
+	// Hash function for pseudo-random numbers based on column
+	float hash(float n) {
+		return fract(sin(n * 12.9898) * 43758.5453123);
+	}
+	
+	void main() {
+		vec2 grid_uv = fract(v_uv * vec2(u_grid_x, u_grid_y));
+		vec2 center = vec2(0.5);
+		float dist = distance(grid_uv, center);
+		float circle = step(dist, u_cell_size);
+		
+		// Calculate position relative to LED center
+		vec2 grid_id = floor(v_uv * vec2(u_grid_x, u_grid_y));
+		vec2 led_center = (grid_id + 0.5) / vec2(u_grid_x, u_grid_y);
+		
+		// Determine primary and secondary axes based on direction
+		vec2 primary_axis = normalize(vec2(u_rain_direction_x, u_rain_direction_y));
+		vec2 secondary_axis = vec2(-primary_axis.y, primary_axis.x);
+		
+		// Project LED position onto axes
+		float primary_pos = dot(led_center, primary_axis);
+		float secondary_pos = dot(led_center, secondary_axis);
+		
+		// Create columns along the secondary axis
+		float column_width = 1.0 / u_rain_columns;
+		float column_id = floor(secondary_pos / column_width);
+		float column_local_pos = fract(secondary_pos / column_width);
+		
+		// Generate random offset for this column
+		float random_offset = hash(column_id) * 2.0;
+		
+		// Create scrolling effect along primary axis
+		float scroll_offset = u_time * u_rain_speed * 0.5;
+		float gradient_pos = primary_pos + scroll_offset + random_offset;
+		
+		// Create repeating linear gradient (sawtooth wave)
+		float gradient_value = fract(gradient_pos * 2.0); // 2.0 controls gradient frequency
+		
+		// Smooth the gradient transitions
+		gradient_value = smoothstep(0.0, 0.3, gradient_value) * (1.0 - smoothstep(0.7, 1.0, gradient_value));
+		
+		vec3 final_color = mix(u_rain_color_1, u_rain_color_2, gradient_value);
+		
+		gl_FragColor = vec4(final_color * circle * u_fade, 1.0);
+	}
+`;
+
 const create_shader = (type, source) => {
 	const shader = gl.createShader(type);
 	gl.shaderSource(shader, source);
@@ -375,6 +512,8 @@ const wave_program = create_program(wave_fragment_shader);
 const chase_program = create_program(chase_fragment_shader);
 const swirl_program = create_program(swirl_fragment_shader);
 const voronoi_program = create_program(voronoi_fragment_shader);
+const rings_program = create_program(rings_fragment_shader);
+const rain_program = create_program(rain_fragment_shader);
 
 let current_mode = 'solid';
 let current_program = solid_program;
@@ -409,6 +548,17 @@ const swirl_uniforms = get_uniform_locations(swirl_program, [
 const voronoi_uniforms = get_uniform_locations(voronoi_program, [
 	'u_grid_x', 'u_grid_y', 'u_voronoi_color_1', 'u_voronoi_color_2', 'u_voronoi_direction_x', 'u_voronoi_direction_y',
 	'u_voronoi_speed', 'u_voronoi_threshold', 'u_voronoi_distance_mode', 'u_time', 'u_fade', 'u_cell_size'
+]);
+
+const rings_uniforms = get_uniform_locations(rings_program, [
+	'u_grid_x', 'u_grid_y', 'u_rings_color_1', 'u_rings_color_2', 'u_rings_speed', 'u_rings_direction',
+	'u_rings_threshold', 'u_time', 'u_fade', 'u_cell_size'
+]);
+
+const rain_uniforms = get_uniform_locations(rain_program, [
+	'u_grid_x', 'u_grid_y', 'u_rain_color_1', 'u_rain_color_2', 
+	'u_rain_speed', 'u_rain_direction_x', 'u_rain_direction_y', 
+	'u_rain_columns', 'u_time', 'u_fade', 'u_cell_size'
 ]);
 
 const get_position_attribute = (program) => {
@@ -513,6 +663,29 @@ const render = () => {
 		gl.uniform1f(voronoi_uniforms.u_time, (performance.now() - voronoi_start_time) / 1000.0);
 		gl.uniform1f(voronoi_uniforms.u_fade, fade_level);
 		gl.uniform1f(voronoi_uniforms.u_cell_size, cell_size);
+	} else if (current_mode === 'rings') {
+		gl.uniform1f(rings_uniforms.u_grid_x, grid_size_x);
+		gl.uniform1f(rings_uniforms.u_grid_y, grid_size_y);
+		gl.uniform3f(rings_uniforms.u_rings_color_1, rings_color_1.r, rings_color_1.g, rings_color_1.b);
+		gl.uniform3f(rings_uniforms.u_rings_color_2, rings_color_2.r, rings_color_2.g, rings_color_2.b);
+		gl.uniform1f(rings_uniforms.u_rings_speed, rings_speed);
+		gl.uniform1i(rings_uniforms.u_rings_direction, rings_direction);
+		gl.uniform1f(rings_uniforms.u_rings_threshold, rings_threshold);
+		gl.uniform1f(rings_uniforms.u_time, (performance.now() - rings_start_time) / 1000.0);
+		gl.uniform1f(rings_uniforms.u_fade, fade_level);
+		gl.uniform1f(rings_uniforms.u_cell_size, cell_size);
+	} else if (current_mode === 'rain') {
+		gl.uniform1f(rain_uniforms.u_grid_x, grid_size_x);
+		gl.uniform1f(rain_uniforms.u_grid_y, grid_size_y);
+		gl.uniform3f(rain_uniforms.u_rain_color_1, rain_color_1.r, rain_color_1.g, rain_color_1.b);
+		gl.uniform3f(rain_uniforms.u_rain_color_2, rain_color_2.r, rain_color_2.g, rain_color_2.b);
+		gl.uniform1f(rain_uniforms.u_rain_speed, rain_speed);
+		gl.uniform1f(rain_uniforms.u_rain_direction_x, rain_direction_x);
+		gl.uniform1f(rain_uniforms.u_rain_direction_y, rain_direction_y);
+		gl.uniform1f(rain_uniforms.u_rain_columns, rain_columns);
+		gl.uniform1f(rain_uniforms.u_time, (performance.now() - rain_start_time) / 1000.0);
+		gl.uniform1f(rain_uniforms.u_fade, fade_level);
+		gl.uniform1f(rain_uniforms.u_cell_size, cell_size);
 	}
 	
 	gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -658,6 +831,41 @@ events.subscribe('connected', () => {
 				}
 				
 				voronoi_start_time = performance.now();
+				break;
+
+			case 'rings':
+				current_mode = 'rings';
+				current_program = rings_program;
+				
+				rings_color_1.r = data.color_1.r / 255;
+				rings_color_1.g = data.color_1.g / 255;
+				rings_color_1.b = data.color_1.b / 255;
+				rings_color_2.r = data.color_2.r / 255;
+				rings_color_2.g = data.color_2.g / 255;
+				rings_color_2.b = data.color_2.b / 255;
+				
+				rings_speed = data.speed || 1.0;
+				rings_direction = data.direction !== undefined ? data.direction : true;
+				rings_threshold = data.threshold || 0.5;
+				rings_start_time = performance.now();
+				break;
+
+			case 'rain':
+				current_mode = 'rain';
+				current_program = rain_program;
+				
+				rain_color_1.r = data.color_1.r / 255;
+				rain_color_1.g = data.color_1.g / 255;
+				rain_color_1.b = data.color_1.b / 255;
+				rain_color_2.r = data.color_2.r / 255;
+				rain_color_2.g = data.color_2.g / 255;
+				rain_color_2.b = data.color_2.b / 255;
+				
+				rain_speed = data.speed || 1.0;
+				rain_direction_x = data.direction_x || 1.0;
+				rain_direction_y = data.direction_y || 0.0;
+				rain_columns = data.columns || 10.0;
+				rain_start_time = performance.now();
 				break;
 		}
 	});
