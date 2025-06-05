@@ -1554,10 +1554,14 @@ function osc_create_message(address: string, args: any[] = []): Uint8Array {
 	// Build type tag string
 	let type_tag = ',';
 	for (const arg of args) {
-		if (typeof arg === 'number')
-			type_tag += 'i';
-		else if (typeof arg === 'string')
+		if (typeof arg === 'number') {
+			if (Number.isInteger(arg))
+				type_tag += 'i';
+			else
+				type_tag += 'f';
+		} else if (typeof arg === 'string') {
 			type_tag += 's';
+		}
 	}
 	
 	// Encode address and type tag
