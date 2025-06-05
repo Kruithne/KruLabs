@@ -43,6 +43,7 @@ etc.on_cue(5, () => {
 ```ts
 etc.intensity(50, 100); // Chan 50 @ 100
 etc.color(50, 'red'); // see 🎨 Colour section
+etc.param(50, 'fog', 100); // Chan 50 Fog @ 100
 ```
 
 #### Direct OSC
