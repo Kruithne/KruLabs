@@ -416,6 +416,20 @@ class LEDProjectionInterface {
 		});
 	}
 
+	fade_out(time_ms: number) {
+		ws_publish(this.event_name, {
+			action: 'fade_out',
+			time: time_ms
+		});
+	}
+
+	fade_in(time_ms: number) {
+		ws_publish(this.event_name, {
+			action: 'fade_in',
+			time: time_ms
+		});
+	}
+
 	_send_layout() {
 		ws_publish(this.event_name, {
 			action: 'layout',

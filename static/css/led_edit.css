@@ -34,7 +34,7 @@ label {
 	color: #cccccc;
 }
 
-input[type="text"], select {
+input[type="text"], select, input[type="number"] {
 	width: 100%;
 	padding: 10px 12px;
 	border: 1px solid #444444;
@@ -45,7 +45,7 @@ input[type="text"], select {
 	box-sizing: border-box;
 }
 
-input[type="text"]:focus, select:focus {
+input[type="text"]:focus, select:focus, input[type="number"]:focus {
 	outline: none;
 	border-color: #007acc;
 	box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
@@ -160,4 +160,39 @@ input[type="range"]::-webkit-slider-thumb {
 	color: #00d4aa;
 	word-break: break-all;
 	overflow-wrap: break-word;
+}
+
+.fade_section {
+	background-color: #333333;
+	border-radius: 6px;
+	padding: 16px;
+}
+
+.fade_section input[type="number"] {
+	width: 120px;
+	margin-right: 12px;
+	display: inline-block;
+}
+
+.fade_section button {
+	padding: 8px 16px;
+	border: 1px solid #007acc;
+	border-radius: 4px;
+	background-color: #007acc;
+	color: #ffffff;
+	font-size: 14px;
+	cursor: pointer;
+	margin-right: 8px;
+}
+
+.fade_section button:hover:not(:disabled) {
+	background-color: #005a99;
+	border-color: #005a99;
+}
+
+.fade_section button:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+	background-color: #444444;
+	border-color: #444444;
 }

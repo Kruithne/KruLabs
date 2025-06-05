@@ -40,6 +40,15 @@ const send_wave_update = (fixture_name, wave_config) => {
 	}
 };
 
+const send_fade_update = (fixture_name, action, time_ms) => {
+	if (!fixture_name) return;
+	
+	events.publish(`led:update#${fixture_name}`, {
+		action: action,
+		time: time_ms
+	});
+};
+
 const state = createApp({
 	data() {
 		return {
@@ -52,7 +61,8 @@ const state = createApp({
 				rotation: 0,
 				speed: 1.0,
 				sharp: false
-			}
+			},
+			fade_time: 1000
 		}
 	},
 	methods: {
@@ -78,6 +88,12 @@ const state = createApp({
 			} else if (this.mode === 'wave') {
 				send_wave_update(this.fixture_name, this.wave);
 			}
+		},
+		fade_out() {
+			send_fade_update(this.fixture_name, 'fade_out', this.fade_time);
+		},
+		fade_in() {
+			send_fade_update(this.fixture_name, 'fade_in', this.fade_time);
 		}
 	},
 	computed: {
@@ -182,6 +198,19 @@ const state = createApp({
 						Sharp transitions
 					</label>
 				</div>
+			</div>
+
+			<div class="section fade_section">
+				<label for="fade_time">Fade Time (ms):</label>
+				<input 
+					type="number" 
+					id="fade_time"
+					v-model.number="fade_time"
+					min="0"
+					step="100"
+				>
+				<button @click="fade_out" :disabled="!fixture_name">Fade Out</button>
+				<button @click="fade_in" :disabled="!fixture_name">Fade In</button>
 			</div>
 
 			<div class="section api_section">
