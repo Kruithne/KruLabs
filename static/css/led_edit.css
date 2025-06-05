@@ -196,3 +196,50 @@ input[type="range"]::-webkit-slider-thumb {
 	background-color: #444444;
 	border-color: #444444;
 }
+
+.layout_section {
+	background-color: #333333;
+	border-radius: 6px;
+	padding: 16px;
+}
+
+.layout_section h3 {
+	margin: 0 0 12px 0;
+	color: #ffffff;
+	font-size: 14px;
+	font-weight: 500;
+}
+
+.layout_control {
+	display: flex;
+	align-items: center;
+	margin-bottom: 12px;
+	gap: 12px;
+}
+
+.layout_control:last-child {
+	margin-bottom: 0;
+}
+
+.layout_control label {
+	margin: 0;
+	min-width: 80px;
+	font-size: 13px;
+}
+
+.layout_control input[type="number"] {
+	width: 80px;
+	margin: 0;
+}
+
+.layout_control input[type="range"] {
+	flex: 1;
+	margin: 0;
+}
+
+.layout_control .value {
+	min-width: 50px;
+	text-align: right;
+	font-size: 13px;
+	color: #999999;
+}

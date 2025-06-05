@@ -51,6 +51,18 @@ const send_fade_update = (fixture_name, action, time_ms) => {
 	});
 };
 
+const send_layout_update = (fixture_name, grid_x, grid_y, cell_size) => {
+	if (!fixture_name)
+		return;
+	
+	events.publish(`led:update#${fixture_name}`, {
+		action: 'layout',
+		size_x: grid_x,
+		size_y: grid_y,
+		cell_size: cell_size
+	});
+};
+
 const state = createApp({
 	data() {
 		return {
@@ -64,7 +76,12 @@ const state = createApp({
 				speed: 1.0,
 				sharp: false
 			},
-			fade_time: 1000
+			fade_time: 1000,
+			layout: {
+				grid_x: 5,
+				grid_y: 5,
+				cell_size: 0.4
+			}
 		}
 	},
 	methods: {
@@ -102,6 +119,10 @@ const state = createApp({
 
 		fade_in() {
 			send_fade_update(this.fixture_name, 'fade_in', this.fade_time);
+		},
+
+		on_layout_change() {
+			send_layout_update(this.fixture_name, this.layout.grid_x, this.layout.grid_y, this.layout.cell_size);
 		}
 	},
 	computed: {
@@ -113,6 +134,12 @@ const state = createApp({
 				return `led.color('${this.color}');`;
 			
 			return `led.wave('${this.wave.color_1}', '${this.wave.color_2}', ${this.wave.rotation}, ${this.wave.speed}, ${this.wave.sharp});`;
+		},
+		layout_api_code() {
+			if (!this.fixture_name)
+				return 'Enter fixture name to see API code';
+			
+			return `led.layout(${this.layout.grid_x}, ${this.layout.grid_y}, ${this.layout.cell_size});`;
 		}
 	},
 	template: `
@@ -134,6 +161,45 @@ const state = createApp({
 					<option value="color">Color</option>
 					<option value="wave">Wave</option>
 				</select>
+			</div>
+
+			<div class="section layout_section">
+				<h3>Layout Settings</h3>
+				<div class="layout_control">
+					<label for="grid_x">Grid X:</label>
+					<input 
+						type="number" 
+						id="grid_x"
+						v-model.number="layout.grid_x"
+						@input="on_layout_change"
+						min="1"
+						max="50"
+					>
+				</div>
+				<div class="layout_control">
+					<label for="grid_y">Grid Y:</label>
+					<input 
+						type="number" 
+						id="grid_y"
+						v-model.number="layout.grid_y"
+						@input="on_layout_change"
+						min="1"
+						max="50"
+					>
+				</div>
+				<div class="layout_control">
+					<label for="cell_size">Cell Size:</label>
+					<input 
+						type="range" 
+						id="cell_size"
+						v-model.number="layout.cell_size"
+						@input="on_layout_change"
+						min="0.1"
+						max="1"
+						step="0.01"
+					>
+					<span class="value">{{ layout.cell_size.toFixed(2) }}</span>
+				</div>
 			</div>
 
 			<div v-if="mode === 'color'" class="section color_section">
@@ -224,6 +290,8 @@ const state = createApp({
 			<div class="section api_section">
 				<label>Server API:</label>
 				<div class="api_code">{{ api_code }}</div>
+				<label>Layout API:</label>
+				<div class="api_code">{{ layout_api_code }}</div>
 			</div>
 		</div>
 	`

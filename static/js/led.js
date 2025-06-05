@@ -9,6 +9,7 @@ const gl = canvas.getContext('webgl');
 let color = { r: 1.0, g: 0.0, b: 0.0 };
 let grid_size_x = 5;
 let grid_size_y = 5;
+let cell_size = 0.4;
 let wave_color_1 = { r: 1.0, g: 0.0, b: 0.0 };
 let wave_color_2 = { r: 0.0, g: 1.0, b: 0.0 };
 let wave_rotation = 0.0;
@@ -40,13 +41,14 @@ const solid_fragment_shader = `
 	uniform float u_grid_x;
 	uniform float u_grid_y;
 	uniform float u_fade;
+	uniform float u_cell_size;
 	varying vec2 v_uv;
 	
 	void main() {
 		vec2 grid_uv = fract(v_uv * vec2(u_grid_x, u_grid_y));
 		vec2 center = vec2(0.5);
 		float dist = distance(grid_uv, center);
-		float circle = step(dist, 0.4);
+		float circle = step(dist, u_cell_size);
 		
 		gl_FragColor = vec4(u_color * circle * u_fade, 1.0);
 	}
@@ -64,13 +66,14 @@ const wave_fragment_shader = `
 	uniform float u_wave_speed;
 	uniform bool u_wave_sharp;
 	uniform float u_fade;
+	uniform float u_cell_size;
 	varying vec2 v_uv;
 	
 	void main() {
 		vec2 grid_uv = fract(v_uv * vec2(u_grid_x, u_grid_y));
 		vec2 center = vec2(0.5);
 		float dist = distance(grid_uv, center);
-		float circle = step(dist, 0.4);
+		float circle = step(dist, u_cell_size);
 		
 		vec2 grid_id = floor(v_uv * vec2(u_grid_x, u_grid_y));
 		vec2 led_center = (grid_id + 0.5) / vec2(u_grid_x, u_grid_y);
@@ -142,12 +145,12 @@ const get_uniform_locations = (program, uniforms) => {
 };
 
 const solid_uniforms = get_uniform_locations(solid_program, [
-	'u_color', 'u_grid_x', 'u_grid_y', 'u_fade'
+	'u_color', 'u_grid_x', 'u_grid_y', 'u_fade', 'u_cell_size'
 ]);
 
 const wave_uniforms = get_uniform_locations(wave_program, [
 	'u_grid_x', 'u_grid_y', 'u_wave_color_1', 'u_wave_color_2', 
-	'u_wave_rotation', 'u_time', 'u_wave_speed', 'u_wave_sharp', 'u_fade'
+	'u_wave_rotation', 'u_time', 'u_wave_speed', 'u_wave_sharp', 'u_fade', 'u_cell_size'
 ]);
 
 const get_position_attribute = (program) => {
@@ -202,6 +205,7 @@ const render = () => {
 		gl.uniform1f(solid_uniforms.u_grid_x, grid_size_x);
 		gl.uniform1f(solid_uniforms.u_grid_y, grid_size_y);
 		gl.uniform1f(solid_uniforms.u_fade, fade_level);
+		gl.uniform1f(solid_uniforms.u_cell_size, cell_size);
 	} else if (current_mode === 'wave') {
 		gl.uniform1f(wave_uniforms.u_grid_x, grid_size_x);
 		gl.uniform1f(wave_uniforms.u_grid_y, grid_size_y);
@@ -212,6 +216,7 @@ const render = () => {
 		gl.uniform1f(wave_uniforms.u_wave_speed, wave_speed);
 		gl.uniform1i(wave_uniforms.u_wave_sharp, wave_sharp);
 		gl.uniform1f(wave_uniforms.u_fade, fade_level);
+		gl.uniform1f(wave_uniforms.u_cell_size, cell_size);
 	}
 	
 	gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -242,6 +247,9 @@ events.subscribe('connected', () => {
 			case 'layout':
 				grid_size_x = data.size_x;
 				grid_size_y = data.size_y;
+				if (data.cell_size !== undefined) {
+					cell_size = data.cell_size;
+				}
 				break;
 
 			case 'wave':

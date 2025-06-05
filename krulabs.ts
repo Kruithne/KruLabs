@@ -381,6 +381,7 @@ class LEDProjectionInterface {
 
 	size_x: number;
 	size_y: number;
+	cell_size: number;
 
 	constructor(name: string) {
 		this.name = name;
@@ -388,6 +389,7 @@ class LEDProjectionInterface {
 
 		this.size_x = 5;
 		this.size_y = 5;
+		this.cell_size = 0.4;
 	}
 
 	color(color: ColorInput) {
@@ -395,9 +397,12 @@ class LEDProjectionInterface {
 		ws_publish(this.event_name, { action: 'color', color: rgb });
 	}
 
-	layout(size_x: number, size_y: number) {
+	layout(size_x: number, size_y: number, cell_size?: number) {
 		this.size_x = size_x;
 		this.size_y = size_y;
+		if (cell_size !== undefined) {
+			this.cell_size = cell_size;
+		}
 
 		this._send_layout();
 	}
@@ -434,7 +439,8 @@ class LEDProjectionInterface {
 		ws_publish(this.event_name, {
 			action: 'layout',
 			size_x: this.size_x,
-			size_y: this.size_y
+			size_y: this.size_y,
+			cell_size: this.cell_size
 		});
 	}
 }
