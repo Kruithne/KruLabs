@@ -98,7 +98,8 @@ const vlc = await connect_vlc('password', 8080);
 
 #### API
 ```ts
-vlc.toggle_playback();
+vlc.resume();
+vlc.pause();
 vlc.volume(50); // 50%
 
 await vlc.fade(

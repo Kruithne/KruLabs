@@ -630,8 +630,12 @@ class VLCInterface {
 		});
 	}
 
-	toggle_playback() {
-		this.command('pl_pause');
+	pause() {
+		this.command('pl_forcepause');
+	}
+
+	resume() {
+		this.command('pl_forceresume');
 	}
 
 	volume(pct: number) {
