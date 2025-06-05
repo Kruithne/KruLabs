@@ -45,6 +45,13 @@ etc.intensity(50, 100); // Chan 50 @ 100
 etc.color(50, 'red'); // see 🎨 Colour section
 ```
 
+#### Direct OSC
+
+```ts
+etc._send_command('/chan/50/param/pan/tilt', 45, 90);
+// see: https://www.etcconnect.com/WorkArea/DownloadAsset.aspx?id=10737502837
+```
+
 ### 🎬 OBS Integration
 
 ```ts
@@ -100,6 +107,9 @@ await vlc.fade(
 	10000, // duration ms
 	20 // steps
 );
+
+vlc.command('pl_next'); // send direct commands
+// see: https://github.com/videolan/vlc/blob/master/share/lua/http/requests/README.txt
 ```
 
 ### 🎨 Colour
