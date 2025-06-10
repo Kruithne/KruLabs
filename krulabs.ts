@@ -493,7 +493,7 @@ class LEDProjectionInterface {
 		});
 	}
 
-	rain(color_1: ColorInput, color_2: ColorInput, speed: number = 1.0, direction: Direction = 'Y+', columns: number = 3) {
+	rain(color_1: ColorInput, color_2: ColorInput, speed: number = 1.0, direction_x: number, direction_y: number, columns: number = 3) {
 		const rgb_1 = Bun.color(color_1, '{rgb}');
 		const rgb_2 = Bun.color(color_2, '{rgb}');
 		
@@ -502,7 +502,8 @@ class LEDProjectionInterface {
 			color_1: rgb_1,
 			color_2: rgb_2,
 			speed: speed,
-			direction: direction,
+			direction_x: direction_x,
+			direction_y: direction_y,
 			columns: columns
 		});
 	}
