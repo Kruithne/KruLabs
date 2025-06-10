@@ -1,5 +1,5 @@
 import { createHash } from 'crypto';
-import { BunFile, ColorInput, ServerWebSocket, TCPSocket } from 'bun';
+import { ColorInput, ServerWebSocket, TCPSocket } from 'bun';
 import os from 'node:os';
 import path from 'node:path';
 
