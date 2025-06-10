@@ -169,6 +169,15 @@ function validate_number(num: any, key: string): number {
 // endregion
 
 // region utility
+export async function track(events: Array<() => void>, interval: number): Promise<void> {
+	for (let i = 0, n = events.length; i < n; i++) {
+		events[i]();
+
+		if (i < n - 1)
+			await Bun.sleep(interval);
+	}
+}
+
 export function timespan(span: string): number {
 	const clean_span = span.toLowerCase().replace(/[^\d.smh:]/g, ' ').trim();
 	

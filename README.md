@@ -273,9 +273,23 @@ events.subscribe('connected', () => {
 ```
 
 
-### 🛠️ Utility
+## 🛠️ Utility
 
-#### Timespan
+### Track
+
+Fires a series of callbacks sequentially with a specified delay between each.
+
+```ts
+await track([
+	() => console.log('One'),
+	() => console.log('Two'),
+	() => console.log('Three')
+], 500);
+
+// One -> 500ms -> Two -> 500ms -> Three -> resolves
+```
+
+### Timespan
 
 Returns the given time string in milliseconds, useful for quickly mapping cues using different time formats.
 
