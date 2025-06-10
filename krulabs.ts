@@ -1920,9 +1920,12 @@ class ETCConnection {
 			return;
 		}
 
-		this.param(channel, 'red', Math.round((rgb.r / 255) * 100), group);
-		this.param(channel, 'green', Math.round((rgb.g / 255) * 100), group);
-		this.param(channel, 'blue', Math.round((rgb.b / 255) * 100), group);
+		this.command(
+			`/${group ? 'group' : 'chan'}/${channel}/param/red/green/blue`,
+			Math.round((rgb.r / 255) * 100),
+			Math.round((rgb.g / 255) * 100),
+			Math.round((rgb.b / 255) * 100)
+		);
 	}
 
 	param(channel: number, param: string, value: any, group = false) {
