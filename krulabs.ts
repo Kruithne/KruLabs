@@ -1904,20 +1904,20 @@ class ETCConnection {
 		this.command(`/chan/${channel}/at`, intensity);
 	}
 
-	color(channel: number, color: ColorInput) {
+	color(channel: number, color: ColorInput, group = false) {
 		const rgb = Bun.color(color, '{rgb}');
 		if (!rgb) {
 			warn(`invalid color input: ${color}`);
 			return;
 		}
 
-		this.param(channel, 'red', Math.round((rgb.r / 255) * 100));
-		this.param(channel, 'green', Math.round((rgb.g / 255) * 100));
-		this.param(channel, 'blue', Math.round((rgb.b / 255) * 100));
+		this.param(channel, 'red', Math.round((rgb.r / 255) * 100), group);
+		this.param(channel, 'green', Math.round((rgb.g / 255) * 100), group);
+		this.param(channel, 'blue', Math.round((rgb.b / 255) * 100), group);
 	}
 
-	param(channel: number, param: string, value: any) {
-		this.command(`/chan/${channel}/param/${param}`, value);
+	param(channel: number, param: string, value: any, group = false) {
+		this.command(`/${group ? 'group' : 'chan'}/${channel}/param/${param}`, value);
 	}
 	
 	on_cue(cue_number: number, callback: Function) {
