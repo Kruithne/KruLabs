@@ -13,10 +13,8 @@
 				<div
 					class="button"
 					v-for="button of buttons"
-					@mousedown="press(button)"
-					@mouseup="release()"
-					@touchstart="press(button)"
-					@touchend="release()"
+					@pointerdown="press(button)"
+  					@pointerup="release()"
 					:style="{ backgroundColor: button.bg_color, borderColor: button.border_color }"
 					:class="{ active: active_button == button }"
 				>{{ button.label }}</div>
