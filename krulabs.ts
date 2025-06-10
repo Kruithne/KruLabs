@@ -1896,11 +1896,8 @@ class ETCConnection {
 		this.command(`cue/${this.cue_list}/${cue_number}/fire`);
 	}
 
-	record_cue(cue_number: number, label: string = '') {
-		this.command(`/cue/${this.cue_list}/record`, cue_number);
-		
-		if (label && label.length > 0)
-			this.command(`/cue/${this.cue_list}/label`, cue_number, label);
+	record_cue(cue_number: number, label: string) {
+		this.command(`/cmd`, `Record Cue ${cue_number} Label ${label} Enter`);
 	}
 
 	intensity(channel: number, intensity: number) {
